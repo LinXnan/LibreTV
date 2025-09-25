@@ -2,7 +2,13 @@ const CUSTOMER_SITES = {
     qiqi: {
         api: 'https://www.qiqidys.com/api.php/provide/vod',
         name: '七七资源',
+    },
+    zuida: {
+      api: 'http://zuidazy.me/api.php/provide/vod',
+      name: '最大资源',
     }
+
+
 };
 
 // 调用全局方法合并
