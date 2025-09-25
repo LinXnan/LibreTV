@@ -15,34 +15,6 @@ const CUSTOMER_SITES = {
 		api: 'http://m3u8.apiyhzy.com/api.php/provide/vod',
 		name: '樱花资源',
 	},
-	jinyingziyuan: {
-		api: 'https://jyzyapi.com/provide/vod/from/jinyingm3u8',
-		name: '金鹰资源',
-	},
-	wangwangduanju: {
-		api: 'https://wwzy.tv/api.php/provide/vod',
-		name: '旺旺短剧',
-	},
-	360ziyuau: {
-		api: 'https://360zy.com/api.php/provide/vod',
-		name: '360资源',
-	},
-	tianyiziyuan: {
-		api: 'https://www.911ysw.top/tianyi.php/provide/vod',
-		name: '天翼资源',
-	},
-	feifanziyuan: {
-		api: 'http://cj.ffzyapi.com/api.php/provide/vod/at/xml',
-		name: '非凡资源',
-	},
-	aiqiyiziyuan: {
-		api: 'https://iqiyizyapi.com/api.php/provide/vod',
-		name: '爱奇艺资源',
-	},
-	piaolingyingyuan: {
-		api: 'https://p2100.net/api.php/provide/vod',
-		name: '飘零影院',
-	},
 	jisuziyuan: {
 		api: 'https://jszyapi.com/api.php/provide/vod/at/json',
 		name: '极速资源',
