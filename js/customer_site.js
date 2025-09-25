@@ -25,7 +25,7 @@ const CUSTOMER_SITES = {
   },
   wangwangduanju:{
     name: '旺旺短剧',
-    api: 'https://wwzy.tv/api.php/provide/vod'
+    api: 'https://wwzy.tv/api.php/provide/vod',
   },
   360ziyuau:{
     name: '360资源',
@@ -45,7 +45,7 @@ const CUSTOMER_SITES = {
   },
   piaolingyingyuan:{
     name: '飘零影院',
-    api: 'https://p2100.net/api.php/provide/vod'
+    api: 'https://p2100.net/api.php/provide/vod',
   },
   jisuziyuan:{
     name: '极速资源',
