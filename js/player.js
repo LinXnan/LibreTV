@@ -261,20 +261,39 @@ function initializePageContent() {
         }
     });
 
-    // 视频暂停时也保存
+    // 优化10: 智能进度保存 - 使用节流避免频繁写入
     const waitForVideo = setInterval(() => {
         if (art && art.video) {
-            art.video.addEventListener('pause', saveCurrentProgress);
+            let lastSaveTime = 0;
+            let lastSavedPosition = 0;
+            const SAVE_INTERVAL = 10000; // 10秒间隔
+            const POSITION_THRESHOLD = 5; // 位置变化超过5秒才保存
 
-            // 新增：播放进度变化时节流保存
-            let lastSave = 0;
-            art.video.addEventListener('timeupdate', function() {
+            // 节流保存函数
+            const throttledSave = function() {
                 const now = Date.now();
-                if (now - lastSave > 5000) { // 每5秒最多保存一次
+                const currentPosition = art.video.currentTime;
+
+                // 只在满足以下条件时保存：
+                // 1. 距离上次保存超过10秒
+                // 2. 播放位置变化超过5秒
+                if (now - lastSaveTime > SAVE_INTERVAL &&
+                    Math.abs(currentPosition - lastSavedPosition) > POSITION_THRESHOLD) {
                     saveCurrentProgress();
-                    lastSave = now;
+                    lastSaveTime = now;
+                    lastSavedPosition = currentPosition;
                 }
+            };
+
+            // 视频暂停时立即保存
+            art.video.addEventListener('pause', function() {
+                saveCurrentProgress();
+                lastSaveTime = Date.now();
+                lastSavedPosition = art.video.currentTime;
             });
+
+            // 播放进度变化时节流保存
+            art.video.addEventListener('timeupdate', throttledSave);
 
             clearInterval(waitForVideo);
         }
@@ -408,32 +427,43 @@ function initPlayer(videoUrl) {
         art = null;
     }
 
-    // 配置HLS.js选项
+    // 配置HLS.js选项 - 激进优化版本
     const hlsConfig = {
         debug: false,
         loader: adFilteringEnabled ? CustomHlsJsLoader : Hls.DefaultConfig.loader,
         enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 90,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        maxBufferSize: 30 * 1000 * 1000,
-        maxBufferHole: 0.5,
+
+        // 优化1: 启用低延迟模式
+        lowLatencyMode: true,
+
+        // 优化2: 优化缓冲参数 - 减少后台缓冲，增加前向缓冲
+        backBufferLength: 30,           // 后台缓冲 90→30秒
+        maxBufferLength: 60,            // 前向缓冲 30→60秒
+        maxMaxBufferLength: 120,        // 最大缓冲 60→120秒
+        maxBufferSize: 60 * 1000 * 1000, // 缓冲大小 30MB→60MB
+
+        // 优化3: 减少缓冲洞，提高流畅度
+        maxBufferHole: 0.3,             // 缓冲洞 0.5→0.3秒
+
+        // 优化4: 减少重试延迟
         fragLoadingMaxRetry: 6,
         fragLoadingMaxRetryTimeout: 64000,
-        fragLoadingRetryDelay: 1000,
+        fragLoadingRetryDelay: 500,     // 重试延迟 1000→500ms
         manifestLoadingMaxRetry: 3,
-        manifestLoadingRetryDelay: 1000,
+        manifestLoadingRetryDelay: 500,  // 重试延迟 1000→500ms
         levelLoadingMaxRetry: 4,
-        levelLoadingRetryDelay: 1000,
+        levelLoadingRetryDelay: 500,     // 重试延迟 1000→500ms
+
+        // 优化5: 优化ABR自适应码率 - 更激进的带宽策略
         startLevel: -1,
         abrEwmaDefaultEstimate: 500000,
-        abrBandWidthFactor: 0.95,
-        abrBandWidthUpFactor: 0.7,
+        abrBandWidthFactor: 0.8,        // 带宽因子 0.95→0.8（更激进）
+        abrBandWidthUpFactor: 0.6,      // 升级因子 0.7→0.6（更容易升级）
         abrMaxWithRealBitrate: true,
+
         stretchShortVideoTrack: true,
-        appendErrorMaxRetry: 5,  // 增加尝试次数
-        liveSyncDurationCount: 3,
+        appendErrorMaxRetry: 5,
+        liveSyncDurationCount: 2,       // 同步数量 3→2
         liveDurationInfinity: false
     };
 
@@ -470,6 +500,9 @@ function initPlayer(videoUrl) {
         lang: navigator.language.toLowerCase(),
         moreVideoAttr: {
             crossOrigin: 'anonymous',
+            preload: 'auto',  // 优化6: 自动预加载视频
+            // 优化8: 启用硬件加速
+            style: 'transform: translateZ(0); will-change: transform;'
         },
         customType: {
             m3u8: function (video, url) {
@@ -493,6 +526,10 @@ function initPlayer(videoUrl) {
                 let playbackStarted = false;
                 // 跟踪视频是否出现bufferAppendError
                 let bufferAppendErrorCount = 0;
+                // 优化9: 智能错误恢复 - 记录恢复尝试次数
+                let networkRecoverCount = 0;
+                let mediaRecoverCount = 0;
+                const MAX_RECOVER_ATTEMPTS = 3;
 
                 // 监听视频播放事件
                 video.addEventListener('playing', function () {
@@ -549,19 +586,43 @@ function initPlayer(videoUrl) {
                         }
                     }
 
-                    // 如果是致命错误，且视频未播放
+                    // 优化9: 改进错误恢复机制 - 智能降级和重试
                     if (data.fatal && !playbackStarted) {
-                        // 尝试恢复错误
                         switch (data.type) {
                             case Hls.ErrorTypes.NETWORK_ERROR:
-                                hls.startLoad();
+                                // 网络错误：智能重试
+                                if (networkRecoverCount < MAX_RECOVER_ATTEMPTS) {
+                                    networkRecoverCount++;
+                                    console.log(`网络错误恢复尝试 ${networkRecoverCount}/${MAX_RECOVER_ATTEMPTS}`);
+                                    // 延迟重试，避免立即重试
+                                    setTimeout(() => {
+                                        hls.startLoad();
+                                    }, 500 * networkRecoverCount); // 递增延迟
+                                } else {
+                                    if (!errorDisplayed) {
+                                        errorDisplayed = true;
+                                        showError('网络连接失败，请检查网络或更换片源');
+                                    }
+                                }
                                 break;
+
                             case Hls.ErrorTypes.MEDIA_ERROR:
-                                hls.recoverMediaError();
+                                // 媒体错误：尝试恢复
+                                if (mediaRecoverCount < MAX_RECOVER_ATTEMPTS) {
+                                    mediaRecoverCount++;
+                                    console.log(`媒体错误恢复尝试 ${mediaRecoverCount}/${MAX_RECOVER_ATTEMPTS}`);
+                                    hls.recoverMediaError();
+                                } else {
+                                    if (!errorDisplayed) {
+                                        errorDisplayed = true;
+                                        showError('视频格式不兼容，请更换片源');
+                                    }
+                                }
                                 break;
+
                             default:
-                                // 仅在多次恢复尝试后显示错误
-                                if (errorCount > 3 && !errorDisplayed) {
+                                // 其他错误：显示错误提示
+                                if (errorCount > 2 && !errorDisplayed) {
                                     errorDisplayed = true;
                                     showError('视频加载失败，可能是格式不兼容或源不可用');
                                 }
@@ -578,6 +639,59 @@ function initPlayer(videoUrl) {
                 // 监听级别加载事件
                 hls.on(Hls.Events.LEVEL_LOADED, function () {
                     document.getElementById('player-loading').style.display = 'none';
+                });
+
+                // 优化11: 智能画质调整 - 根据缓冲情况自动调整画质
+                let bufferStallCount = 0;
+                let lastBufferCheck = 0;
+                const BUFFER_CHECK_INTERVAL = 3000; // 每3秒检查一次
+                const STALL_THRESHOLD = 3; // 连续卡顿3次则降低画质
+                const LOW_BUFFER_THRESHOLD = 5; // 缓冲低于5秒视为可能卡顿
+
+                video.addEventListener('waiting', function() {
+                    bufferStallCount++;
+                    console.log(`视频缓冲中，卡顿计数: ${bufferStallCount}`);
+
+                    // 如果连续卡顿次数过多，主动降低画质
+                    if (bufferStallCount >= STALL_THRESHOLD && hls.levels && hls.levels.length > 1) {
+                        const currentLevel = hls.currentLevel;
+                        // 降低一级画质（如果不是最低级）
+                        if (currentLevel > 0) {
+                            hls.currentLevel = currentLevel - 1;
+                            console.log(`智能降低画质: ${currentLevel} → ${currentLevel - 1}`);
+                            bufferStallCount = 0; // 重置计数
+                        }
+                    }
+                });
+
+                video.addEventListener('playing', function() {
+                    // 播放恢复时重置计数
+                    bufferStallCount = Math.max(0, bufferStallCount - 1);
+                });
+
+                // 定期检查缓冲区健康度
+                video.addEventListener('timeupdate', function() {
+                    const now = Date.now();
+                    if (now - lastBufferCheck < BUFFER_CHECK_INTERVAL) return;
+                    lastBufferCheck = now;
+
+                    // 检查当前缓冲区长度
+                    const buffered = video.buffered;
+                    if (buffered.length > 0) {
+                        const currentTime = video.currentTime;
+                        const bufferedEnd = buffered.end(buffered.length - 1);
+                        const bufferLength = bufferedEnd - currentTime;
+
+                        // 如果缓冲区过小且有多个画质级别
+                        if (bufferLength < LOW_BUFFER_THRESHOLD && hls.levels && hls.levels.length > 1) {
+                            const currentLevel = hls.currentLevel;
+                            // 预防性降低画质
+                            if (currentLevel > 0) {
+                                hls.currentLevel = currentLevel - 1;
+                                console.log(`预防性降低画质（缓冲不足 ${bufferLength.toFixed(1)}s）: ${currentLevel} → ${currentLevel - 1}`);
+                            }
+                        }
+                    }
                 });
             }
         }
@@ -687,8 +801,8 @@ function initPlayer(videoUrl) {
         // 视频加载成功后，在稍微延迟后将其添加到观看历史
         setTimeout(saveToHistory, 3000);
 
-        // 启动定期保存播放进度
-        startProgressSaveInterval();
+        // 优化10: 移除冗余的定期保存，已在timeupdate中实现节流保存
+        // startProgressSaveInterval(); // 已移除，使用更高效的节流方式
     })
 
     // 错误处理

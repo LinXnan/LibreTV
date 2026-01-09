@@ -1,27 +1,30 @@
 async function searchByAPIAndKeyWord(apiId, query) {
     try {
         let apiUrl, apiName, apiBaseUrl;
-        
+
         // 处理自定义API
         if (apiId.startsWith('custom_')) {
             const customIndex = apiId.replace('custom_', '');
             const customApi = getCustomApiInfo(customIndex);
-            if (!customApi) return [];
-            
+            if (!customApi) return { results: [], latency: -1 };
+
             apiBaseUrl = customApi.url;
             apiUrl = apiBaseUrl + API_CONFIG.search.path + encodeURIComponent(query);
             apiName = customApi.name;
         } else {
             // 内置API
-            if (!API_SITES[apiId]) return [];
+            if (!API_SITES[apiId]) return { results: [], latency: -1 };
             apiBaseUrl = API_SITES[apiId].api;
             apiUrl = apiBaseUrl + API_CONFIG.search.path + encodeURIComponent(query);
             apiName = API_SITES[apiId].name;
         }
-        
-        // 添加超时处理
+
+        // 记录开始时间以测量延迟
+        const startTime = performance.now();
+
+        // 添加超时处理（减少到8秒）
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
         
         // 添加鉴权参数到代理URL
         const proxiedUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 
@@ -32,17 +35,20 @@ async function searchByAPIAndKeyWord(apiId, query) {
             headers: API_CONFIG.search.headers,
             signal: controller.signal
         });
-        
+
         clearTimeout(timeoutId);
-        
+
+        // 计算延迟（毫秒）
+        const latency = Math.round(performance.now() - startTime);
+
         if (!response.ok) {
-            return [];
+            return { results: [], latency };
         }
-        
+
         const data = await response.json();
-        
+
         if (!data || !data.list || !Array.isArray(data.list) || data.list.length === 0) {
-            return [];
+            return { results: [], latency };
         }
         
         // 处理第一页结果
@@ -50,7 +56,8 @@ async function searchByAPIAndKeyWord(apiId, query) {
             ...item,
             source_name: apiName,
             source_code: apiId,
-            api_url: apiId.startsWith('custom_') ? getCustomApiInfo(apiId.replace('custom_', ''))?.url : undefined
+            api_url: apiId.startsWith('custom_') ? getCustomApiInfo(apiId.replace('custom_', ''))?.url : undefined,
+            latency: latency  // 添加延迟信息到每个结果
         }));
         
         // 获取总页数
@@ -72,7 +79,7 @@ async function searchByAPIAndKeyWord(apiId, query) {
                 const pagePromise = (async () => {
                     try {
                         const pageController = new AbortController();
-                        const pageTimeoutId = setTimeout(() => pageController.abort(), 15000);
+                        const pageTimeoutId = setTimeout(() => pageController.abort(), 8000);
                         
                         // 添加鉴权参数到代理URL
                         const proxiedPageUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 
@@ -97,7 +104,8 @@ async function searchByAPIAndKeyWord(apiId, query) {
                             ...item,
                             source_name: apiName,
                             source_code: apiId,
-                            api_url: apiId.startsWith('custom_') ? getCustomApiInfo(apiId.replace('custom_', ''))?.url : undefined
+                            api_url: apiId.startsWith('custom_') ? getCustomApiInfo(apiId.replace('custom_', ''))?.url : undefined,
+                            latency: latency  // 使用第一页的延迟
                         }));
                     } catch (error) {
                         console.warn(`API ${apiId} 第${page}页搜索失败:`, error);
@@ -118,10 +126,10 @@ async function searchByAPIAndKeyWord(apiId, query) {
                 }
             });
         }
-        
-        return results;
+
+        return { results, latency };
     } catch (error) {
         console.warn(`API ${apiId} 搜索失败:`, error);
-        return [];
+        return { results: [], latency: -1 };
     }
 }
