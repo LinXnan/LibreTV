@@ -415,6 +415,12 @@ function loadViewingHistory() {
             episodeInfoHtml = `<span class="text-xs text-gray-400">共${totalEpisodes}集 ${syncStatus}</span>`;
         }
 
+        // 格式化播放速度信息
+        let playbackRateHtml = '';
+        if (item.playbackRate && item.playbackRate !== 1.0) {
+            playbackRateHtml = `<span class="playback-rate-badge">${item.playbackRate}x</span>`;
+        }
+
         // 格式化进度信息
         let progressHtml = '';
         if (item.playbackPosition && item.duration && item.playbackPosition > 10 && item.playbackPosition < item.duration * 0.95) {
@@ -445,6 +451,7 @@ function loadViewingHistory() {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
+                ${playbackRateHtml ? `<div class="absolute right-2 bottom-2 z-10">${playbackRateHtml}</div>` : ''}
                 <div class="history-info">
                     <div class="history-title">${safeTitle}</div>
                     <div class="history-meta">

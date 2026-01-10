@@ -274,11 +274,84 @@
             <!-- 搜索结果：初始隐藏 -->
             <div id="resultsArea" class="w-full hidden">
                 <div class="mx-auto max-w-7xl px-2"> <!-- 添加最大宽度限制并居中 -->
-                    <div class="flex justify-end items-center mb-4">
-                        <div class="text-sm text-gray-400">
-                            <span id="searchResultsCount">0</span> 个结果
+                    <!-- 优化1: 搜索结果统计和筛选区域 -->
+                    <div class="mb-4 space-y-3">
+                        <!-- 统计信息行 -->
+                        <div class="flex justify-between items-center">
+                            <div class="text-sm text-gray-400">
+                                找到 <span id="searchResultsCount" class="text-white font-semibold">0</span> 个结果
+                                <span id="searchSourcesCount" class="ml-2 text-gray-500"></span>
+                            </div>
+                            <button id="toggleFilters" onclick="toggleSearchFilters()" class="text-xs px-3 py-1.5 bg-[#222] hover:bg-[#333] rounded-lg transition-colors flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                                筛选
+                            </button>
+                        </div>
+
+                        <!-- 筛选器区域（默认隐藏） -->
+                        <div id="searchFiltersPanel" class="hidden bg-[#151515] rounded-lg p-4 space-y-3">
+                            <!-- 片源筛选 -->
+                            <div>
+                                <label class="text-xs text-gray-400 mb-2 block">按片源筛选</label>
+                                <div id="sourceFilters" class="flex flex-wrap gap-2">
+                                    <!-- 动态生成片源筛选按钮 -->
+                                </div>
+                            </div>
+
+                            <!-- 分类筛选 -->
+                            <div>
+                                <label class="text-xs text-gray-400 mb-2 block">按分类筛选</label>
+                                <div id="categoryFilters" class="flex flex-wrap gap-2">
+                                    <!-- 动态生成分类筛选按钮 -->
+                                </div>
+                            </div>
+
+                            <!-- 延迟筛选 -->
+                            <div>
+                                <label class="text-xs text-gray-400 mb-2 block">按响应速度筛选</label>
+                                <div id="latencyFilters" class="flex flex-wrap gap-2">
+                                    <button onclick="filterByLatency('all')" class="filter-btn active" data-filter="all">
+                                        全部
+                                    </button>
+                                    <button onclick="filterByLatency('fast')" class="filter-btn" data-filter="fast">
+                                        <span class="inline-block w-2 h-2 rounded-full bg-green-400 mr-1"></span>
+                                        快速 (&lt;1s)
+                                    </button>
+                                    <button onclick="filterByLatency('medium')" class="filter-btn" data-filter="medium">
+                                        <span class="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1"></span>
+                                        中速 (1-3s)
+                                    </button>
+                                    <button onclick="filterByLatency('slow')" class="filter-btn" data-filter="slow">
+                                        <span class="inline-block w-2 h-2 rounded-full bg-red-400 mr-1"></span>
+                                        慢速 (&gt;3s)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 重置筛选 -->
+                            <div class="flex justify-end pt-2 border-t border-[#222]">
+                                <button onclick="resetSearchFilters()" class="text-xs px-3 py-1.5 bg-[#333] hover:bg-[#444] rounded transition-colors">
+                                    重置筛选
+                                </button>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- 优化2: 骨架屏加载动画 -->
+                    <div id="searchSkeleton" class="hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <!-- 生成8个骨架屏卡片 -->
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                    </div>
+
                     <!-- 修改网格布局以适应大一些的横向卡片 -->
                     <div id="results" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                         <!-- 结果将在这里动态生成 -->

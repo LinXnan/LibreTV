@@ -421,6 +421,20 @@ function initPlayer(videoUrl) {
         return
     }
 
+    // 重置加载进度条
+    const progressBar = document.getElementById('loading-progress-bar');
+    const progressText = document.getElementById('loading-progress-text');
+    if (progressBar && progressText) {
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
+    }
+
+    // 显示加载界面
+    const loadingDiv = document.getElementById('player-loading');
+    if (loadingDiv) {
+        loadingDiv.style.display = 'flex';
+    }
+
     // 销毁旧实例
     if (art) {
         art.destroy();
@@ -548,6 +562,56 @@ function initPlayer(videoUrl) {
 
                 hls.loadSource(url);
                 hls.attachMedia(video);
+
+                // 添加加载进度跟踪
+                let totalFragments = 0;
+                let loadedFragments = 0;
+                const progressBar = document.getElementById('loading-progress-bar');
+                const progressText = document.getElementById('loading-progress-text');
+
+                // 监听manifest解析，获取总片段数
+                hls.on(Hls.Events.LEVEL_LOADED, function(event, data) {
+                    if (data.details && data.details.fragments) {
+                        totalFragments = Math.max(totalFragments, data.details.fragments.length);
+                    }
+                });
+
+                // 监听片段加载开始
+                hls.on(Hls.Events.FRAG_LOADING, function(event, data) {
+                    // 片段开始加载时更新UI
+                    if (progressBar && progressText) {
+                        const progress = totalFragments > 0 ? Math.min((loadedFragments / Math.min(totalFragments, 3)) * 100, 95) : 0;
+                        progressBar.style.width = progress + '%';
+                        progressText.textContent = Math.floor(progress) + '%';
+                    }
+                });
+
+                // 监听片段加载完成
+                hls.on(Hls.Events.FRAG_LOADED, function(event, data) {
+                    loadedFragments++;
+                    if (progressBar && progressText) {
+                        // 只计算前3个片段的进度，避免进度条停滞
+                        const progress = totalFragments > 0 ? Math.min((loadedFragments / Math.min(totalFragments, 3)) * 100, 95) : 0;
+                        progressBar.style.width = progress + '%';
+                        progressText.textContent = Math.floor(progress) + '%';
+                    }
+                });
+
+                // 监听视频开始播放，设置进度为100%
+                video.addEventListener('playing', function onPlaying() {
+                    if (progressBar && progressText) {
+                        progressBar.style.width = '100%';
+                        progressText.textContent = '100%';
+
+                        // 延迟隐藏进度条，让用户看到100%
+                        setTimeout(() => {
+                            const loadingDiv = document.getElementById('player-loading');
+                            if (loadingDiv) {
+                                loadingDiv.style.display = 'none';
+                            }
+                        }, 300);
+                    }
+                }, { once: true });
 
                 // enable airplay, from https://github.com/video-dev/hls.js/issues/5989
                 // 检查是否已存在source元素，如果存在则更新，不存在则创建
@@ -795,6 +859,63 @@ function initPlayer(videoUrl) {
             }
         }
 
+        // 恢复播放速度
+        try {
+            let playbackRateToRestore = 1.0; // 默认播放速度
+
+            // 1. 优先尝试从观看历史中恢复该影片的播放速度
+            const urlParams = new URLSearchParams(window.location.search);
+            const sourceName = urlParams.get('source') || '';
+            const id_from_params = urlParams.get('id');
+
+            let show_identifier;
+            if (sourceName && id_from_params) {
+                show_identifier = `${sourceName}_${id_from_params}`;
+            } else {
+                show_identifier = (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
+            }
+
+            const historyRaw = localStorage.getItem('viewingHistory');
+            if (historyRaw) {
+                const history = JSON.parse(historyRaw);
+                const historyItem = history.find(item =>
+                    item.title === currentVideoTitle &&
+                    item.sourceName === sourceName &&
+                    item.showIdentifier === show_identifier
+                );
+                if (historyItem && historyItem.playbackRate) {
+                    playbackRateToRestore = historyItem.playbackRate;
+                }
+            }
+
+            // 2. 如果历史中没有，尝试从播放进度数据中恢复
+            if (playbackRateToRestore === 1.0) {
+                const progressKey = 'videoProgress_' + getVideoId();
+                const progressStr = localStorage.getItem(progressKey);
+                if (progressStr) {
+                    const progress = JSON.parse(progressStr);
+                    if (progress && progress.playbackRate) {
+                        playbackRateToRestore = progress.playbackRate;
+                    }
+                }
+            }
+
+            // 3. 如果都没有，使用全局默认播放速度
+            if (playbackRateToRestore === 1.0) {
+                const savedPlaybackRate = localStorage.getItem('playbackRate');
+                if (savedPlaybackRate) {
+                    playbackRateToRestore = parseFloat(savedPlaybackRate);
+                }
+            }
+
+            // 验证并应用播放速度
+            if (playbackRateToRestore >= 0.5 && playbackRateToRestore <= 3) {
+                art.playbackRate = playbackRateToRestore;
+            }
+        } catch (e) {
+            console.error('恢复播放速度失败:', e);
+        }
+
         // 设置进度条点击监听
         setupProgressBarPreciseClicks();
 
@@ -823,6 +944,59 @@ function initPlayer(videoUrl) {
 
     // 添加移动端长按三倍速播放功能
     setupLongPressSpeedControl();
+
+    // 监听播放速度变化，保存到localStorage和观看历史
+    art.on('video:ratechange', function() {
+        try {
+            const currentRate = art.playbackRate;
+
+            // 保存到全局设置
+            localStorage.setItem('playbackRate', currentRate.toString());
+
+            // 同时保存到当前影片的播放进度
+            saveCurrentProgress();
+
+            // 立即更新观看历史中的播放速度
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const sourceName = urlParams.get('source') || '';
+                const id_from_params = urlParams.get('id');
+
+                let show_identifier;
+                if (sourceName && id_from_params) {
+                    show_identifier = `${sourceName}_${id_from_params}`;
+                } else {
+                    show_identifier = (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
+                }
+
+                const historyRaw = localStorage.getItem('viewingHistory');
+                if (historyRaw) {
+                    const history = JSON.parse(historyRaw);
+                    const idx = history.findIndex(item =>
+                        item.title === currentVideoTitle &&
+                        item.sourceName === sourceName &&
+                        item.showIdentifier === show_identifier
+                    );
+
+                    if (idx !== -1) {
+                        // 找到了历史记录，更新播放速度
+                        history[idx].playbackRate = currentRate;
+                        history[idx].timestamp = Date.now();
+                        localStorage.setItem('viewingHistory', JSON.stringify(history));
+                        console.log(`播放速度已更新: ${currentRate}x (影片: ${currentVideoTitle})`);
+                    } else {
+                        // 历史记录还不存在，先创建一个基础记录
+                        console.log(`历史记录不存在，创建新记录并保存播放速度: ${currentRate}x`);
+                        saveToHistory(); // 立即创建历史记录
+                    }
+                }
+            } catch (e) {
+                console.error('更新历史记录播放速度失败:', e);
+            }
+        } catch (e) {
+            console.error('保存播放速度失败:', e);
+        }
+    });
 
     // 视频播放结束事件
     art.on('video:ended', function () {
@@ -1229,6 +1403,7 @@ function saveToHistory() {
         timestamp: Date.now(),
         playbackPosition: currentPosition,
         duration: videoDuration,
+        playbackRate: art && art.playbackRate ? art.playbackRate : 1.0, // 保存当前播放速度
         episodes: currentEpisodes && currentEpisodes.length > 0 ? [...currentEpisodes] : []
     };
     
@@ -1250,7 +1425,7 @@ function saveToHistory() {
             existingItem.sourceName = videoInfo.sourceName; // Should be consistent, but update just in case
             existingItem.sourceCode = videoInfo.sourceCode;
             existingItem.vod_id = videoInfo.vod_id;
-            
+
             // Update URLs to reflect the current episode being watched
             existingItem.directVideoUrl = videoInfo.directVideoUrl; // Current episode's direct URL
             existingItem.url = videoInfo.url; // Player link for the current episode
@@ -1258,17 +1433,20 @@ function saveToHistory() {
             // 更新播放进度信息
             existingItem.playbackPosition = videoInfo.playbackPosition > 10 ? videoInfo.playbackPosition : (existingItem.playbackPosition || 0);
             existingItem.duration = videoInfo.duration || existingItem.duration;
-            
+
+            // 更新播放速度
+            existingItem.playbackRate = videoInfo.playbackRate;
+
             // 更新集数列表（如果新的集数列表与存储的不同，例如集数增加了）
             if (videoInfo.episodes && videoInfo.episodes.length > 0) {
-                if (!existingItem.episodes || 
-                    !Array.isArray(existingItem.episodes) || 
-                    existingItem.episodes.length !== videoInfo.episodes.length || 
+                if (!existingItem.episodes ||
+                    !Array.isArray(existingItem.episodes) ||
+                    existingItem.episodes.length !== videoInfo.episodes.length ||
                     !videoInfo.episodes.every((ep, i) => ep === existingItem.episodes[i])) { // Basic check for content change
                     existingItem.episodes = [...videoInfo.episodes]; // Deep copy
                 }
             }
-            
+
             // 移到最前面
             const updatedItem = history.splice(existingIndex, 1)[0];
             history.unshift(updatedItem);
@@ -1351,6 +1529,7 @@ function saveCurrentProgress() {
     const progressData = {
         position: currentTime,
         duration: duration,
+        playbackRate: art.playbackRate || 1.0, // 保存播放速度到进度数据
         timestamp: Date.now()
     };
     try {
@@ -1373,6 +1552,7 @@ function saveCurrentProgress() {
                     ) {
                         history[idx].playbackPosition = currentTime;
                         history[idx].duration = duration;
+                        history[idx].playbackRate = art.playbackRate || 1.0; // 同时更新播放速度
                         history[idx].timestamp = Date.now();
                         localStorage.setItem('viewingHistory', JSON.stringify(history));
                     }

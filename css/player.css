@@ -173,6 +173,31 @@ div.player-loading-text {
     margin-bottom: 10px;
 }
 
+/* 加载进度条样式 */
+.loading-progress-container {
+    width: 200px;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.loading-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #00ccff, #0099ff);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.loading-progress-text {
+    margin-top: 10px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
 .error-container {
     position: absolute;
     top: 0;

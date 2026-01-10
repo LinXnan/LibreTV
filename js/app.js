@@ -636,6 +636,16 @@ async function search() {
 
     showLoading();
 
+    // 优化2: 显示骨架屏，隐藏之前的结果
+    const resultsDiv = document.getElementById('results');
+    const skeletonDiv = document.getElementById('searchSkeleton');
+    const resultsArea = document.getElementById('resultsArea');
+
+    resultsDiv.innerHTML = '';
+    resultsDiv.classList.add('hidden');
+    skeletonDiv.classList.remove('hidden');
+    resultsArea.classList.remove('hidden');
+
     try {
         // 保存搜索历史
         saveSearchHistory(query);
@@ -734,6 +744,15 @@ async function search() {
             });
         }
 
+        // 优化1: 保存完整的搜索结果用于筛选
+        window.searchResults = allResults;
+
+        // 优化1: 生成统计信息
+        updateSearchStatistics(allResults);
+
+        // 优化1: 生成筛选按钮
+        generateSearchFilters(allResults);
+
         // 添加XSS保护，使用textContent和属性转义
         const safeResults = allResults.map(item => {
             const safeId = item.vod_id ? item.vod_id.toString().replace(/[^\w-]/g, '') : '';
@@ -817,6 +836,10 @@ async function search() {
         }).join('');
 
         resultsDiv.innerHTML = safeResults;
+
+        // 优化2: 隐藏骨架屏，显示实际结果
+        skeletonDiv.classList.add('hidden');
+        resultsDiv.classList.remove('hidden');
     } catch (error) {
         console.error('搜索错误:', error);
         if (error.name === 'AbortError') {
@@ -1370,6 +1393,297 @@ function saveStringAsFile(content, fileName) {
     // 清理临时对象
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+}
+
+// ========== 优化1: 搜索结果统计和筛选功能 ==========
+
+// 当前筛选条件
+let currentFilters = {
+    source: 'all',
+    category: 'all',
+    latency: 'all'
+};
+
+// 更新搜索统计信息
+function updateSearchStatistics(results) {
+    const searchResultsCount = document.getElementById('searchResultsCount');
+    const searchSourcesCount = document.getElementById('searchSourcesCount');
+
+    if (searchResultsCount) {
+        searchResultsCount.textContent = results.length;
+    }
+
+    // 统计片源数量
+    const sources = new Set();
+    results.forEach(item => {
+        if (item.source_name) {
+            sources.add(item.source_name);
+        }
+    });
+
+    if (searchSourcesCount) {
+        searchSourcesCount.textContent = `来自 ${sources.size} 个片源`;
+    }
+}
+
+// 生成筛选按钮
+function generateSearchFilters(results) {
+    // 统计片源
+    const sourceCounts = {};
+    const categoryCounts = {};
+
+    results.forEach(item => {
+        // 统计片源
+        const source = item.source_name || '未知片源';
+        sourceCounts[source] = (sourceCounts[source] || 0) + 1;
+
+        // 统计分类
+        const category = item.type_name || '未分类';
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+    });
+
+    // 生成片源筛选按钮
+    const sourceFiltersDiv = document.getElementById('sourceFilters');
+    if (sourceFiltersDiv) {
+        let sourceHTML = `
+            <button onclick="filterBySource('all')" class="filter-btn active" data-filter="all">
+                全部 <span class="count">${results.length}</span>
+            </button>
+        `;
+
+        Object.entries(sourceCounts)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([source, count]) => {
+                const safeSource = source.replace(/'/g, "\\'");
+                sourceHTML += `
+                    <button onclick="filterBySource('${safeSource}')" class="filter-btn" data-filter="${safeSource}">
+                        ${source} <span class="count">${count}</span>
+                    </button>
+                `;
+            });
+
+        sourceFiltersDiv.innerHTML = sourceHTML;
+    }
+
+    // 生成分类筛选按钮
+    const categoryFiltersDiv = document.getElementById('categoryFilters');
+    if (categoryFiltersDiv) {
+        let categoryHTML = `
+            <button onclick="filterByCategory('all')" class="filter-btn active" data-filter="all">
+                全部 <span class="count">${results.length}</span>
+            </button>
+        `;
+
+        Object.entries(categoryCounts)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([category, count]) => {
+                const safeCategory = category.replace(/'/g, "\\'");
+                categoryHTML += `
+                    <button onclick="filterByCategory('${safeCategory}')" class="filter-btn" data-filter="${safeCategory}">
+                        ${category} <span class="count">${count}</span>
+                    </button>
+                `;
+            });
+
+        categoryFiltersDiv.innerHTML = categoryHTML;
+    }
+}
+
+// 切换筛选面板
+function toggleSearchFilters() {
+    const panel = document.getElementById('searchFiltersPanel');
+    if (panel) {
+        panel.classList.toggle('hidden');
+    }
+}
+
+// 按片源筛选
+function filterBySource(source) {
+    currentFilters.source = source;
+    applySearchFilters();
+
+    // 更新按钮状态
+    document.querySelectorAll('#sourceFilters .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === source) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// 按分类筛选
+function filterByCategory(category) {
+    currentFilters.category = category;
+    applySearchFilters();
+
+    // 更新按钮状态
+    document.querySelectorAll('#categoryFilters .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === category) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// 按延迟筛选
+function filterByLatency(latency) {
+    currentFilters.latency = latency;
+    applySearchFilters();
+
+    // 更新按钮状态
+    document.querySelectorAll('#latencyFilters .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === latency) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// 应用筛选
+function applySearchFilters() {
+    if (!window.searchResults) return;
+
+    let filtered = window.searchResults.filter(item => {
+        // 片源筛选
+        if (currentFilters.source !== 'all') {
+            const source = item.source_name || '未知片源';
+            if (source !== currentFilters.source) return false;
+        }
+
+        // 分类筛选
+        if (currentFilters.category !== 'all') {
+            const category = item.type_name || '未分类';
+            if (category !== currentFilters.category) return false;
+        }
+
+        // 延迟筛选
+        if (currentFilters.latency !== 'all') {
+            const latency = item.latency || 999999;
+            if (currentFilters.latency === 'fast' && latency >= 1000) return false;
+            if (currentFilters.latency === 'medium' && (latency < 1000 || latency >= 3000)) return false;
+            if (currentFilters.latency === 'slow' && latency < 3000) return false;
+        }
+
+        return true;
+    });
+
+    // 重新渲染结果
+    renderSearchResults(filtered);
+
+    // 更新计数
+    const searchResultsCount = document.getElementById('searchResultsCount');
+    if (searchResultsCount) {
+        searchResultsCount.textContent = filtered.length;
+    }
+}
+
+// 重置筛选
+function resetSearchFilters() {
+    currentFilters = {
+        source: 'all',
+        category: 'all',
+        latency: 'all'
+    };
+
+    // 重置所有按钮状态
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === 'all') {
+            btn.classList.add('active');
+        }
+    });
+
+    applySearchFilters();
+}
+
+// 渲染搜索结果
+function renderSearchResults(results) {
+    const resultsDiv = document.getElementById('results');
+
+    if (!results || results.length === 0) {
+        resultsDiv.innerHTML = `
+            <div class="col-span-full text-center py-16">
+                <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 class="mt-2 text-lg font-medium text-gray-400">没有符合条件的结果</h3>
+                <p class="mt-1 text-sm text-gray-500">请调整筛选条件或重新搜索</p>
+            </div>
+        `;
+        return;
+    }
+
+    const safeResults = results.map(item => {
+        const safeId = item.vod_id ? item.vod_id.toString().replace(/[^\w-]/g, '') : '';
+        const safeName = (item.vod_name || '').toString()
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+        const sourceInfo = item.source_name ?
+            `<span class="bg-[#222] text-xs px-1.5 py-0.5 rounded-full">${item.source_name}</span>` : '';
+        const sourceCode = item.source_code || '';
+
+        const apiUrlAttr = item.api_url ?
+            `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : '';
+
+        const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
+
+        return `
+            <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md"
+                 onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}>
+                <div class="flex h-full">
+                    ${hasCover ? `
+                    <div class="relative flex-shrink-0 search-card-img-container">
+                        <img src="${item.vod_pic}" alt="${safeName}"
+                             class="h-full w-full object-cover transition-transform hover:scale-110"
+                             onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');"
+                             loading="lazy">
+                        <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
+                    </div>` : ''}
+
+                    <div class="p-2 flex flex-col flex-grow">
+                        <div class="flex-grow">
+                            <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
+
+                            <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
+                                ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
+                `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-blue-500 text-blue-300">
+                                      ${(item.type_name || '').toString().replace(/</g, '&lt;')}
+                                  </span>` : ''}
+                                ${(item.vod_year || '') ?
+                `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
+                                      ${item.vod_year}
+                                  </span>` : ''}
+                            </div>
+                            <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
+                                ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')}
+                            </p>
+                        </div>
+
+                        <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-800">
+                            <div class="flex items-center gap-2">
+                                ${sourceInfo ? `${sourceInfo}` : ''}
+                                ${item.latency && item.latency > 0 ?
+                                    `<span class="text-xs px-1.5 py-0.5 rounded ${
+                                        item.latency < 1000 ? 'bg-green-900/30 text-green-400' :
+                                        item.latency < 3000 ? 'bg-yellow-900/30 text-yellow-400' :
+                                        'bg-red-900/30 text-red-400'
+                                    }">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        ${item.latency}ms
+                                    </span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    resultsDiv.innerHTML = safeResults;
 }
 
 // 移除Node.js的require语句，因为这是在浏览器环境中运行的
