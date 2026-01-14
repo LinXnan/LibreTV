@@ -67,14 +67,8 @@
     <main class="container mx-auto px-4 py-4">        <!-- 视频播放区 -->
         <div id="playerContainer" class="player-container mb-4">
             <div class="relative">
-                <div id="player" class="player-placeholder">
-                    <!-- Initial loading state before JavaScript loads -->
-                    <div class="player-loading-overlay">
-                        <div class="player-loading-spinner"></div>
-                        <div class="player-loading-text" id="loading-title">正在加载视频...</div>
-                    </div>
-                </div>
-                <div class="loading-container" id="player-loading" style="display: none;">
+                <div id="player" class="player-placeholder"></div>
+                <div class="loading-container" id="player-loading" style="display: flex;">
                     <div class="loading-spinner"></div>
                     <div>正在加载视频...</div>
                     <!-- 添加加载进度条 -->
