@@ -441,45 +441,56 @@ function initPlayer(videoUrl) {
         art = null;
     }
 
-    // 配置HLS.js选项 - 激进优化版本
-    const hlsConfig = {
-        debug: false,
-        loader: adFilteringEnabled ? CustomHlsJsLoader : Hls.DefaultConfig.loader,
-        enableWorker: true,
+    // 优化4: 智能缓冲策略 - 根据网络速度动态调整
+    function getAdaptiveHlsConfig() {
+        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const effectiveType = connection?.effectiveType || '4g';
 
-        // 优化1: 启用低延迟模式
-        lowLatencyMode: true,
+        // 根据网络类型调整缓冲参数
+        const networkConfigs = {
+            'slow-2g': { maxBufferLength: 20, backBufferLength: 10, maxMaxBufferLength: 40 },
+            '2g': { maxBufferLength: 30, backBufferLength: 15, maxMaxBufferLength: 60 },
+            '3g': { maxBufferLength: 45, backBufferLength: 20, maxMaxBufferLength: 90 },
+            '4g': { maxBufferLength: 60, backBufferLength: 30, maxMaxBufferLength: 120 }
+        };
 
-        // 优化2: 优化缓冲参数 - 减少后台缓冲，增加前向缓冲
-        backBufferLength: 30,           // 后台缓冲 90→30秒
-        maxBufferLength: 60,            // 前向缓冲 30→60秒
-        maxMaxBufferLength: 120,        // 最大缓冲 60→120秒
-        maxBufferSize: 60 * 1000 * 1000, // 缓冲大小 30MB→60MB
+        const networkConfig = networkConfigs[effectiveType] || networkConfigs['4g'];
 
-        // 优化3: 减少缓冲洞，提高流畅度
-        maxBufferHole: 0.3,             // 缓冲洞 0.5→0.3秒
+        return {
+            debug: false,
+            loader: adFilteringEnabled ? CustomHlsJsLoader : Hls.DefaultConfig.loader,
+            enableWorker: true,
+            lowLatencyMode: true,
 
-        // 优化4: 减少重试延迟
-        fragLoadingMaxRetry: 6,
-        fragLoadingMaxRetryTimeout: 64000,
-        fragLoadingRetryDelay: 500,     // 重试延迟 1000→500ms
-        manifestLoadingMaxRetry: 3,
-        manifestLoadingRetryDelay: 500,  // 重试延迟 1000→500ms
-        levelLoadingMaxRetry: 4,
-        levelLoadingRetryDelay: 500,     // 重试延迟 1000→500ms
+            // 动态缓冲参数
+            backBufferLength: networkConfig.backBufferLength,
+            maxBufferLength: networkConfig.maxBufferLength,
+            maxMaxBufferLength: networkConfig.maxMaxBufferLength,
+            maxBufferSize: 60 * 1000 * 1000,
 
-        // 优化5: 优化ABR自适应码率 - 更激进的带宽策略
-        startLevel: -1,
-        abrEwmaDefaultEstimate: 500000,
-        abrBandWidthFactor: 0.8,        // 带宽因子 0.95→0.8（更激进）
-        abrBandWidthUpFactor: 0.6,      // 升级因子 0.7→0.6（更容易升级）
-        abrMaxWithRealBitrate: true,
+            maxBufferHole: 0.3,
+            fragLoadingMaxRetry: 6,
+            fragLoadingMaxRetryTimeout: 64000,
+            fragLoadingRetryDelay: 500,
+            manifestLoadingMaxRetry: 3,
+            manifestLoadingRetryDelay: 500,
+            levelLoadingMaxRetry: 4,
+            levelLoadingRetryDelay: 500,
 
-        stretchShortVideoTrack: true,
-        appendErrorMaxRetry: 5,
-        liveSyncDurationCount: 2,       // 同步数量 3→2
-        liveDurationInfinity: false
-    };
+            startLevel: -1,
+            abrEwmaDefaultEstimate: 500000,
+            abrBandWidthFactor: 0.8,
+            abrBandWidthUpFactor: 0.6,
+            abrMaxWithRealBitrate: true,
+
+            stretchShortVideoTrack: true,
+            appendErrorMaxRetry: 5,
+            liveSyncDurationCount: 2,
+            liveDurationInfinity: false
+        };
+    }
+
+    const hlsConfig = getAdaptiveHlsConfig();
 
     // Create new ArtPlayer instance
     art = new Artplayer({
@@ -859,7 +870,7 @@ function initPlayer(videoUrl) {
             }
         }
 
-        // 恢复播放速度
+        // 恢复播放速度（仅针对当前影片）
         try {
             let playbackRateToRestore = 1.0; // 默认播放速度
 
@@ -900,14 +911,6 @@ function initPlayer(videoUrl) {
                 }
             }
 
-            // 3. 如果都没有，使用全局默认播放速度
-            if (playbackRateToRestore === 1.0) {
-                const savedPlaybackRate = localStorage.getItem('playbackRate');
-                if (savedPlaybackRate) {
-                    playbackRateToRestore = parseFloat(savedPlaybackRate);
-                }
-            }
-
             // 验证并应用播放速度
             if (playbackRateToRestore >= 0.5 && playbackRateToRestore <= 3) {
                 art.playbackRate = playbackRateToRestore;
@@ -945,15 +948,12 @@ function initPlayer(videoUrl) {
     // 添加移动端长按三倍速播放功能
     setupLongPressSpeedControl();
 
-    // 监听播放速度变化，保存到localStorage和观看历史
+    // 监听播放速度变化，仅保存到当前影片
     art.on('video:ratechange', function() {
         try {
             const currentRate = art.playbackRate;
 
-            // 保存到全局设置
-            localStorage.setItem('playbackRate', currentRate.toString());
-
-            // 同时保存到当前影片的播放进度
+            // 保存到当前影片的播放进度
             saveCurrentProgress();
 
             // 立即更新观看历史中的播放速度
@@ -1360,7 +1360,7 @@ function setupProgressBarPreciseClicks() {
     }
 }
 
-// 在播放器初始化后添加视频到历史记录
+// 优化8: 播放历史优化 - 使用Map结构加速查找
 function saveToHistory() {
     // 确保 currentEpisodes 非空且有当前视频URL
     if (!currentEpisodes || currentEpisodes.length === 0 || !currentVideoUrl) {
@@ -1371,7 +1371,7 @@ function saveToHistory() {
     const urlParams = new URLSearchParams(window.location.search);
     const sourceName = urlParams.get('source') || '';
     const sourceCode = urlParams.get('source') || '';
-    const id_from_params = urlParams.get('id'); // Get video ID from player URL (passed as 'id')
+    const id_from_params = urlParams.get('id');
 
     // 获取当前播放进度
     let currentPosition = 0;
@@ -1382,7 +1382,7 @@ function saveToHistory() {
         videoDuration = art.video.duration;
     }
 
-    // Define a show identifier: Prioritize sourceName_id, fallback to first episode URL or current video URL
+    // Define a show identifier
     let show_identifier_for_video_info;
     if (sourceName && id_from_params) {
         show_identifier_for_video_info = `${sourceName}_${id_from_params}`;
@@ -1390,60 +1390,57 @@ function saveToHistory() {
         show_identifier_for_video_info = (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
     }
 
+    // 构建唯一键用于Map查找
+    const uniqueKey = `${currentVideoTitle}_${sourceName}_${show_identifier_for_video_info}`;
+
     // 构建要保存的视频信息对象
     const videoInfo = {
         title: currentVideoTitle,
-        directVideoUrl: currentVideoUrl, // Current episode's direct URL
+        directVideoUrl: currentVideoUrl,
         url: `player.html?url=${encodeURIComponent(currentVideoUrl)}&title=${encodeURIComponent(currentVideoTitle)}&source=${encodeURIComponent(sourceName)}&source_code=${encodeURIComponent(sourceCode)}&id=${encodeURIComponent(id_from_params || '')}&index=${currentEpisodeIndex}&position=${Math.floor(currentPosition || 0)}`,
         episodeIndex: currentEpisodeIndex,
         sourceName: sourceName,
-        vod_id: id_from_params || '', // Store the ID from params as vod_id in history item
+        vod_id: id_from_params || '',
         sourceCode: sourceCode,
-        showIdentifier: show_identifier_for_video_info, // Identifier for the show/series
+        showIdentifier: show_identifier_for_video_info,
         timestamp: Date.now(),
         playbackPosition: currentPosition,
         duration: videoDuration,
-        playbackRate: art && art.playbackRate ? art.playbackRate : 1.0, // 保存当前播放速度
+        playbackRate: art && art.playbackRate ? art.playbackRate : 1.0,
         episodes: currentEpisodes && currentEpisodes.length > 0 ? [...currentEpisodes] : []
     };
-    
+
     try {
         const history = JSON.parse(localStorage.getItem('viewingHistory') || '[]');
 
-        // 检查是否已经存在相同的系列记录 (基于标题、来源和 showIdentifier)
-        const existingIndex = history.findIndex(item => 
-            item.title === videoInfo.title && 
-            item.sourceName === videoInfo.sourceName && 
-            item.showIdentifier === videoInfo.showIdentifier
-        );
+        // 使用Map加速查找
+        const historyMap = new Map();
+        history.forEach((item, index) => {
+            const key = `${item.title}_${item.sourceName}_${item.showIdentifier}`;
+            historyMap.set(key, { item, index });
+        });
 
-        if (existingIndex !== -1) {
-            // 存在则更新现有记录的当前集数、时间戳、播放进度和URL等
-            const existingItem = history[existingIndex];
+        if (historyMap.has(uniqueKey)) {
+            // 存在则更新
+            const { item: existingItem, index: existingIndex } = historyMap.get(uniqueKey);
+
             existingItem.episodeIndex = videoInfo.episodeIndex;
             existingItem.timestamp = videoInfo.timestamp;
-            existingItem.sourceName = videoInfo.sourceName; // Should be consistent, but update just in case
+            existingItem.sourceName = videoInfo.sourceName;
             existingItem.sourceCode = videoInfo.sourceCode;
             existingItem.vod_id = videoInfo.vod_id;
-
-            // Update URLs to reflect the current episode being watched
-            existingItem.directVideoUrl = videoInfo.directVideoUrl; // Current episode's direct URL
-            existingItem.url = videoInfo.url; // Player link for the current episode
-
-            // 更新播放进度信息
+            existingItem.directVideoUrl = videoInfo.directVideoUrl;
+            existingItem.url = videoInfo.url;
             existingItem.playbackPosition = videoInfo.playbackPosition > 10 ? videoInfo.playbackPosition : (existingItem.playbackPosition || 0);
             existingItem.duration = videoInfo.duration || existingItem.duration;
-
-            // 更新播放速度
             existingItem.playbackRate = videoInfo.playbackRate;
 
-            // 更新集数列表（如果新的集数列表与存储的不同，例如集数增加了）
+            // 更新集数列表
             if (videoInfo.episodes && videoInfo.episodes.length > 0) {
                 if (!existingItem.episodes ||
                     !Array.isArray(existingItem.episodes) ||
-                    existingItem.episodes.length !== videoInfo.episodes.length ||
-                    !videoInfo.episodes.every((ep, i) => ep === existingItem.episodes[i])) { // Basic check for content change
-                    existingItem.episodes = [...videoInfo.episodes]; // Deep copy
+                    existingItem.episodes.length !== videoInfo.episodes.length) {
+                    existingItem.episodes = [...videoInfo.episodes];
                 }
             }
 
@@ -1460,6 +1457,7 @@ function saveToHistory() {
 
         localStorage.setItem('viewingHistory', JSON.stringify(history));
     } catch (e) {
+        console.error('保存历史记录失败:', e);
     }
 }
 
@@ -1517,50 +1515,75 @@ function startProgressSaveInterval() {
     progressSaveInterval = setInterval(saveCurrentProgress, 30000);
 }
 
-// 保存当前播放进度
+// 优化5: 进度保存优化 - 使用防抖+批量更新
+const progressQueue = new Map();
+let progressSaveTimer = null;
+
 function saveCurrentProgress() {
     if (!art || !art.video) return;
     const currentTime = art.video.currentTime;
     const duration = art.video.duration;
     if (!duration || currentTime < 1) return;
 
-    // 在localStorage中保存进度
-    const progressKey = `videoProgress_${getVideoId()}`;
+    const progressKey = getVideoId();
     const progressData = {
         position: currentTime,
         duration: duration,
-        playbackRate: art.playbackRate || 1.0, // 保存播放速度到进度数据
+        playbackRate: art.playbackRate || 1.0,
         timestamp: Date.now()
     };
+
+    // 添加到队列
+    progressQueue.set(progressKey, progressData);
+
+    // 防抖：500ms后批量写入
+    clearTimeout(progressSaveTimer);
+    progressSaveTimer = setTimeout(flushProgressQueue, 500);
+}
+
+function flushProgressQueue() {
+    if (progressQueue.size === 0) return;
+
     try {
-        localStorage.setItem(progressKey, JSON.stringify(progressData));
-        // --- 新增：同步更新 viewingHistory 中的进度 ---
-        try {
-            const historyRaw = localStorage.getItem('viewingHistory');
-            if (historyRaw) {
-                const history = JSON.parse(historyRaw);
-                // 用 title + 集数索引唯一标识
+        // 批量写入所有待保存的进度
+        progressQueue.forEach((data, key) => {
+            localStorage.setItem(`videoProgress_${key}`, JSON.stringify(data));
+        });
+
+        // 同步更新 viewingHistory
+        const historyRaw = localStorage.getItem('viewingHistory');
+        if (historyRaw) {
+            const history = JSON.parse(historyRaw);
+            let historyUpdated = false;
+
+            progressQueue.forEach((data, key) => {
                 const idx = history.findIndex(item =>
                     item.title === currentVideoTitle &&
                     (item.episodeIndex === undefined || item.episodeIndex === currentEpisodeIndex)
                 );
+
                 if (idx !== -1) {
-                    // 只在进度有明显变化时才更新，减少写入
                     if (
-                        Math.abs((history[idx].playbackPosition || 0) - currentTime) > 2 ||
-                        Math.abs((history[idx].duration || 0) - duration) > 2
+                        Math.abs((history[idx].playbackPosition || 0) - data.position) > 2 ||
+                        Math.abs((history[idx].duration || 0) - data.duration) > 2
                     ) {
-                        history[idx].playbackPosition = currentTime;
-                        history[idx].duration = duration;
-                        history[idx].playbackRate = art.playbackRate || 1.0; // 同时更新播放速度
-                        history[idx].timestamp = Date.now();
-                        localStorage.setItem('viewingHistory', JSON.stringify(history));
+                        history[idx].playbackPosition = data.position;
+                        history[idx].duration = data.duration;
+                        history[idx].playbackRate = data.playbackRate;
+                        history[idx].timestamp = data.timestamp;
+                        historyUpdated = true;
                     }
                 }
+            });
+
+            if (historyUpdated) {
+                localStorage.setItem('viewingHistory', JSON.stringify(history));
             }
-        } catch (e) {
         }
+
+        progressQueue.clear();
     } catch (e) {
+        console.error('批量保存进度失败:', e);
     }
 }
 
