@@ -768,6 +768,9 @@ async function search() {
             const apiUrlAttr = item.api_url ?
                 `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : '';
 
+            // 获取版本信息（如"高清版"）
+            const vodVersion = item.vod_version ? item.vod_version.toString().replace(/</g, '&lt;') : '';
+
             // 修改为水平卡片布局，图片在左侧，文本在右侧，并优化样式
             const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
 
@@ -796,6 +799,10 @@ async function search() {
                                     ${(item.vod_year || '') ?
                     `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
                                           ${item.vod_year}
+                                      </span>` : ''}
+                                    ${vodVersion ?
+                    `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-green-500 text-green-300">
+                                          ${vodVersion}
                                       </span>` : ''}
                                 </div>
                                 <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
@@ -1627,6 +1634,9 @@ function renderSearchResults(results) {
         const apiUrlAttr = item.api_url ?
             `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : '';
 
+        // 获取版本信息（如"高清版"）
+        const vodVersion = item.vod_version ? item.vod_version.toString().replace(/</g, '&lt;') : '';
+
         const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
 
         return `
@@ -1654,6 +1664,10 @@ function renderSearchResults(results) {
                                 ${(item.vod_year || '') ?
                 `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
                                       ${item.vod_year}
+                                  </span>` : ''}
+                                ${vodVersion ?
+                `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-green-500 text-green-300">
+                                      ${vodVersion}
                                   </span>` : ''}
                             </div>
                             <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
