@@ -94,15 +94,49 @@ class SyncManager {
         if (data.doubanEnabled) localStorage.setItem('doubanEnabled', data.doubanEnabled);
         if (data.searchHistory) localStorage.setItem('searchHistory', JSON.stringify(data.searchHistory));
         if (data.viewingHistory) localStorage.setItem('viewingHistory', JSON.stringify(data.viewingHistory));
+        if (data.timestamp) localStorage.setItem('lastSyncTimestamp', data.timestamp);
     }
 
-    // 上传本地数据到服务器
-    async uploadData() {
+    // 智能同步：比较时间戳，使用最新的数据
+    async syncWithServer() {
         if (!this.syncCode) {
             throw new Error('未设置同步码');
         }
-        const data = this.collectAllData();
-        await this.saveSyncData(this.syncCode, data);
+
+        const localData = this.collectAllData();
+        const localTimestamp = localData.timestamp;
+
+        try {
+            // 尝试获取服务器数据
+            const serverData = await this.getSyncData(this.syncCode);
+            const serverTimestamp = serverData.timestamp || 0;
+
+            // 比较时间戳
+            if (serverTimestamp > localTimestamp) {
+                // 服务器数据更新，下载并覆盖本地
+                this.applyDataToLocal(serverData);
+                console.log('✅ 已从服务器同步最新数据');
+            } else if (localTimestamp > serverTimestamp) {
+                // 本地数据更新，上传到服务器
+                await this.saveSyncData(this.syncCode, localData);
+                console.log('✅ 已上传本地数据到服务器');
+            } else {
+                console.log('✅ 本地和服务器数据已同步');
+            }
+        } catch (error) {
+            // 服务器没有数据，直接上传
+            if (error.message.includes('不存在')) {
+                await this.saveSyncData(this.syncCode, localData);
+                console.log('✅ 首次上传数据到服务器');
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    // 上传本地数据到服务器（使用智能同步）
+    async uploadData() {
+        return this.syncWithServer();
     }
 
     // 从服务器下载数据
@@ -262,7 +296,7 @@ function exportSyncData() {
     let syncTimeout;
     let lastDataSnapshot = null;
 
-    // 防抖同步函数（3秒内无变化才同步）
+    // 防抖同步函数（1秒内无变化才同步）
     function debouncedSync() {
         clearTimeout(syncTimeout);
         syncTimeout = setTimeout(() => {
@@ -275,7 +309,7 @@ function exportSyncData() {
                     });
                 }
             }
-        }, 3000);
+        }, 1000);
     }
 
     // 监听 localStorage 变化
