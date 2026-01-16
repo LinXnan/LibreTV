@@ -176,6 +176,11 @@ window.syncManager = new SyncManager();
         setTimeout(() => {
             if (!window.syncManager.syncCode) {
                 showSyncCodeModal();
+            } else {
+                // 已有同步码，执行智能同步
+                window.syncManager.syncWithServer().catch(err => {
+                    console.error('初始化同步失败:', err);
+                });
             }
         }, 1000);
     }
