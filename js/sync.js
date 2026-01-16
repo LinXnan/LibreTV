@@ -6,7 +6,8 @@
 class SyncManager {
     constructor() {
         this.syncCode = localStorage.getItem('syncCode') || null;
-        this.apiBase = '/api/sync';
+        // 使用完整 URL，绕过前端 api.js 拦截
+        this.apiBase = window.location.origin + '/api/sync';
     }
 
     // 生成唯一同步码
