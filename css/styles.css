@@ -1040,3 +1040,24 @@ body {
         font-size: 0.8rem;
     }
 }
+}
+
+/* 移动端触摸优化 */
+.card, button, a, input, select, textarea {
+    -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+    touch-action: manipulation;
+}
+
+/* 滚动性能优化 */
+.scroll-container, #historyPanel, #settingsPanel, #modalContent, #results, #douban-results {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+}
+
+/* 移动端按钮优化 */
+@media (max-width: 640px) {
+    button, .card {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
