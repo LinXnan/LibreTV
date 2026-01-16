@@ -579,7 +579,12 @@ async function handleMultipleCustomSearch(searchQuery, customApiUrls) {
     
     window.fetch = async function(input, init) {
         const requestUrl = typeof input === 'string' ? new URL(input, window.location.origin) : input.url;
-        
+
+        // 同步 API 不拦截，直接发送到 Cloudflare Functions
+        if (requestUrl.pathname.startsWith('/api/sync/')) {
+            return originalFetch.apply(this, arguments);
+        }
+
         if (requestUrl.pathname.startsWith('/api/')) {
             if (window.isPasswordProtected && window.isPasswordVerified) {
                 if (window.isPasswordProtected() && !window.isPasswordVerified()) {
