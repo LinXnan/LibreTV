@@ -97,29 +97,6 @@
             <div class="relative">
                 <div id="player" class="player-placeholder"></div>
 
-                <!-- 网络状态和统计信息面板 -->
-                <div id="statsPanel" class="absolute top-2 right-2 bg-black bg-opacity-75 text-white text-xs px-3 py-2 rounded-lg hidden" style="z-index: 10;">
-                    <div class="flex items-center gap-2 mb-1">
-                        <span id="networkStatus" class="flex items-center gap-1">
-                            <span id="networkIcon">🟢</span>
-                            <span id="networkType">4G</span>
-                        </span>
-                        <button onclick="toggleStatsPanel()" class="text-gray-400 hover:text-white">✕</button>
-                    </div>
-                    <div id="statsContent" class="space-y-0.5 text-gray-300">
-                        <div>分辨率: <span id="statResolution">-</span></div>
-                        <div>码率: <span id="statBitrate">-</span></div>
-                        <div>速度: <span id="statSpeed">-</span></div>
-                        <div>缓冲: <span id="statBuffer">-</span></div>
-                        <div>丢帧: <span id="statDropped">-</span></div>
-                    </div>
-                </div>
-
-                <!-- 统计按钮 -->
-                <button id="statsToggle" onclick="toggleStatsPanel()" class="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white text-xs px-2 py-1 rounded transition-opacity" style="z-index: 10;">
-                    📊
-                </button>
-
                 <div class="loading-container" id="player-loading" style="display: flex;">
                     <div class="loading-spinner"></div>
                     <div>正在加载视频...</div>
