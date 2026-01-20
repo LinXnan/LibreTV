@@ -445,9 +445,10 @@ function loadViewingHistory() {
         return `
             <div class="history-item cursor-pointer relative group" onclick="playFromHistory('${item.url}', '${safeTitle}', ${item.episodeIndex || 0}, ${item.playbackPosition || 0})">
                 <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL}')"
-                        class="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-1 rounded-full hover:bg-gray-800 z-10"
-                        title="删除记录">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        class="absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 md:p-1 rounded-full hover:bg-gray-800 bg-gray-900/50 md:bg-transparent z-10 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
+                        title="删除记录"
+                        aria-label="删除此观看记录">
+                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
