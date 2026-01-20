@@ -36,7 +36,7 @@ function showToast(message, type = 'error') {
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toast';
-        toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 z-50 opacity-0';
+        toast.className = 'fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 z-50 hidden';
         toast.style = 'z-index: 2147483647'
         toastMessage = document.createElement('p');
         toastMessage.id = 'toastMessage';
@@ -74,6 +74,9 @@ function showNextToast() {
     };
 
     const bgColor = bgColors[type] || bgColors.error;
+
+    // 移除 hidden 类并设置样式
+    toast.classList.remove('hidden');
     toast.className = `fixed top-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 ${bgColor} text-white z-50`;
     toastMessage.textContent = message;
 
@@ -86,8 +89,9 @@ function showNextToast() {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(-50%) translateY(-100%)';
 
-        // 等待动画完成后显示下一个toast
+        // 等待动画完成后隐藏并显示下一个toast
         setTimeout(() => {
+            toast.classList.add('hidden');
             showNextToast();
         }, 300);
     }, 3000);
