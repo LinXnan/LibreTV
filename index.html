@@ -13,8 +13,18 @@
     <link rel="icon" href="image/logo.png">
     <link rel="apple-touch-icon" href="image/logo-black.png">
     <link rel="manifest" href="manifest.json">
-    
-    <script src="libs/tailwindcss.min.js"></script>
+
+    <!-- DNS预解析和预连接 - 加速资源加载 -->
+    <link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+    <link rel="preconnect" href="//cdn.jsdelivr.net" crossorigin>
+
+    <!-- 关键CSS内联 - 加速首屏渲染 -->
+    <style>
+        body { background: #000; color: #fff; margin: 0; font-family: system-ui; }
+        .page-bg { background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); min-height: 100vh; }
+        .gradient-text { background: linear-gradient(90deg, #00ccff, #9b59b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    </style>
+
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/index.css">
 </head>
@@ -481,41 +491,44 @@
     }
     </script>
 
+    <!-- Tailwind CSS - 使用defer非阻塞加载 -->
+    <script src="libs/tailwindcss.min.js" defer></script>
+
     <!-- 引入纯 JS sha256（HTTP 下依然可用） -->
-    <script src="libs/sha256.min.js"></script>
+    <script src="libs/sha256.min.js" defer></script>
     <script>
         // 保存原始 js‑sha256 实现，避免被 password.js 覆盖
         window._jsSha256 = window.sha256;
     </script>
-    <script src="js/utils.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/proxy-auth.js"></script>
-    <script src="js/customer_site.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/douban.js"></script>
-    <script src="js/password.js"></script>
-    <script src="js/search.js"></script>
-    <script src="js/app.js"></script>
-    <script src="js/optimize-apply.js"></script>
+    <script src="js/utils.js" defer></script>
+    <script src="js/config.js" defer></script>
+    <script src="js/proxy-auth.js" defer></script>
+    <script src="js/customer_site.js" defer></script>
+    <script src="js/ui.js" defer></script>
+    <script src="js/api.js" defer></script>
+    <script src="js/douban.js" defer></script>
+    <script src="js/password.js" defer></script>
+    <script src="js/search.js" defer></script>
+    <script src="js/app.js" defer></script>
+    <script src="js/optimize-apply.js" defer></script>
 
-    <!-- PWA 注册 -->
-    <script src="js/pwa-register.js"></script>
+    <!-- PWA 注册 - 使用async异步加载 -->
+    <script src="js/pwa-register.js" async></script>
 
     <!-- 环境变量注入脚本 -->
     <script>
         // 创建全局环境变量对象
         window.__ENV__ = window.__ENV__ || {};
-        
+
         // 注入服务器端环境变量 (将由服务器端替换)
         // PASSWORD 变量将在这里被服务器端注入
         window.__ENV__.PASSWORD = "{{PASSWORD}}";
     </script>
 
-    <!-- 版本检测脚本 -->
-    <script src="js/version-check.js"></script>
+    <!-- 版本检测脚本 - 使用async异步加载 -->
+    <script src="js/version-check.js" async></script>
 
     <!-- 添加弹窗和URL搜索参数处理脚本 -->
-    <script src="js/index-page.js"></script>
+    <script src="js/index-page.js" defer></script>
 </body>
 </html>

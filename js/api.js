@@ -1,3 +1,35 @@
+// API请求缓存机制 - 优化性能
+const apiCache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5分钟缓存
+
+// 生成缓存键
+function getCacheKey(url, options = {}) {
+    return url + JSON.stringify(options);
+}
+
+// 从缓存获取数据
+function getFromCache(cacheKey) {
+    const cached = apiCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+    }
+    // 缓存过期，删除
+    if (cached) {
+        apiCache.delete(cacheKey);
+    }
+    return null;
+}
+
+// 保存到缓存
+function saveToCache(cacheKey, data) {
+    apiCache.set(cacheKey, { data, timestamp: Date.now() });
+    // 限制缓存大小，最多100条
+    if (apiCache.size > 100) {
+        const firstKey = apiCache.keys().next().value;
+        apiCache.delete(firstKey);
+    }
+}
+
 // 改进的API请求处理函数
 async function handleApiRequest(url) {
     const customApi = url.searchParams.get('customApi') || '';
@@ -23,28 +55,35 @@ async function handleApiRequest(url) {
             const apiUrl = customApi
                 ? `${customApi}${API_CONFIG.search.path}${encodeURIComponent(searchQuery)}`
                 : `${API_SITES[source].api}${API_CONFIG.search.path}${encodeURIComponent(searchQuery)}`;
-            
+
+            // 检查缓存
+            const cacheKey = getCacheKey(apiUrl, { source, customApi });
+            const cachedData = getFromCache(cacheKey);
+            if (cachedData) {
+                return cachedData;
+            }
+
             // 添加超时处理
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 10000);
-            
+
             try {
                 // 添加鉴权参数到代理URL
-                const proxiedUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 
+                const proxiedUrl = await window.ProxyAuth?.addAuthToProxyUrl ?
                     await window.ProxyAuth.addAuthToProxyUrl(PROXY_URL + encodeURIComponent(apiUrl)) :
                     PROXY_URL + encodeURIComponent(apiUrl);
-                    
+
                 const response = await fetch(proxiedUrl, {
                     headers: API_CONFIG.search.headers,
                     signal: controller.signal
                 });
-                
+
                 clearTimeout(timeoutId);
-                
+
                 if (!response.ok) {
                     throw new Error(`API请求失败: ${response.status}`);
                 }
-                
+
                 const data = await response.json();
                 
                 // 检查JSON格式的有效性
@@ -61,11 +100,16 @@ async function handleApiRequest(url) {
                         item.api_url = customApi;
                     }
                 });
-                
-                return JSON.stringify({
+
+                const result = JSON.stringify({
                     code: 200,
                     list: data.list || [],
                 });
+
+                // 保存到缓存
+                saveToCache(cacheKey, result);
+
+                return result;
             } catch (fetchError) {
                 clearTimeout(timeoutId);
                 throw fetchError;

@@ -59,7 +59,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始检查成人API选中状态
     setTimeout(checkAdultAPIsSelected, 100);
+
+    // 豆瓣模块懒加载 - 优化首屏加载速度
+    lazyLoadDoubanModule();
 });
+
+// API并发控制函数 - 限制同时请求的API数量，优化性能
+async function searchWithConcurrencyLimit(apiIds, query, limit = 3) {
+    const results = [];
+
+    for (let i = 0; i < apiIds.length; i += limit) {
+        const batch = apiIds.slice(i, i + limit);
+        const batchPromises = batch.map(apiId => searchByAPIAndKeyWord(apiId, query));
+        const batchResults = await Promise.allSettled(batchPromises);
+        results.push(...batchResults);
+    }
+
+    return results;
+}
 
 // 初始化API复选框
 function initAPICheckboxes() {
@@ -650,14 +667,11 @@ async function search() {
         // 保存搜索历史
         saveSearchHistory(query);
 
-        // 从所有选中的API源搜索
+        // 从所有选中的API源搜索 - 使用并发控制优化性能
         let allResults = [];
-        const searchPromises = selectedAPIs.map(apiId =>
-            searchByAPIAndKeyWord(apiId, query)
-        );
 
-        // 使用 allSettled 代替 all，不会因为某个API失败而失败
-        const resultsArray = await Promise.allSettled(searchPromises);
+        // 使用并发控制函数，限制同时请求的API数量为3个
+        const resultsArray = await searchWithConcurrencyLimit(selectedAPIs, query, 3);
 
         // 合并所有成功的结果
         resultsArray.forEach(result => {
@@ -1698,6 +1712,46 @@ function renderSearchResults(results) {
     }).join('');
 
     resultsDiv.innerHTML = safeResults;
+}
+
+// 豆瓣模块懒加载函数 - 优化首屏加载速度
+function lazyLoadDoubanModule() {
+    const doubanArea = document.getElementById('doubanArea');
+    if (!doubanArea) return;
+
+    let doubanLoaded = false;
+
+    // 初始化豆瓣模块
+    function initDouban() {
+        if (doubanLoaded) return;
+        doubanLoaded = true;
+
+        // 调用豆瓣模块的初始化函数
+        if (typeof updateDoubanVisibility === 'function') {
+            updateDoubanVisibility();
+        }
+    }
+
+    // 使用Intersection Observer监听豆瓣区域
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    initDouban();
+                    observer.disconnect();
+                }
+            });
+        }, {
+            rootMargin: '200px' // 提前200px开始加载
+        });
+
+        observer.observe(doubanArea);
+    }
+
+    // 备选方案：延迟2秒后自动加载
+    setTimeout(() => {
+        initDouban();
+    }, 2000);
 }
 
 // 移除Node.js的require语句，因为这是在浏览器环境中运行的
