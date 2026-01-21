@@ -701,7 +701,7 @@ async function search() {
 
         // 显示结果区域，调整搜索区域
         document.getElementById('searchArea').classList.remove('flex-1');
-        document.getElementById('searchArea').classList.add('mb-4');
+        document.getElementById('searchArea').classList.add('mb-2');
         document.getElementById('resultsArea').classList.remove('hidden');
 
         // 隐藏豆瓣推荐区域（如果存在）
