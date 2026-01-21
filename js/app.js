@@ -25,9 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // 渲染搜索历史
     renderSearchHistory();
 
-    // 渲染收藏列表
-    renderFavorites();
-
     // 设置默认API选择（如果是第一次加载）
     if (!localStorage.getItem('hasInitializedDefaults')) {
         // 默认选中资源
@@ -974,24 +971,9 @@ async function showDetails(id, vod_name, sourceCode) {
         const sourceName = data.videoInfo && data.videoInfo.source_name ?
             ` <span class="text-sm font-normal text-gray-400">(${data.videoInfo.source_name})</span>` : '';
 
-        // 获取视频信息用于收藏
-        const videoPic = data.videoInfo?.vod_pic || '';
-        const videoType = data.videoInfo?.type || '';
-
-        // 不对标题进行截断处理，允许完整显示，并添加收藏按钮
-        modalTitle.innerHTML = `
-            <div class="flex items-center justify-between w-full">
-                <span class="break-words flex-1">${vod_name || '未知视频'}${sourceName}</span>
-                <button id="favoriteBtn" onclick="toggleFavorite('${id}','${vod_name.replace(/'/g, "\\'")}','${sourceCode}','${videoPic}','${videoType}')"
-                        class="ml-3 px-3 py-1 bg-[#333] hover:bg-[#444] text-white rounded-lg text-sm transition-colors flex-shrink-0">
-                    🤍 收藏
-                </button>
-            </div>
-        `;
+        // 不对标题进行截断处理，允许完整显示
+        modalTitle.innerHTML = `<span class="break-words">${vod_name || '未知视频'}</span>${sourceName}`;
         currentVideoTitle = vod_name || '未知视频';
-
-        // 更新收藏按钮状态
-        updateFavoriteButton(id, sourceCode);
 
         if (data.episodes && data.episodes.length > 0) {
             // 构建详情信息HTML
@@ -1770,124 +1752,6 @@ function lazyLoadDoubanModule() {
     setTimeout(() => {
         initDouban();
     }, 2000);
-}
-
-// ========== 收藏功能 ==========
-
-// 收藏列表存储key
-const FAVORITES_KEY = 'favoriteVideos';
-
-// 获取收藏列表
-function getFavorites() {
-    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]');
-}
-
-// 保存收藏列表
-function saveFavorites(favorites) {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-}
-
-// 检查是否已收藏
-function isFavorited(id, source) {
-    const favorites = getFavorites();
-    return favorites.some(item => item.id === id && item.source === source);
-}
-
-// 添加到收藏
-function addToFavorites(id, name, source, pic, type) {
-    const favorites = getFavorites();
-    if (isFavorited(id, source)) {
-        showToast('已经在收藏列表中', 'info');
-        return;
-    }
-    favorites.unshift({
-        id,
-        name,
-        source,
-        pic: pic || '',
-        type: type || '',
-        addTime: Date.now()
-    });
-    saveFavorites(favorites);
-    showToast('已添加到收藏', 'success');
-    renderFavorites();
-    updateFavoriteButton(id, source);
-}
-
-// 从收藏中移除
-function removeFromFavorites(id, source) {
-    let favorites = getFavorites();
-    favorites = favorites.filter(item => !(item.id === id && item.source === source));
-    saveFavorites(favorites);
-    showToast('已取消收藏', 'info');
-    renderFavorites();
-    updateFavoriteButton(id, source);
-}
-
-// 切换收藏状态
-function toggleFavorite(id, name, source, pic, type) {
-    if (isFavorited(id, source)) {
-        removeFromFavorites(id, source);
-    } else {
-        addToFavorites(id, name, source, pic, type);
-    }
-}
-
-// 渲染收藏列表
-function renderFavorites() {
-    const favorites = getFavorites();
-    const favoritesArea = document.getElementById('favoritesArea');
-    const favoritesList = document.getElementById('favoritesList');
-
-    if (!favoritesArea || !favoritesList) return;
-
-    if (favorites.length === 0) {
-        favoritesArea.classList.add('hidden');
-        return;
-    }
-
-    favoritesArea.classList.remove('hidden');
-
-    favoritesList.innerHTML = favorites.map(item => {
-        const hasCover = item.pic && item.pic.startsWith('http');
-        return `
-            <div class="flex-shrink-0 w-40 bg-[#111] rounded-lg overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                 onclick="showDetails('${item.id}','${item.name.replace(/'/g, "\\'")}','${item.source}')">
-                ${hasCover ? `
-                <img src="${item.pic}" alt="${item.name}" class="w-full h-56 object-cover"
-                     onerror="this.onerror=null; this.src='https://via.placeholder.com/160x224?text=无封面';" loading="lazy">
-                ` : `
-                <div class="w-full h-56 bg-[#222] flex items-center justify-center">
-                    <span class="text-gray-500 text-sm">无封面</span>
-                </div>
-                `}
-                <div class="p-2">
-                    <h3 class="text-sm font-semibold truncate" title="${item.name}">${item.name}</h3>
-                    ${item.type ? `<p class="text-xs text-gray-400 truncate">${item.type}</p>` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// 清空所有收藏
-function clearAllFavorites() {
-    if (!confirm('确定要清空所有收藏吗？')) return;
-    localStorage.removeItem(FAVORITES_KEY);
-    renderFavorites();
-    showToast('已清空收藏列表', 'success');
-}
-
-// 更新收藏按钮状态
-function updateFavoriteButton(id, source) {
-    const btn = document.getElementById('favoriteBtn');
-    if (!btn) return;
-
-    const favorited = isFavorited(id, source);
-    btn.innerHTML = favorited ? '❤️ 已收藏' : '🤍 收藏';
-    btn.className = favorited
-        ? 'px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors'
-        : 'px-3 py-1 bg-[#333] hover:bg-[#444] text-white rounded-lg text-sm transition-colors';
 }
 
 // 移除Node.js的require语句，因为这是在浏览器环境中运行的
