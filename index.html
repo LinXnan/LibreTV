@@ -316,7 +316,20 @@
                     </div>
                 </div>
             </div>
-            
+
+            <!-- 收藏区域 -->
+            <div id="favoritesArea" class="w-full my-8 hidden">
+                <div class="mx-auto max-w-screen-xl px-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-white">我的收藏</h2>
+                        <button onclick="clearAllFavorites()" class="text-sm px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg">清空收藏</button>
+                    </div>
+                    <div id="favoritesList" class="flex gap-3 overflow-x-auto pb-3">
+                        <!-- 收藏列表将在这里动态显示 -->
+                    </div>
+                </div>
+            </div>
+
             <!-- 豆瓣热门推荐区域: 默认隐藏，现在位于搜索区域下方，调整宽度 -->
             <div id="doubanArea" class="w-full my-8 hidden">
                 <div class="mx-auto max-w-screen-xl px-2">
