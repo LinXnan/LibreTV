@@ -22,9 +22,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // 初始化显示选中的API数量
     updateSelectedApiCount();
 
-    // 渲染搜索历史
-    renderSearchHistory();
-
     // 设置默认API选择（如果是第一次加载）
     if (!localStorage.getItem('hasInitializedDefaults')) {
         // 默认选中资源

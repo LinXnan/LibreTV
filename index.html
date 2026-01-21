@@ -309,14 +309,22 @@
                             搜索
                         </button>
                     </div>
-                    
-                    <!-- 添加最近搜索记录部分 -->
-                    <div id="recentSearches" class="mt-4 flex flex-wrap gap-2" aria-label="最近搜索记录">
-                        <!-- 这里会动态插入最近的搜索记录 -->
+                </div>
+            </div>
+
+            <!-- 收藏区域 -->
+            <div id="favoritesArea" class="w-full my-8 hidden">
+                <div class="mx-auto max-w-screen-xl px-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-white">我的收藏</h2>
+                        <button onclick="clearAllFavorites()" class="text-sm px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg">清空收藏</button>
+                    </div>
+                    <div id="favoritesList" class="flex gap-3 overflow-x-auto pb-3">
+                        <!-- 收藏列表将在这里动态显示 -->
                     </div>
                 </div>
             </div>
-            
+
             <!-- 豆瓣热门推荐区域: 默认隐藏，现在位于搜索区域下方，调整宽度 -->
             <div id="doubanArea" class="w-full my-8 hidden">
                 <div class="mx-auto max-w-screen-xl px-2">
@@ -563,9 +571,6 @@
         // PASSWORD 变量将在这里被服务器端注入
         window.__ENV__.PASSWORD = "{{PASSWORD}}";
     </script>
-
-    <!-- 版本检测脚本 - 使用async异步加载 -->
-    <script src="js/version-check.js" async></script>
 
     <!-- 添加弹窗和URL搜索参数处理脚本 -->
     <script src="js/index-page.js" defer></script>
