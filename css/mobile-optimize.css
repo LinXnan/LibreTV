@@ -208,6 +208,11 @@
         height: 3rem !important;
     }
 
+    /* 搜索区域 - 移除过大的最小高度 */
+    #searchArea {
+        min-height: auto !important;
+    }
+
     /* 豆瓣区域 */
     #doubanArea {
         margin-top: 1.5rem !important;
