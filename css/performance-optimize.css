@@ -1,0 +1,435 @@
+/*
+ * LibreTV 性能优化样式
+ * 包含字体优化和CSS性能优化
+ */
+
+/* ========================================
+   9. 字体优化 - 系统字体栈
+   ======================================== */
+
+/* 优化的系统字体栈 - 零加载时间 */
+body,
+html,
+input,
+textarea,
+button,
+select {
+    font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        "Helvetica Neue",
+        Arial,
+        "Noto Sans",
+        sans-serif,
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        "Segoe UI Symbol",
+        "Noto Color Emoji";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* 等宽字体优化 */
+code,
+pre,
+kbd,
+samp {
+    font-family:
+        ui-monospace,
+        SFMono-Regular,
+        "SF Mono",
+        Menlo,
+        Monaco,
+        Consolas,
+        "Liberation Mono",
+        "Courier New",
+        monospace;
+}
+
+/* 字体加载优化 */
+@supports (font-display: swap) {
+    * {
+        font-display: swap;
+    }
+}
+
+/* ========================================
+   10. CSS Containment 优化
+   ======================================== */
+
+/* 卡片容器 - 布局、样式、绘制隔离 */
+.card-hover {
+    contain: layout style paint;
+}
+
+/* 搜索结果项 */
+#results > * {
+    contain: layout style paint;
+}
+
+/* 豆瓣推荐项 */
+#douban-results > * {
+    contain: layout style paint;
+}
+
+/* 集数按钮 */
+#episodesGrid button,
+#modalContent button {
+    contain: layout style;
+}
+
+/* 历史记录项 */
+.history-item {
+    contain: layout style paint;
+}
+
+/* 面板容器 */
+.history-panel,
+.settings-panel {
+    contain: layout style;
+}
+
+/* 模态框内容 */
+#modalContent {
+    contain: layout;
+}
+
+/* 筛选按钮 */
+.filter-btn {
+    contain: layout style;
+}
+
+/* ========================================
+   10. will-change 优化
+   ======================================== */
+
+/* 面板滑动动画 */
+.history-panel,
+.settings-panel {
+    will-change: transform;
+}
+
+.history-panel.translate-x-0,
+.settings-panel.translate-x-0 {
+    will-change: auto;
+}
+
+/* 模态框显示动画 */
+#modal:not(.hidden),
+#passwordModal:not(.hidden),
+#disclaimerModal:not(.hidden) {
+    will-change: opacity;
+}
+
+#modal.hidden,
+#passwordModal.hidden,
+#disclaimerModal.hidden {
+    will-change: auto;
+}
+
+/* 卡片悬停效果 */
+.card-hover:hover {
+    will-change: transform, box-shadow;
+}
+
+/* 按钮交互 */
+button:active {
+    will-change: transform, opacity;
+}
+
+/* 加载动画 */
+.loading-spinner,
+#style-loader::after,
+.player-loading-spinner {
+    will-change: transform;
+}
+
+/* Toast提示 */
+#toast:not(.hidden) {
+    will-change: transform, opacity;
+}
+
+/* ========================================
+   10. GPU加速优化
+   ======================================== */
+
+/* 强制GPU加速的元素 */
+.card-hover,
+.history-panel,
+.settings-panel,
+#modal,
+#toast,
+.loading-spinner {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* 视频播放器 */
+#player,
+.art-video-player,
+.art-video-player video {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* ========================================
+   10. 滚动性能优化
+   ======================================== */
+
+/* 滚动容器优化 */
+.history-panel,
+.settings-panel,
+#modalContent,
+.episode-grid,
+.douban-tags-container {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+/* 滚动捕捉（可选） */
+.douban-tags-container {
+    scroll-snap-type: x proximity;
+}
+
+.douban-tag {
+    scroll-snap-align: start;
+}
+
+/* ========================================
+   10. 渲染性能优化
+   ======================================== */
+
+/* 减少重绘 */
+* {
+    box-sizing: border-box;
+}
+
+/* 图片渲染优化 */
+img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+/* 视频渲染优化 */
+video {
+    object-fit: contain;
+    transform: translateZ(0);
+}
+
+/* ========================================
+   10. 动画性能优化
+   ======================================== */
+
+/* 只使用transform和opacity进行动画 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) translateZ(0);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) translateZ(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%) translateZ(0);
+    }
+    to {
+        transform: translateX(0) translateZ(0);
+    }
+}
+
+/* 骨架屏动画优化 */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%) translateZ(0);
+    }
+    100% {
+        transform: translateX(100%) translateZ(0);
+    }
+}
+
+/* 旋转动画优化 */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg) translateZ(0);
+    }
+    100% {
+        transform: rotate(360deg) translateZ(0);
+    }
+}
+
+/* ========================================
+   10. 内存优化
+   ======================================== */
+
+/* 限制阴影复杂度 */
+.card-hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.card-hover:hover {
+    box-shadow: 0 8px 24px rgba(0, 204, 255, 0.3);
+}
+
+/* 避免复杂的渐变 */
+.gradient-text {
+    background: linear-gradient(90deg, #00ccff, #9b59b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ========================================
+   10. 关键渲染路径优化
+   ======================================== */
+
+/* 首屏内容优先 */
+.page-content {
+    content-visibility: auto;
+}
+
+/* 非首屏内容延迟渲染 */
+#doubanArea,
+#resultsArea,
+#favoritesArea {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 500px;
+}
+
+/* 模态框内容 */
+#modal,
+#passwordModal,
+#disclaimerModal {
+    content-visibility: auto;
+}
+
+/* ========================================
+   10. 交互响应优化
+   ======================================== */
+
+/* 减少输入延迟 */
+input,
+textarea,
+button,
+select {
+    touch-action: manipulation;
+}
+
+/* 快速点击响应 */
+button,
+a,
+.card-hover {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+/* ========================================
+   10. 布局稳定性优化
+   ======================================== */
+
+/* 防止布局偏移 */
+img,
+video {
+    max-width: 100%;
+    height: auto;
+}
+
+/* 骨架屏占位 */
+.skeleton-card {
+    min-height: 200px;
+}
+
+/* ========================================
+   性能监控辅助
+   ======================================== */
+
+/* 标记关键元素用于性能监控 */
+#searchInput {
+    /* 首次输入延迟 (FID) 监控点 */
+}
+
+.card-hover:first-child {
+    /* 最大内容绘制 (LCP) 监控点 */
+}
+
+/* ========================================
+   移动端特定性能优化
+   ======================================== */
+
+@media (max-width: 640px) {
+    /* 减少移动端的阴影复杂度 */
+    .card-hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    /* 简化移动端动画 */
+    * {
+        animation-duration: 0.2s !important;
+        transition-duration: 0.2s !important;
+    }
+
+    /* 移动端禁用悬停效果 */
+    @media (hover: none) {
+        .card-hover:hover {
+            will-change: auto;
+        }
+    }
+}
+
+/* ========================================
+   低性能设备优化
+   ======================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ========================================
+   暗色模式性能优化
+   ======================================== */
+
+@media (prefers-color-scheme: dark) {
+    /* 暗色模式下已经是暗色，无需额外处理 */
+    body {
+        color-scheme: dark;
+    }
+}
+
+/* ========================================
+   打印优化
+   ======================================== */
+
+@media print {
+    /* 移除不必要的元素 */
+    .history-panel,
+    .settings-panel,
+    #modal,
+    #toast,
+    .loading-spinner {
+        display: none !important;
+    }
+
+    /* 优化打印性能 */
+    * {
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+        text-shadow: none !important;
+    }
+}
