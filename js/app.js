@@ -757,6 +757,10 @@ async function search() {
 
         // 优化1: 保存完整的搜索结果用于筛选
         window.searchResults = allResults;
+        filteredResults = allResults;
+
+        // 重置到第一页
+        currentPage = 1;
 
         // 优化1: 生成统计信息
         updateSearchStatistics(allResults);
@@ -764,96 +768,11 @@ async function search() {
         // 优化1: 生成筛选按钮
         generateSearchFilters(allResults);
 
-        // 添加XSS保护，使用textContent和属性转义
-        const safeResults = allResults.map(item => {
-            const safeId = item.vod_id ? item.vod_id.toString().replace(/[^\w-]/g, '') : '';
-            const safeName = (item.vod_name || '').toString()
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-            const sourceInfo = item.source_name ?
-                `<span class="bg-[#222] text-xs px-1.5 py-0.5 rounded-full">${item.source_name}</span>` : '';
-            const sourceCode = item.source_code || '';
+        // 渲染搜索结果（带分页）
+        renderSearchResults(allResults);
 
-            // 添加API URL属性，用于详情获取
-            const apiUrlAttr = item.api_url ?
-                `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : '';
-
-            // 获取版本信息（如"高清版"）
-            const vodVersion = item.vod_version ? item.vod_version.toString().replace(/</g, '&lt;') : '';
-
-            // 修改为水平卡片布局，图片在左侧，文本在右侧，并优化样式
-            const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
-
-            return `
-                <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md" 
-                     onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}>
-                    <div class="flex h-full">
-                        ${hasCover ? `
-                        <div class="relative flex-shrink-0 search-card-img-container">
-                            <img src="${item.vod_pic}" alt="${safeName}" 
-                                 class="h-full w-full object-cover transition-transform hover:scale-110" 
-                                 onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');" 
-                                 loading="lazy">
-                            <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
-                        </div>` : ''}
-                        
-                        <div class="p-2 flex flex-col flex-grow">
-                            <div class="flex-grow">
-                                <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
-                                
-                                <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
-                                    ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
-                    `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-blue-500 text-blue-300">
-                                          ${(item.type_name || '').toString().replace(/</g, '&lt;')}
-                                      </span>` : ''}
-                                    ${(item.vod_year || '') ?
-                    `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
-                                          ${item.vod_year}
-                                      </span>` : ''}
-                                    ${vodVersion ?
-                    `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-green-500 text-green-300">
-                                          ${vodVersion}
-                                      </span>` : ''}
-                                </div>
-                                <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
-                                    ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')}
-                                </p>
-                            </div>
-
-                            <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-800">
-                                <div class="flex items-center gap-2">
-                                    ${sourceInfo ? `${sourceInfo}` : ''}
-                                    ${item.latency && item.latency > 0 ?
-                                        `<span class="text-xs px-1.5 py-0.5 rounded ${
-                                            item.latency < 1000 ? 'bg-green-900/30 text-green-400' :
-                                            item.latency < 3000 ? 'bg-yellow-900/30 text-yellow-400' :
-                                            'bg-red-900/30 text-red-400'
-                                        }">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                            </svg>
-                                            ${item.latency}ms
-                                        </span>` : ''}
-                                </div>
-                                <!-- 接口名称过长会被挤变形
-                                <div>
-                                    <span class="text-gray-500 flex items-center hover:text-blue-400 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                                        </svg>
-                                        播放
-                                    </span>
-                                </div>
-                                -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        resultsDiv.innerHTML = safeResults;
+        // 渲染分页控件
+        renderPagination(allResults.length);
 
         // 优化2: 隐藏骨架屏，显示实际结果
         skeletonDiv.classList.add('hidden');
@@ -1422,6 +1341,22 @@ let currentFilters = {
     latency: 'all'
 };
 
+// 分页配置
+const PAGINATION_CONFIG = {
+    itemsPerPage: 20,  // PC端每页显示20条
+    itemsPerPageMobile: 5,  // 移动端每页显示5条
+    maxVisiblePages: 5  // 最多显示5个页码按钮
+};
+
+// 获取当前每页显示数量
+function getItemsPerPage() {
+    return window.innerWidth <= 640 ? PAGINATION_CONFIG.itemsPerPageMobile : PAGINATION_CONFIG.itemsPerPage;
+}
+
+// 当前分页状态
+let currentPage = 1;
+let filteredResults = [];  // 筛选后的结果
+
 // 更新搜索统计信息
 function updateSearchStatistics(results) {
     const searchResultsCount = document.getElementById('searchResultsCount');
@@ -1585,7 +1520,13 @@ function applySearchFilters() {
         return true;
     });
 
-    // 重新渲染结果
+    // 保存筛选后的结果
+    filteredResults = filtered;
+
+    // 重置到第一页
+    currentPage = 1;
+
+    // 渲染当前页结果
     renderSearchResults(filtered);
 
     // 更新计数
@@ -1593,6 +1534,9 @@ function applySearchFilters() {
     if (searchResultsCount) {
         searchResultsCount.textContent = filtered.length;
     }
+
+    // 渲染分页控件
+    renderPagination(filtered.length);
 }
 
 // 重置筛选
@@ -1629,10 +1573,19 @@ function renderSearchResults(results) {
                 <p class="mt-1 text-sm text-gray-500">请调整筛选条件或重新搜索</p>
             </div>
         `;
+        // 隐藏分页控件
+        const paginationDiv = document.getElementById('pagination');
+        if (paginationDiv) paginationDiv.classList.add('hidden');
         return;
     }
 
-    const safeResults = results.map(item => {
+    // 计算分页
+    const itemsPerPage = getItemsPerPage();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageResults = results.slice(startIndex, endIndex);
+
+    const safeResults = pageResults.map(item => {
         const safeId = item.vod_id ? item.vod_id.toString().replace(/[^\w-]/g, '') : '';
         const safeName = (item.vod_name || '').toString()
             .replace(/</g, '&lt;')
@@ -1709,6 +1662,148 @@ function renderSearchResults(results) {
     }).join('');
 
     resultsDiv.innerHTML = safeResults;
+
+    // 显示分页控件
+    const paginationDiv = document.getElementById('pagination');
+    if (paginationDiv) paginationDiv.classList.remove('hidden');
+}
+
+// 渲染分页控件
+function renderPagination(totalItems) {
+    const paginationDiv = document.getElementById('pagination');
+    if (!paginationDiv) return;
+
+    const itemsPerPage = getItemsPerPage();
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+    if (totalPages <= 1) {
+        paginationDiv.classList.add('hidden');
+        return;
+    }
+
+    paginationDiv.classList.remove('hidden');
+
+    // 计算显示的页码范围
+    let startPage = Math.max(1, currentPage - Math.floor(PAGINATION_CONFIG.maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + PAGINATION_CONFIG.maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < PAGINATION_CONFIG.maxVisiblePages) {
+        startPage = Math.max(1, endPage - PAGINATION_CONFIG.maxVisiblePages + 1);
+    }
+
+    let paginationHTML = '<div class="flex items-center justify-center gap-2 flex-wrap">';
+
+    // 上一页按钮
+    paginationHTML += `
+        <button onclick="goToPage(${currentPage - 1})"
+                class="px-3 py-2 bg-[#222] hover:bg-[#333] rounded transition-colors ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${currentPage === 1 ? 'disabled' : ''}>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+    `;
+
+    // 第一页
+    if (startPage > 1) {
+        paginationHTML += `
+            <button onclick="goToPage(1)" class="px-3 py-2 bg-[#222] hover:bg-[#333] rounded transition-colors">1</button>
+        `;
+        if (startPage > 2) {
+            paginationHTML += `<span class="px-2 text-gray-500">...</span>`;
+        }
+    }
+
+    // 页码按钮
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML += `
+            <button onclick="goToPage(${i})"
+                    class="px-3 py-2 rounded transition-colors ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-[#222] hover:bg-[#333]'}">
+                ${i}
+            </button>
+        `;
+    }
+
+    // 最后一页
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            paginationHTML += `<span class="px-2 text-gray-500">...</span>`;
+        }
+        paginationHTML += `
+            <button onclick="goToPage(${totalPages})" class="px-3 py-2 bg-[#222] hover:bg-[#333] rounded transition-colors">${totalPages}</button>
+        `;
+    }
+
+    // 下一页按钮
+    paginationHTML += `
+        <button onclick="goToPage(${currentPage + 1})"
+                class="px-3 py-2 bg-[#222] hover:bg-[#333] rounded transition-colors ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}"
+                ${currentPage === totalPages ? 'disabled' : ''}>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        </button>
+    `;
+
+    // 快速跳转
+    paginationHTML += `
+        <div class="flex items-center gap-2 ml-4">
+            <span class="text-sm text-gray-400">跳转到</span>
+            <input type="number" id="pageJumpInput" min="1" max="${totalPages}"
+                   class="w-16 px-2 py-1 bg-[#222] border border-[#333] rounded text-center text-sm"
+                   onkeypress="if(event.key==='Enter') jumpToPage()">
+            <button onclick="jumpToPage()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">
+                跳转
+            </button>
+        </div>
+    `;
+
+    paginationHTML += '</div>';
+
+    // 显示当前页信息
+    paginationHTML += `
+        <div class="text-center text-sm text-gray-400 mt-3">
+            第 ${currentPage} / ${totalPages} 页，共 ${totalItems} 条结果
+        </div>
+    `;
+
+    paginationDiv.innerHTML = paginationHTML;
+}
+
+// 跳转到指定页
+function goToPage(page) {
+    const itemsPerPage = getItemsPerPage();
+    const totalPages = Math.ceil(filteredResults.length / itemsPerPage);
+
+    if (page < 1 || page > totalPages || page === currentPage) return;
+
+    currentPage = page;
+    renderSearchResults(filteredResults);
+    renderPagination(filteredResults.length);
+
+    // 滚动到搜索结果顶部
+    const resultsArea = document.getElementById('resultsArea');
+    if (resultsArea) {
+        resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// 快速跳转到指定页
+function jumpToPage() {
+    const input = document.getElementById('pageJumpInput');
+    if (!input) return;
+
+    const page = parseInt(input.value);
+    const itemsPerPage = getItemsPerPage();
+    const totalPages = Math.ceil(filteredResults.length / itemsPerPage);
+
+    if (isNaN(page) || page < 1 || page > totalPages) {
+        showToast(`请输入 1-${totalPages} 之间的页码`, 'warning');
+        return;
+    }
+
+    goToPage(page);
+    input.value = '';
 }
 
 // 豆瓣模块懒加载函数 - 优化首屏加载速度
