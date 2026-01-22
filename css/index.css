@@ -299,7 +299,6 @@
 /* 移动端搜索框居中 */
 @media (max-width: 640px) {
     #searchArea {
-        min-height: 60vh;
         display: flex;
         align-items: center;
         justify-content: center;
