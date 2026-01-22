@@ -135,14 +135,14 @@ button, .card-hover {
 .settings-panel {
     scrollbar-width: thin;
     scrollbar-color: #444 #222;
-    transform: translateX(100%);
-    transition: transform 0.3s ease;
+    right: -100% !important;
+    transition: right 0.3s ease;
     background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start));
     border-left: 1px solid var(--primary-color);
 }
 
 .settings-panel.show {
-    transform: translateX(0);
+    right: 0 !important;
 }
 
 .settings-panel::-webkit-scrollbar {
@@ -634,7 +634,8 @@ body {
 /* 历史记录面板样式 */
 .history-panel {
     box-shadow: 2px 0 10px rgba(0,0,0,0.5);
-    transition: transform 0.3s ease-in-out;
+    left: -100% !important;
+    transition: left 0.3s ease-in-out;
     overflow-y: scroll; /* 始终显示滚动条，防止宽度变化 */
     overflow-x: hidden; /* 防止水平滚动 */
     width: 320px; /* 固定宽度 */
@@ -643,7 +644,7 @@ body {
 }
 
 .history-panel.show {
-    transform: translateX(0);
+    left: 0 !important;
 }
 
 #historyList {
