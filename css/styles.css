@@ -635,6 +635,7 @@ body {
 .history-panel {
     box-shadow: 2px 0 10px rgba(0,0,0,0.5);
     left: -100% !important;
+    transform: none !important;
     transition: left 0.3s ease-in-out;
     overflow-y: scroll; /* 始终显示滚动条，防止宽度变化 */
     overflow-x: hidden; /* 防止水平滚动 */
@@ -645,6 +646,7 @@ body {
 
 .history-panel.show {
     left: 0 !important;
+    transform: none !important;
 }
 
 #historyList {
