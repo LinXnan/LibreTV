@@ -146,16 +146,26 @@ button, .card-hover {
 }
 
 .settings-panel::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 .settings-panel::-webkit-scrollbar-track {
-    background: transparent;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 204, 255, 0.1);
 }
 
 .settings-panel::-webkit-scrollbar-thumb {
-    background-color: #444;
+    background: linear-gradient(180deg, rgba(0, 204, 255, 0.6), rgba(0, 204, 255, 0.4));
     border-radius: 4px;
+    border: 1px solid rgba(0, 204, 255, 0.3);
+    box-shadow: 0 0 6px rgba(0, 204, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+.settings-panel::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(0, 204, 255, 0.8), rgba(0, 204, 255, 0.6));
+    box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
 }
 
 .search-button {
@@ -633,6 +643,8 @@ body {
 
 /* 历史记录面板样式 */
 .history-panel {
+    scrollbar-width: thin;
+    scrollbar-color: #444 #222;
     box-shadow: 2px 0 10px rgba(0,0,0,0.5);
     left: -100% !important;
     transform: none !important;
@@ -642,11 +654,35 @@ body {
     width: 320px; /* 固定宽度 */
     box-sizing: border-box; /* 确保padding不影响总宽度 */
     scrollbar-gutter: stable; /* 现代浏览器：为滚动条预留空间 */
+    background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start));
 }
 
 .history-panel.show {
     left: 0 !important;
     transform: none !important;
+}
+
+.history-panel::-webkit-scrollbar {
+    width: 8px;
+}
+
+.history-panel::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    border: 1px solid rgba(0, 204, 255, 0.1);
+}
+
+.history-panel::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(0, 204, 255, 0.6), rgba(0, 204, 255, 0.4));
+    border-radius: 4px;
+    border: 1px solid rgba(0, 204, 255, 0.3);
+    box-shadow: 0 0 6px rgba(0, 204, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+.history-panel::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(0, 204, 255, 0.8), rgba(0, 204, 255, 0.6));
+    box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
 }
 
 #historyList {
