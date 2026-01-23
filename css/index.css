@@ -296,12 +296,13 @@
     background-repeat: no-repeat;
 }
 
-/* 移动端搜索框居中 */
+/* 移动端搜索框样式 */
 @media (max-width: 640px) {
     #searchArea {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
+        padding-top: 0;
     }
 
     #searchArea > div {
