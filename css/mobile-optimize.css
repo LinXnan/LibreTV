@@ -514,6 +514,93 @@
 }
 
 /* ========================================
+   额外优化：分页控件（移动端触摸优化）
+   ======================================== */
+
+@media (max-width: 640px) {
+    /* 分页容器 */
+    #pagination {
+        padding: 0 0.5rem;
+    }
+
+    /* 分页按钮 - 增大触摸区域 */
+    #pagination button {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        padding: 0.625rem !important;
+        font-size: 1rem !important;
+    }
+
+    /* 上一页/下一页按钮 - 更大的触摸区域 */
+    #pagination button svg {
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+    }
+
+    /* 快速跳转区域 - 移动端优化 */
+    #pagination .flex.items-center.gap-2 {
+        margin-left: 0 !important;
+        margin-top: 0.75rem;
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* 跳转输入框 - 增大触摸区域 */
+    #pageJumpInput {
+        width: 4rem !important;
+        height: 44px !important;
+        font-size: 1rem !important;
+        padding: 0.625rem 0.5rem !important;
+    }
+
+    /* 跳转按钮 - 增大触摸区域 */
+    #pagination .flex.items-center.gap-2 button {
+        min-height: 44px !important;
+        padding: 0.625rem 1rem !important;
+        font-size: 1rem !important;
+    }
+
+    /* 页面信息文字 */
+    #pagination .text-center {
+        font-size: 1rem !important;
+        margin-top: 1rem !important;
+    }
+
+    /* 触摸反馈 */
+    #pagination button:active {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+
+    /* 禁用按钮不响应触摸 */
+    #pagination button:disabled:active {
+        transform: none;
+        opacity: 0.5;
+    }
+}
+
+/* 极小屏幕优化 - 简化分页显示 */
+@media (max-width: 375px) {
+    /* 减少页码按钮数量的视觉提示 */
+    #pagination button {
+        min-width: 40px !important;
+        padding: 0.5rem !important;
+        font-size: 0.9375rem !important;
+    }
+
+    /* 跳转区域换行显示 */
+    #pagination > div:first-child {
+        flex-direction: column;
+        gap: 0.75rem !important;
+    }
+
+    /* 跳转文字缩小 */
+    #pagination .text-sm {
+        font-size: 0.875rem !important;
+    }
+}
+
+/* ========================================
    性能优化：减少动画
    ======================================== */
 

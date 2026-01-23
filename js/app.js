@@ -1345,12 +1345,18 @@ let currentFilters = {
 const PAGINATION_CONFIG = {
     itemsPerPage: 20,  // PC端每页显示20条
     itemsPerPageMobile: 5,  // 移动端每页显示5条
-    maxVisiblePages: 5  // 最多显示5个页码按钮
+    maxVisiblePages: 5,  // PC端最多显示5个页码按钮
+    maxVisiblePagesMobile: 3  // 移动端最多显示3个页码按钮
 };
 
 // 获取当前每页显示数量
 function getItemsPerPage() {
     return window.innerWidth <= 640 ? PAGINATION_CONFIG.itemsPerPageMobile : PAGINATION_CONFIG.itemsPerPage;
+}
+
+// 获取最大可见页码数量
+function getMaxVisiblePages() {
+    return window.innerWidth <= 640 ? PAGINATION_CONFIG.maxVisiblePagesMobile : PAGINATION_CONFIG.maxVisiblePages;
 }
 
 // 当前分页状态
@@ -1684,11 +1690,12 @@ function renderPagination(totalItems) {
     paginationDiv.classList.remove('hidden');
 
     // 计算显示的页码范围
-    let startPage = Math.max(1, currentPage - Math.floor(PAGINATION_CONFIG.maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + PAGINATION_CONFIG.maxVisiblePages - 1);
+    const maxVisiblePages = getMaxVisiblePages();
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-    if (endPage - startPage + 1 < PAGINATION_CONFIG.maxVisiblePages) {
-        startPage = Math.max(1, endPage - PAGINATION_CONFIG.maxVisiblePages + 1);
+    if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
 
     let paginationHTML = '<div class="flex items-center justify-center gap-2 flex-wrap">';
@@ -1696,7 +1703,7 @@ function renderPagination(totalItems) {
     // 上一页按钮
     paginationHTML += `
         <button onclick="goToPage(${currentPage - 1})"
-                class="px-3 py-2 bg-[#222] hover:bg-[#333] rounded transition-colors ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}"
+                class="px-3 py-2 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-indigo-500 rounded-lg transition-all duration-300 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}"
                 ${currentPage === 1 ? 'disabled' : ''}>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -1707,7 +1714,7 @@ function renderPagination(totalItems) {
     // 第一页
     if (startPage > 1) {
         paginationHTML += `
-            <button onclick="goToPage(1)" class="px-3 py-2 bg-[#222] hover:bg-[#333] rounded transition-colors">1</button>
+            <button onclick="goToPage(1)" class="px-3 py-2 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-indigo-500 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md">1</button>
         `;
         if (startPage > 2) {
             paginationHTML += `<span class="px-2 text-gray-500">...</span>`;
@@ -1718,7 +1725,7 @@ function renderPagination(totalItems) {
     for (let i = startPage; i <= endPage; i++) {
         paginationHTML += `
             <button onclick="goToPage(${i})"
-                    class="px-3 py-2 rounded transition-colors ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-[#222] hover:bg-[#333]'}">
+                    class="px-3 py-2 rounded-lg transition-all duration-300 ${i === currentPage ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-md hover:shadow-lg' : 'bg-[#222] hover:bg-[#333] border border-[#333] hover:border-indigo-500 shadow-sm hover:shadow-md'}">
                 ${i}
             </button>
         `;
@@ -1730,14 +1737,14 @@ function renderPagination(totalItems) {
             paginationHTML += `<span class="px-2 text-gray-500">...</span>`;
         }
         paginationHTML += `
-            <button onclick="goToPage(${totalPages})" class="px-3 py-2 bg-[#222] hover:bg-[#333] rounded transition-colors">${totalPages}</button>
+            <button onclick="goToPage(${totalPages})" class="px-3 py-2 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-indigo-500 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md">${totalPages}</button>
         `;
     }
 
     // 下一页按钮
     paginationHTML += `
         <button onclick="goToPage(${currentPage + 1})"
-                class="px-3 py-2 bg-[#222] hover:bg-[#333] rounded transition-colors ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : ''}"
+                class="px-3 py-2 bg-[#222] hover:bg-[#333] border border-[#333] hover:border-indigo-500 rounded-lg transition-all duration-300 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'shadow-sm hover:shadow-md'}"
                 ${currentPage === totalPages ? 'disabled' : ''}>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -1750,9 +1757,9 @@ function renderPagination(totalItems) {
         <div class="flex items-center gap-2 ml-4">
             <span class="text-sm text-gray-400">跳转到</span>
             <input type="number" id="pageJumpInput" min="1" max="${totalPages}"
-                   class="w-16 px-2 py-1 bg-[#222] border border-[#333] rounded text-center text-sm"
+                   class="w-16 px-2 py-1 bg-[#222] border border-[#333] focus:border-indigo-500 rounded-lg text-center text-sm transition-all duration-300 focus:outline-none focus:shadow-md"
                    onkeypress="if(event.key==='Enter') jumpToPage()">
-            <button onclick="jumpToPage()" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">
+            <button onclick="jumpToPage()" class="px-3 py-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white rounded-lg text-sm transition-all duration-300 shadow-md hover:shadow-lg">
                 跳转
             </button>
         </div>
@@ -1763,7 +1770,7 @@ function renderPagination(totalItems) {
     // 显示当前页信息
     paginationHTML += `
         <div class="text-center text-sm text-gray-400 mt-3">
-            第 ${currentPage} / ${totalPages} 页，共 ${totalItems} 条结果
+            第 <span class="text-white font-semibold">${currentPage}</span> / <span class="text-white font-semibold">${totalPages}</span> 页，共 <span class="text-white font-semibold">${totalItems}</span> 条结果
         </div>
     `;
 
