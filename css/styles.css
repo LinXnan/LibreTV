@@ -133,8 +133,8 @@ button, .card-hover {
 
 /* 改进设置面板样式 */
 .settings-panel {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 204, 255, 0.5) rgba(0, 0, 0, 0.3);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     right: -100% !important;
     transition: right 0.3s ease;
     background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start));
@@ -146,26 +146,20 @@ button, .card-hover {
 }
 
 .settings-panel::-webkit-scrollbar {
-    width: 8px !important;
+    display: none !important;
+    width: 0 !important;
 }
 
 .settings-panel::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3) !important;
-    border-radius: 4px !important;
-    border: 1px solid rgba(0, 204, 255, 0.1) !important;
+    display: none !important;
 }
 
 .settings-panel::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.6), rgba(0, 204, 255, 0.4)) !important;
-    border-radius: 4px !important;
-    border: 1px solid rgba(0, 204, 255, 0.3) !important;
-    box-shadow: 0 0 6px rgba(0, 204, 255, 0.4) !important;
-    transition: all 0.3s ease !important;
+    display: none !important;
 }
 
 .settings-panel::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.8), rgba(0, 204, 255, 0.6)) !important;
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.6) !important;
+    display: none !important;
 }
 
 .search-button {
@@ -178,32 +172,26 @@ button, .card-hover {
 }
 
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    display: none;
+    width: 0;
+    height: 0;
 }
 
 ::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    border: 1px solid rgba(0, 204, 255, 0.1);
+    display: none;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.6), rgba(0, 204, 255, 0.4));
-    border-radius: 4px;
-    border: 1px solid rgba(0, 204, 255, 0.3);
-    box-shadow: 0 0 6px rgba(0, 204, 255, 0.4);
-    transition: all 0.3s ease;
+    display: none;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.8), rgba(0, 204, 255, 0.6));
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
+    display: none;
 }
 
 * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 204, 255, 0.5) rgba(0, 0, 0, 0.3);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .search-tag {
@@ -391,60 +379,48 @@ body {
 
 /* API滚动区域美化 */
 #apiCheckboxes {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 204, 255, 0.5) rgba(0, 0, 0, 0.3);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 #apiCheckboxes::-webkit-scrollbar {
-    width: 8px;
+    display: none;
+    width: 0;
 }
 
 #apiCheckboxes::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    border: 1px solid rgba(0, 204, 255, 0.1);
+    display: none;
 }
 
 #apiCheckboxes::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.6), rgba(0, 204, 255, 0.4));
-    border-radius: 4px;
-    border: 1px solid rgba(0, 204, 255, 0.3);
-    box-shadow: 0 0 6px rgba(0, 204, 255, 0.4);
-    transition: all 0.3s ease;
+    display: none;
 }
 
 #apiCheckboxes::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.8), rgba(0, 204, 255, 0.6));
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
+    display: none;
 }
 
 /* 自定义API列表样式 */
 #customApisList {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 204, 255, 0.5) rgba(0, 0, 0, 0.3);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 #customApisList::-webkit-scrollbar {
-    width: 8px;
+    display: none;
+    width: 0;
 }
 
 #customApisList::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    border: 1px solid rgba(0, 204, 255, 0.1);
+    display: none;
 }
 
 #customApisList::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.6), rgba(0, 204, 255, 0.4));
-    border-radius: 4px;
-    border: 1px solid rgba(0, 204, 255, 0.3);
-    box-shadow: 0 0 6px rgba(0, 204, 255, 0.4);
-    transition: all 0.3s ease;
+    display: none;
 }
 
 #customApisList::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.8), rgba(0, 204, 255, 0.6));
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
+    display: none;
 }
 
 /* 设置面板滚动样式 */
@@ -648,8 +624,8 @@ body {
 
 /* 历史记录面板样式 */
 .history-panel {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 204, 255, 0.5) rgba(0, 0, 0, 0.3);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     box-shadow: 2px 0 10px rgba(0,0,0,0.5);
     left: -100% !important;
     transform: none !important;
@@ -668,26 +644,20 @@ body {
 }
 
 .history-panel::-webkit-scrollbar {
-    width: 8px !important;
+    display: none !important;
+    width: 0 !important;
 }
 
 .history-panel::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3) !important;
-    border-radius: 4px !important;
-    border: 1px solid rgba(0, 204, 255, 0.1) !important;
+    display: none !important;
 }
 
 .history-panel::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.6), rgba(0, 204, 255, 0.4)) !important;
-    border-radius: 4px !important;
-    border: 1px solid rgba(0, 204, 255, 0.3) !important;
-    box-shadow: 0 0 6px rgba(0, 204, 255, 0.4) !important;
-    transition: all 0.3s ease !important;
+    display: none !important;
 }
 
 .history-panel::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.8), rgba(0, 204, 255, 0.6)) !important;
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.6) !important;
+    display: none !important;
 }
 
 #historyList {
@@ -1041,31 +1011,25 @@ body {
     line-height: 1.6;
     max-height: 8rem;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 204, 255, 0.5) rgba(0, 0, 0, 0.3);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 #modal .detail-desc-content::-webkit-scrollbar {
-    width: 8px;
+    display: none;
+    width: 0;
 }
 
 #modal .detail-desc-content::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    border: 1px solid rgba(0, 204, 255, 0.1);
+    display: none;
 }
 
 #modal .detail-desc-content::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.6), rgba(0, 204, 255, 0.4));
-    border-radius: 4px;
-    border: 1px solid rgba(0, 204, 255, 0.3);
-    box-shadow: 0 0 6px rgba(0, 204, 255, 0.4);
-    transition: all 0.3s ease;
+    display: none;
 }
 
 #modal .detail-desc-content::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, rgba(0, 204, 255, 0.8), rgba(0, 204, 255, 0.6));
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.6);
+    display: none;
 }
 
 /* 集数统计信息样式 */
