@@ -4,6 +4,29 @@
  */
 
 /* ========================================
+   0. 移动端滚动条全局隐藏（最高优先级）
+   ======================================== */
+
+@media (max-width: 640px) {
+    /* 隐藏所有滚动条 - Webkit浏览器 */
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    *::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    /* 隐藏所有滚动条 - Firefox */
+    html,
+    body,
+    * {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+}
+
+/* ========================================
    1. 面板宽度响应式优化
    ======================================== */
 
@@ -306,16 +329,37 @@
     }
 
     /* 滚动条在移动端隐藏 */
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar,
+    *::-webkit-scrollbar,
     .history-panel::-webkit-scrollbar,
     .settings-panel::-webkit-scrollbar,
-    #modalContent::-webkit-scrollbar {
-        display: none;
+    #modalContent::-webkit-scrollbar,
+    #apiCheckboxes::-webkit-scrollbar,
+    #customApisList::-webkit-scrollbar,
+    #modal .detail-desc-content::-webkit-scrollbar,
+    #historyList::-webkit-scrollbar,
+    #results::-webkit-scrollbar,
+    #douban-results::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
     }
 
+    html,
+    body,
+    *,
     .history-panel,
     .settings-panel,
-    #modalContent {
-        scrollbar-width: none;
+    #modalContent,
+    #apiCheckboxes,
+    #customApisList,
+    #modal .detail-desc-content,
+    #historyList,
+    #results,
+    #douban-results {
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
     }
 
     /* 横向滚动提示 */
