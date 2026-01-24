@@ -418,32 +418,3 @@ input:checked + .slider:before {
 #username {
     display: none !important;
 }
-
-/* 广告过滤统计样式 */
-#adFilterStats {
-    transition: all 0.3s ease;
-}
-
-#adFilterCount {
-    transition: all 0.3s ease;
-    display: inline-block;
-}
-
-#adFilterCount.scale-125 {
-    transform: scale(1.25);
-}
-
-/* 广告过滤统计动画 */
-@keyframes pulse-green {
-    0%, 100% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.7;
-    }
-}
-
-#adFilterStats:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 204, 255, 0.2);
-}
