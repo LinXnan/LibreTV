@@ -89,6 +89,7 @@ let videoHasEnded = false; // 跟踪视频是否已经自然结束
 let userClickedPosition = null; // 记录用户点击的位置
 let shortcutHintTimeout = null; // 用于控制快捷键提示显示时间
 let adFilteringEnabled = true; // 默认开启广告过滤
+let totalAdsFiltered = 0; // 广告过滤计数器
 let progressSaveInterval = null; // 定期保存进度的计时器
 let currentVideoUrl = ''; // 记录当前实际的视频URL
 const isWebkit = (typeof window.webkitConvertPointFromNodeToPage === 'function')
@@ -97,10 +98,16 @@ Artplayer.FULLSCREEN_WEB_IN_BODY = true;
 // 页面加载
 document.addEventListener('DOMContentLoaded', function () {
     // 先检查用户是否已通过密码验证
-    if (!isPasswordVerified()) {
-        // 隐藏加载提示
-        document.getElementById('player-loading').style.display = 'none';
-        return;
+    if (window.isPasswordProtected && window.isPasswordProtected()) {
+        if (!window.isPasswordVerified || !window.isPasswordVerified()) {
+            // 隐藏加载提示
+            document.getElementById('player-loading').style.display = 'none';
+            // 显示密码模态框
+            if (window.showPasswordModal) {
+                window.showPasswordModal();
+            }
+            return;
+        }
     }
 
     initializePageContent();
@@ -1077,17 +1084,42 @@ function filterAdsFromM3U8(m3u8Content, strictMode = false) {
     // 按行分割M3U8内容
     const lines = m3u8Content.split('\n');
     const filteredLines = [];
+    let adsFilteredInThisRequest = 0;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
         // 只过滤#EXT-X-DISCONTINUITY标识
-        if (!line.includes('#EXT-X-DISCONTINUITY')) {
+        if (line.includes('#EXT-X-DISCONTINUITY')) {
+            // 统计过滤的广告片段（不添加到filteredLines，即过滤掉）
+            adsFilteredInThisRequest++;
+        } else {
+            // 不是广告标识，保留这一行
             filteredLines.push(line);
         }
     }
 
+    // 更新总计数
+    if (adsFilteredInThisRequest > 0) {
+        totalAdsFiltered += adsFilteredInThisRequest;
+        updateAdFilterDisplay();
+    }
+
     return filteredLines.join('\n');
+}
+
+// 更新广告过滤显示
+function updateAdFilterDisplay() {
+    const adFilterCountElement = document.getElementById('adFilterCount');
+    if (adFilterCountElement) {
+        adFilterCountElement.textContent = totalAdsFiltered;
+
+        // 添加动画效果
+        adFilterCountElement.classList.add('scale-125');
+        setTimeout(() => {
+            adFilterCountElement.classList.remove('scale-125');
+        }, 300);
+    }
 }
 
 
@@ -1178,6 +1210,10 @@ function playEpisode(index) {
     if (index < 0 || index >= currentEpisodes.length) {
         return;
     }
+
+    // 重置广告过滤计数器
+    totalAdsFiltered = 0;
+    updateAdFilterDisplay();
 
     // 保存当前播放进度（如果正在播放）
     if (art && art.video && !art.video.paused && !videoHasEnded) {

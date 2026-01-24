@@ -110,52 +110,69 @@ async function sha256(message) {
  * 显示密码验证弹窗
  */
 function showPasswordModal() {
+    console.log('[Password] showPasswordModal called');
     const passwordModal = document.getElementById('passwordModal');
-    if (passwordModal) {
-        // 防止出现豆瓣区域滚动条
-        document.getElementById('doubanArea').classList.add('hidden');
-        document.getElementById('passwordCancelBtn').classList.add('hidden');
+    if (!passwordModal) {
+        console.error('[Password] passwordModal element not found!');
+        return;
+    }
 
-        // 检查是否需要强制设置密码
-        if (isPasswordRequired()) {
-            // 修改弹窗内容提示用户需要先设置密码
-            const title = passwordModal.querySelector('h2');
-            const description = passwordModal.querySelector('p');
-            if (title) title.textContent = '需要设置密码';
-            if (description) description.textContent = '请先在部署平台设置 PASSWORD 环境变量来保护您的实例';
-            
-            // 隐藏密码输入框和提交按钮，只显示提示信息
-            const form = passwordModal.querySelector('form');
-            const errorMsg = document.getElementById('passwordError');
-            if (form) form.style.display = 'none';
-            if (errorMsg) {
-                errorMsg.textContent = '为确保安全，必须设置 PASSWORD 环境变量才能使用本服务，请联系管理员进行配置';
-                errorMsg.classList.remove('hidden');
-                errorMsg.className = 'text-red-500 mt-2 font-medium'; // 改为更醒目的红色
+    console.log('[Password] passwordModal found, showing...');
+
+    // 防止出现豆瓣区域滚动条（仅在首页存在）
+    const doubanArea = document.getElementById('doubanArea');
+    if (doubanArea) {
+        doubanArea.classList.add('hidden');
+    }
+
+    const passwordCancelBtn = document.getElementById('passwordCancelBtn');
+    if (passwordCancelBtn) {
+        passwordCancelBtn.classList.add('hidden');
+    }
+
+    // 检查是否需要强制设置密码
+    if (isPasswordRequired()) {
+        // 修改弹窗内容提示用户需要先设置密码
+        const title = passwordModal.querySelector('h2');
+        const description = passwordModal.querySelector('p');
+        if (title) title.textContent = '需要设置密码';
+        if (description) description.textContent = '请先在部署平台设置 PASSWORD 环境变量来保护您的实例';
+
+        // 隐藏密码输入框和提交按钮，只显示提示信息
+        const form = passwordModal.querySelector('form');
+        const errorMsg = document.getElementById('passwordError');
+        if (form) form.style.display = 'none';
+        if (errorMsg) {
+            errorMsg.textContent = '为确保安全，必须设置 PASSWORD 环境变量才能使用本服务，请联系管理员进行配置';
+            errorMsg.classList.remove('hidden');
+            errorMsg.className = 'text-red-500 mt-2 font-medium'; // 改为更醒目的红色
+        }
+    } else {
+        // 正常的密码验证模式
+        const title = passwordModal.querySelector('h2');
+        const description = passwordModal.querySelector('p');
+        if (title) title.textContent = '访问验证';
+        if (description) description.textContent = '请输入密码继续访问';
+
+        const form = passwordModal.querySelector('form');
+        if (form) form.style.display = 'block';
+    }
+
+    // 移除 hidden 类并添加 flex 类
+    passwordModal.classList.remove('hidden');
+    passwordModal.classList.add('flex');
+
+    console.log('[Password] Modal classes after show:', passwordModal.className);
+
+    // 只有在非强制设置密码模式下才聚焦输入框
+    if (!isPasswordRequired()) {
+        // 确保输入框获取焦点
+        setTimeout(() => {
+            const passwordInput = document.getElementById('passwordInput');
+            if (passwordInput) {
+                passwordInput.focus();
             }
-        } else {
-            // 正常的密码验证模式
-            const title = passwordModal.querySelector('h2');
-            const description = passwordModal.querySelector('p');
-            if (title) title.textContent = '访问验证';
-            if (description) description.textContent = '请输入密码继续访问';
-            
-            const form = passwordModal.querySelector('form');
-            if (form) form.style.display = 'block';
-        }
-
-        passwordModal.style.display = 'flex';
-
-        // 只有在非强制设置密码模式下才聚焦输入框
-        if (!isPasswordRequired()) {
-            // 确保输入框获取焦点
-            setTimeout(() => {
-                const passwordInput = document.getElementById('passwordInput');
-                if (passwordInput) {
-                    passwordInput.focus();
-                }
-            }, 100);
-        }
+        }, 100);
     }
 }
 
@@ -172,12 +189,17 @@ function hidePasswordModal() {
         const passwordInput = document.getElementById('passwordInput');
         if (passwordInput) passwordInput.value = '';
 
-        passwordModal.style.display = 'none';
+        // 添加 hidden 类并移除 flex 类
+        passwordModal.classList.add('hidden');
+        passwordModal.classList.remove('flex');
 
-        // 如果启用豆瓣区域则显示豆瓣区域
-        if (localStorage.getItem('doubanEnabled') === 'true') {
-            document.getElementById('doubanArea').classList.remove('hidden');
-            initDouban();
+        // 如果启用豆瓣区域则显示豆瓣区域（仅在首页存在）
+        const doubanArea = document.getElementById('doubanArea');
+        if (doubanArea && localStorage.getItem('doubanEnabled') === 'true') {
+            doubanArea.classList.remove('hidden');
+            if (typeof initDouban === 'function') {
+                initDouban();
+            }
         }
     }
 }
@@ -226,17 +248,27 @@ async function handlePasswordSubmit() {
  * 初始化密码验证系统
  */
 function initPasswordProtection() {
+    console.log('[Password] Initializing password protection...');
+    console.log('[Password] PASSWORD value:', window.__ENV__?.PASSWORD);
+    console.log('[Password] isPasswordRequired:', isPasswordRequired());
+    console.log('[Password] isPasswordProtected:', isPasswordProtected());
+    console.log('[Password] isPasswordVerified:', isPasswordVerified());
+
     // 如果需要强制设置密码，显示警告弹窗
     if (isPasswordRequired()) {
+        console.log('[Password] Password is required, showing modal...');
         showPasswordModal();
         return;
     }
-    
+
     // 如果设置了密码但用户未验证，显示密码输入框
     if (isPasswordProtected() && !isPasswordVerified()) {
+        console.log('[Password] Password protected but not verified, showing modal...');
         showPasswordModal();
         return;
     }
+
+    console.log('[Password] Password verification passed or not required.');
 }
 
 // 在页面加载完成后初始化密码保护
