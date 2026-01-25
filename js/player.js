@@ -2057,12 +2057,12 @@ async function showSwitchResourceModal() {
     let allResults = {};
     await Promise.all(resourceOptions.map(async (opt) => {
         let queryResult = await searchByAPIAndKeyWord(opt.key, currentVideoTitle);
-        if (queryResult.length == 0) {
-            return 
+        if (queryResult.results.length == 0) {
+            return
         }
         // 优先取完全同名资源，否则默认取第一个
-        let result = queryResult[0]
-        queryResult.forEach((res) => {
+        let result = queryResult.results[0]
+        queryResult.results.forEach((res) => {
             if (res.vod_name == currentVideoTitle) {
                 result = res;
             }
