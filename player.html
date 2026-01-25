@@ -116,6 +116,18 @@
             </div>
         </div>
 
+        <!-- 广告过滤统计 -->
+        <div class="player-container mb-2" id="adFilterStats">
+            <div class="flex items-center justify-center gap-2 py-2 px-4 bg-gradient-to-r from-[#1a1a1a] to-[#222] rounded-lg border border-[#333]">
+                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span class="text-gray-300 text-sm">检测到视频存在</span>
+                <span class="text-green-400 font-bold text-lg" id="adFilterCount">0</span>
+                <span class="text-gray-300 text-sm">个广告，已为您过滤掉</span>
+            </div>
+        </div>
+
         <!-- 源信息 -->
         <div class="player-container flex justify-between py-2 px-4 mb-2 bg-gray-700" id="resourceInfoBarContainer">
             <!-- 资源信息卡片、切换按钮、视频数将由JS动态渲染 -->

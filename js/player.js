@@ -89,6 +89,7 @@ let videoHasEnded = false; // 跟踪视频是否已经自然结束
 let userClickedPosition = null; // 记录用户点击的位置
 let shortcutHintTimeout = null; // 用于控制快捷键提示显示时间
 let adFilteringEnabled = true; // 默认开启广告过滤
+let totalAdsFiltered = 0; // 广告过滤计数器
 let progressSaveInterval = null; // 定期保存进度的计时器
 let currentVideoUrl = ''; // 记录当前实际的视频URL
 const isWebkit = (typeof window.webkitConvertPointFromNodeToPage === 'function')
@@ -179,6 +180,9 @@ function initializePageContent() {
 
     // 获取广告过滤设置
     adFilteringEnabled = localStorage.getItem(PLAYER_CONFIG.adFilteringStorage) !== 'false'; // 默认为true
+
+    // 根据广告过滤设置控制广告统计显示
+    updateAdFilterStatsVisibility();
 
     // 监听自动连播开关变化
     document.getElementById('autoplayToggle').addEventListener('change', function (e) {
@@ -1084,6 +1088,82 @@ function filterAdsFromM3U8(m3u8Content, strictMode = false) {
     const lines = m3u8Content.split('\n');
     const filteredLines = [];
 
+    // 只在广告过滤开启时才进行统计
+    if (adFilteringEnabled) {
+        // 提取所有TS文件名及其序号,以及DISCONTINUITY标记的位置
+        const tsFiles = [];
+        const discontinuityPositions = new Set(); // 记录DISCONTINUITY标记后的TS文件索引
+        let tsIndex = 0;
+        let nextIsAfterDiscontinuity = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+
+            // 检测DISCONTINUITY标记
+            if (line.includes('#EXT-X-DISCONTINUITY')) {
+                nextIsAfterDiscontinuity = true;
+                continue;
+            }
+
+            // 匹配.ts文件
+            if (line.endsWith('.ts')) {
+                // 提取文件名中的数字序号(取最后的连续数字部分)
+                const match = line.match(/(\d+)\.ts$/);
+                if (match) {
+                    const sequence = parseInt(match[1], 10);
+                    tsFiles.push({ sequence, index: tsIndex });
+
+                    // 如果这个TS文件前面有DISCONTINUITY标记,记录下来
+                    if (nextIsAfterDiscontinuity) {
+                        discontinuityPositions.add(tsIndex);
+                        nextIsAfterDiscontinuity = false;
+                    }
+
+                    tsIndex++;
+                }
+            }
+        }
+
+        console.log('[广告统计] 提取到的TS文件序号:', tsFiles.length, '个');
+        console.log('[广告统计] DISCONTINUITY标记位置:', Array.from(discontinuityPositions));
+
+        // 统计广告区间数量(需要同时满足: DISCONTINUITY标记 + 序号不连续)
+        let discontinuityCount = 0;
+        let inAdSegment = false; // 标记是否在广告区间内
+
+        for (let i = 1; i < tsFiles.length; i++) {
+            const prevSeq = tsFiles[i - 1].sequence;
+            const currSeq = tsFiles[i].sequence;
+            const currIndex = tsFiles[i].index;
+            const diff = currSeq - prevSeq;
+
+            // 检查当前位置是否有DISCONTINUITY标记
+            const hasDiscontinuity = discontinuityPositions.has(currIndex);
+
+            // 如果序号向前跳跃 且 有DISCONTINUITY标记 (进入广告区间)
+            if (diff > 1 && hasDiscontinuity && !inAdSegment) {
+                discontinuityCount++;
+                inAdSegment = true;
+                console.log(`[广告统计] 检测到广告区间 #${discontinuityCount}: ${prevSeq} → ${currSeq} (有DISCONTINUITY标记 + 序号跳跃)`);
+            }
+            // 如果序号向后跳跃 且 有DISCONTINUITY标记 (退出广告区间)
+            else if (diff < 0 && hasDiscontinuity && inAdSegment) {
+                inAdSegment = false;
+                console.log(`[广告统计] 广告区间结束: ${prevSeq} → ${currSeq} (有DISCONTINUITY标记 + 序号回跳)`);
+            }
+        }
+
+        console.log('[广告统计] 本次检测到的广告片段数:', discontinuityCount);
+
+        // 更新广告过滤计数
+        if (discontinuityCount > 0) {
+            totalAdsFiltered += discontinuityCount;
+            console.log('[广告统计] 累计广告片段数:', totalAdsFiltered);
+            updateAdFilterDisplay();
+        }
+    }
+
+    // 过滤#EXT-X-DISCONTINUITY标识(保留原有的广告过滤功能)
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
@@ -1098,6 +1178,32 @@ function filterAdsFromM3U8(m3u8Content, strictMode = false) {
     }
 
     return filteredLines.join('\n');
+}
+
+// 更新广告过滤显示
+function updateAdFilterDisplay() {
+    const adFilterCountElement = document.getElementById('adFilterCount');
+    if (adFilterCountElement) {
+        adFilterCountElement.textContent = totalAdsFiltered;
+
+        // 添加动画效果
+        adFilterCountElement.classList.add('scale-125');
+        setTimeout(() => {
+            adFilterCountElement.classList.remove('scale-125');
+        }, 300);
+    }
+}
+
+// 更新广告统计区域的显示/隐藏状态
+function updateAdFilterStatsVisibility() {
+    const adFilterStatsElement = document.getElementById('adFilterStats');
+    if (adFilterStatsElement) {
+        if (adFilteringEnabled) {
+            adFilterStatsElement.style.display = 'block';
+        } else {
+            adFilterStatsElement.style.display = 'none';
+        }
+    }
 }
 
 
@@ -1188,6 +1294,10 @@ function playEpisode(index) {
     if (index < 0 || index >= currentEpisodes.length) {
         return;
     }
+
+    // 重置广告过滤计数器
+    totalAdsFiltered = 0;
+    updateAdFilterDisplay();
 
     // 保存当前播放进度（如果正在播放）
     if (art && art.video && !art.video.paused && !videoHasEnded) {
