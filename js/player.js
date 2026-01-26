@@ -502,6 +502,51 @@ function initPlayer(videoUrl) {
 
     const hlsConfig = getAdaptiveHlsConfig();
 
+    // 预先获取要恢复的播放速度
+    let initialPlaybackRate = 1.0;
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sourceName = urlParams.get('source') || '';
+        const id_from_params = urlParams.get('id');
+
+        let show_identifier;
+        if (sourceName && id_from_params) {
+            show_identifier = `${sourceName}_${id_from_params}`;
+        } else {
+            show_identifier = (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
+        }
+
+        // 从历史记录恢复
+        const historyRaw = localStorage.getItem('viewingHistory');
+        if (historyRaw) {
+            const history = JSON.parse(historyRaw);
+            const historyItem = history.find(item =>
+                item.title === currentVideoTitle &&
+                item.sourceName === sourceName &&
+                item.showIdentifier === show_identifier
+            );
+            if (historyItem && historyItem.playbackRate) {
+                initialPlaybackRate = historyItem.playbackRate;
+            }
+        }
+
+        // 如果历史中没有，从进度记录恢复
+        if (initialPlaybackRate === 1.0) {
+            const progressKey = 'videoProgress_' + getVideoId();
+            const progressStr = localStorage.getItem(progressKey);
+            if (progressStr) {
+                const progress = JSON.parse(progressStr);
+                if (progress && progress.playbackRate) {
+                    initialPlaybackRate = progress.playbackRate;
+                }
+            }
+        }
+
+        console.log('[播放速度初始化] 预设播放速度:', initialPlaybackRate);
+    } catch (e) {
+        console.error('[播放速度初始化] 获取初始播放速度失败:', e);
+    }
+
     // Create new ArtPlayer instance
     art = new Artplayer({
         container: '#player',
@@ -519,7 +564,28 @@ function initPlayer(videoUrl) {
         setting: true,
         loop: false,
         flip: false,
-        playbackRate: true,
+        playbackRate: false,
+        settings: [
+            {
+                html: '播放速度',
+                width: 150,
+                tooltip: initialPlaybackRate + 'x',
+                selector: [
+                    { html: '1.0x', value: 1.0, default: initialPlaybackRate === 1.0 },
+                    { html: '1.25x', value: 1.25, default: initialPlaybackRate === 1.25 },
+                    { html: '1.5x', value: 1.5, default: initialPlaybackRate === 1.5 },
+                    { html: '1.75x', value: 1.75, default: initialPlaybackRate === 1.75 },
+                    { html: '1.8x', value: 1.8, default: initialPlaybackRate === 1.8 },
+                    { html: '2.0x', value: 2.0, default: initialPlaybackRate === 2.0 },
+                    { html: '2.5x', value: 2.5, default: initialPlaybackRate === 2.5 },
+                    { html: '3.0x', value: 3.0, default: initialPlaybackRate === 3.0 },
+                ],
+                onSelect: function (item) {
+                    art.playbackRate = item.value;
+                    return item.html;
+                },
+            },
+        ],
         aspectRatio: false,
         fullscreen: true,
         fullscreenWeb: true,
@@ -836,6 +902,14 @@ function initPlayer(videoUrl) {
     // 播放器加载完成后初始隐藏工具栏
     art.on('ready', () => {
         hideControls();
+
+        // 恢复播放速度（在 ready 事件中应用预设的播放速度）
+        if (initialPlaybackRate >= 0.5 && initialPlaybackRate <= 3 && initialPlaybackRate !== 1.0) {
+            setTimeout(() => {
+                art.playbackRate = initialPlaybackRate;
+                console.log('[播放速度恢复] 已设置播放速度:', art.playbackRate);
+            }, 100);
+        }
     });
 
     // 全屏 Web 模式处理
@@ -878,55 +952,6 @@ function initPlayer(videoUrl) {
                 }
             } catch (e) {
             }
-        }
-
-        // 恢复播放速度（仅针对当前影片）
-        try {
-            let playbackRateToRestore = 1.0; // 默认播放速度
-
-            // 1. 优先尝试从观看历史中恢复该影片的播放速度
-            const urlParams = new URLSearchParams(window.location.search);
-            const sourceName = urlParams.get('source') || '';
-            const id_from_params = urlParams.get('id');
-
-            let show_identifier;
-            if (sourceName && id_from_params) {
-                show_identifier = `${sourceName}_${id_from_params}`;
-            } else {
-                show_identifier = (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
-            }
-
-            const historyRaw = localStorage.getItem('viewingHistory');
-            if (historyRaw) {
-                const history = JSON.parse(historyRaw);
-                const historyItem = history.find(item =>
-                    item.title === currentVideoTitle &&
-                    item.sourceName === sourceName &&
-                    item.showIdentifier === show_identifier
-                );
-                if (historyItem && historyItem.playbackRate) {
-                    playbackRateToRestore = historyItem.playbackRate;
-                }
-            }
-
-            // 2. 如果历史中没有，尝试从播放进度数据中恢复
-            if (playbackRateToRestore === 1.0) {
-                const progressKey = 'videoProgress_' + getVideoId();
-                const progressStr = localStorage.getItem(progressKey);
-                if (progressStr) {
-                    const progress = JSON.parse(progressStr);
-                    if (progress && progress.playbackRate) {
-                        playbackRateToRestore = progress.playbackRate;
-                    }
-                }
-            }
-
-            // 验证并应用播放速度
-            if (playbackRateToRestore >= 0.5 && playbackRateToRestore <= 3) {
-                art.playbackRate = playbackRateToRestore;
-            }
-        } catch (e) {
-            console.error('恢复播放速度失败:', e);
         }
 
         // 设置进度条点击监听
