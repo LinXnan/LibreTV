@@ -132,10 +132,10 @@
             <!-- 历史记录将在这里动态显示 -->
             <div class="text-center text-gray-500 py-8">暂无观看记录</div>
         </div>
-        <div class="mt-4 text-center sticky bottom-0 pb-2 pt-2 bg-[#111]">
-            <button onclick="clearViewingHistory()" class="px-4 py-2 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white rounded-lg text-sm transition-all duration-300 shadow-md hover:shadow-lg">
+        <div style="margin-top: 1rem; position: sticky; bottom: 0; background: transparent; padding: 0.5rem;">
+            <div onclick="clearViewingHistory()" role="button" tabindex="0" style="display: block; width: 100%; padding: 0.75rem 1rem; background: linear-gradient(to right, #6366f1, #a855f7, #ec4899); color: white; font-size: 0.875rem; text-align: center; cursor: pointer; border-radius: 0.5rem; user-select: none; transition: opacity 0.3s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
                 清空历史记录
-            </button>
+            </div>
         </div>
     </div>
 
