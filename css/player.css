@@ -5,7 +5,11 @@ body, html {
     height: 100%;
     background-color: #0f1622;
     color: white;
-    padding-top: 37px;
+}
+
+/* 主内容区域顶部间距，刚好贴合固定头部 */
+.container.mx-auto {
+    margin-top: 56px;
 }
 
 /* Critical header and navigation styles */
