@@ -515,11 +515,11 @@ function initPlayer(videoUrl) {
         pip: true,
         autoSize: false,
         autoMini: true,
-        screenshot: true,
-        setting: true,
+        screenshot: false,
+        setting: false,
         loop: false,
         flip: false,
-        playbackRate: true,
+        playbackRate: false,
         aspectRatio: false,
         fullscreen: true,
         fullscreenWeb: true,
@@ -539,6 +539,23 @@ function initPlayer(videoUrl) {
             // 优化8: 启用硬件加速
             style: 'transform: translateZ(0); will-change: transform;'
         },
+        controls: [
+            {
+                position: 'right',
+                html: '<span style="font-size: 13px; font-weight: bold;">1.0x</span>',
+                tooltip: '播放速度',
+                style: {
+                    padding: '0 10px',
+                },
+                click: function() {
+                    showPlaybackRateMenu();
+                },
+                mounted: function($control) {
+                    // 保存控制按钮的引用，用于更新显示
+                    window.playbackRateControl = $control;
+                }
+            }
+        ],
         customType: {
             m3u8: function (video, url) {
                 // 清理之前的HLS实例
@@ -924,6 +941,8 @@ function initPlayer(videoUrl) {
             // 验证并应用播放速度
             if (playbackRateToRestore >= 0.5 && playbackRateToRestore <= 3) {
                 art.playbackRate = playbackRateToRestore;
+                // 更新自定义播放倍速按钮显示
+                updatePlaybackRateButton(playbackRateToRestore);
             }
         } catch (e) {
             console.error('恢复播放速度失败:', e);
@@ -2228,5 +2247,427 @@ async function switchToResource(sourceKey, vodId) {
         hideLoading();
     }
 }
+
+// 更新播放倍速按钮显示
+function updatePlaybackRateButton(rate) {
+    if (window.playbackRateControl) {
+        const span = window.playbackRateControl.querySelector('span');
+        if (span) {
+            span.textContent = rate + 'x';
+        }
+    }
+}
+
+// 显示播放倍速菜单
+function showPlaybackRateMenu() {
+    if (!art) return;
+
+    // 常用播放倍速选项
+    const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
+    const currentRate = art.playbackRate || 1.0;
+
+    // 检测是否为移动端
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    if (isMobile) {
+        // 移动端：底部弹出式菜单（参考B站）
+        showMobilePlaybackRateMenu(rates, currentRate);
+    } else {
+        // PC端：右侧弹出菜单
+        showDesktopPlaybackRateMenu(rates, currentRate);
+    }
+}
+
+// PC端播放倍速菜单（参考B站设计）
+function showDesktopPlaybackRateMenu(rates, currentRate) {
+    // 移除已存在的菜单
+    const existingMenu = document.getElementById('desktop-playback-rate-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    // 创建遮罩层
+    const overlay = document.createElement('div');
+    overlay.id = 'desktop-playback-rate-menu';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    `;
+
+    // 创建菜单容器
+    const menuContainer = document.createElement('div');
+    menuContainer.style.cssText = `
+        background: #1a1a1a;
+        border-radius: 12px;
+        padding: 0;
+        animation: scaleIn 0.2s ease;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+        min-width: 360px;
+        max-width: 480px;
+    `;
+
+    // 创建标题栏
+    const header = document.createElement('div');
+    header.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #333;
+    `;
+
+    const title = document.createElement('div');
+    title.style.cssText = `
+        font-size: 16px;
+        font-weight: bold;
+        color: #fff;
+    `;
+    title.textContent = '播放速度';
+
+    const closeButton = document.createElement('div');
+    closeButton.style.cssText = `
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background 0.2s ease;
+        color: #999;
+        font-size: 20px;
+        line-height: 1;
+    `;
+    closeButton.innerHTML = '×';
+    closeButton.addEventListener('mouseenter', function() {
+        this.style.background = 'rgba(255, 255, 255, 0.1)';
+        this.style.color = '#fff';
+    });
+    closeButton.addEventListener('mouseleave', function() {
+        this.style.background = 'transparent';
+        this.style.color = '#999';
+    });
+    closeButton.addEventListener('click', closeDesktopMenu);
+
+    header.appendChild(title);
+    header.appendChild(closeButton);
+    menuContainer.appendChild(header);
+
+    // 创建倍速选项网格
+    const gridContainer = document.createElement('div');
+    gridContainer.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        padding: 20px;
+    `;
+
+    rates.forEach(rate => {
+        const isActive = Math.abs(rate - currentRate) < 0.01;
+        const button = document.createElement('div');
+        button.style.cssText = `
+            padding: 14px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: ${isActive ? 'bold' : 'normal'};
+            color: ${isActive ? '#23ade5' : '#fff'};
+            background: ${isActive ? 'rgba(35, 173, 229, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+            border: 2px solid ${isActive ? '#23ade5' : 'transparent'};
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        `;
+        button.textContent = rate + 'x';
+
+        // 鼠标悬停效果
+        button.addEventListener('mouseenter', function() {
+            if (!isActive) {
+                this.style.background = 'rgba(255, 255, 255, 0.1)';
+                this.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            }
+        });
+
+        button.addEventListener('mouseleave', function() {
+            if (!isActive) {
+                this.style.background = 'rgba(255, 255, 255, 0.05)';
+                this.style.borderColor = 'transparent';
+            }
+        });
+
+        button.addEventListener('click', function() {
+            setPlaybackRate(rate);
+            closeDesktopMenu();
+        });
+
+        gridContainer.appendChild(button);
+    });
+
+    menuContainer.appendChild(gridContainer);
+
+    // 组装
+    overlay.appendChild(menuContainer);
+    document.body.appendChild(overlay);
+
+    // 点击遮罩层关闭
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            closeDesktopMenu();
+        }
+    });
+
+    // 添加动画样式
+    if (!document.getElementById('desktop-menu-animations')) {
+        const style = document.createElement('style');
+        style.id = 'desktop-menu-animations';
+        style.textContent = `
+            @keyframes scaleIn {
+                from {
+                    transform: scale(0.9);
+                    opacity: 0;
+                }
+                to {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+            @keyframes scaleOut {
+                from {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+                to {
+                    transform: scale(0.9);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // 关闭菜单函数
+    function closeDesktopMenu() {
+        const menu = document.getElementById('desktop-playback-rate-menu');
+        if (menu) {
+            const container = menu.querySelector('div');
+            if (container) {
+                container.style.animation = 'scaleOut 0.2s ease';
+            }
+            menu.style.opacity = '0';
+            setTimeout(() => {
+                menu.remove();
+            }, 200);
+        }
+    }
+
+    // ESC键关闭
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+            closeDesktopMenu();
+            document.removeEventListener('keydown', handleEsc);
+        }
+    };
+    document.addEventListener('keydown', handleEsc);
+}
+
+
+// 移动端播放倍速菜单（参考B站设计）
+function showMobilePlaybackRateMenu(rates, currentRate) {
+    // 移除已存在的菜单
+    const existingMenu = document.getElementById('mobile-playback-rate-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    // 创建遮罩层
+    const overlay = document.createElement('div');
+    overlay.id = 'mobile-playback-rate-menu';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        display: flex;
+        align-items: flex-end;
+        animation: fadeIn 0.3s ease;
+    `;
+
+    // 创建底部菜单容器
+    const menuContainer = document.createElement('div');
+    menuContainer.style.cssText = `
+        width: 100%;
+        background: #1a1a1a;
+        border-radius: 16px 16px 0 0;
+        padding: 20px 0 env(safe-area-inset-bottom);
+        animation: slideUp 0.3s ease;
+        max-height: 70vh;
+        overflow-y: auto;
+    `;
+
+    // 创建标题
+    const title = document.createElement('div');
+    title.style.cssText = `
+        padding: 0 20px 16px;
+        font-size: 16px;
+        font-weight: bold;
+        color: #fff;
+        text-align: center;
+        border-bottom: 1px solid #333;
+    `;
+    title.textContent = '播放速度';
+    menuContainer.appendChild(title);
+
+    // 创建倍速选项网格
+    const gridContainer = document.createElement('div');
+    gridContainer.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        padding: 20px;
+    `;
+
+    rates.forEach(rate => {
+        const isActive = Math.abs(rate - currentRate) < 0.01;
+        const button = document.createElement('div');
+        button.style.cssText = `
+            padding: 16px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: ${isActive ? 'bold' : 'normal'};
+            color: ${isActive ? '#23ade5' : '#fff'};
+            background: ${isActive ? 'rgba(35, 173, 229, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+            border: 2px solid ${isActive ? '#23ade5' : 'transparent'};
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        `;
+        button.textContent = rate + 'x';
+
+        // 触摸反馈
+        button.addEventListener('touchstart', function() {
+            this.style.transform = 'scale(0.95)';
+            this.style.background = isActive ? 'rgba(35, 173, 229, 0.3)' : 'rgba(255, 255, 255, 0.1)';
+        });
+
+        button.addEventListener('touchend', function() {
+            this.style.transform = 'scale(1)';
+            this.style.background = isActive ? 'rgba(35, 173, 229, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+        });
+
+        button.addEventListener('click', function() {
+            setPlaybackRate(rate);
+            closeMobileMenu();
+        });
+
+        gridContainer.appendChild(button);
+    });
+
+    menuContainer.appendChild(gridContainer);
+
+    // 创建取消按钮
+    const cancelButton = document.createElement('div');
+    cancelButton.style.cssText = `
+        margin: 0 20px 10px;
+        padding: 16px;
+        text-align: center;
+        font-size: 16px;
+        color: #fff;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    `;
+    cancelButton.textContent = '取消';
+
+    cancelButton.addEventListener('touchstart', function() {
+        this.style.background = 'rgba(255, 255, 255, 0.1)';
+    });
+
+    cancelButton.addEventListener('touchend', function() {
+        this.style.background = 'rgba(255, 255, 255, 0.05)';
+    });
+
+    cancelButton.addEventListener('click', closeMobileMenu);
+
+    menuContainer.appendChild(cancelButton);
+
+    // 组装
+    overlay.appendChild(menuContainer);
+    document.body.appendChild(overlay);
+
+    // 点击遮罩层关闭
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            closeMobileMenu();
+        }
+    });
+
+    // 添加动画样式
+    if (!document.getElementById('mobile-menu-animations')) {
+        const style = document.createElement('style');
+        style.id = 'mobile-menu-animations';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideUp {
+                from { transform: translateY(100%); }
+                to { transform: translateY(0); }
+            }
+            @keyframes slideDown {
+                from { transform: translateY(0); }
+                to { transform: translateY(100%); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // 关闭菜单函数
+    function closeMobileMenu() {
+        const menu = document.getElementById('mobile-playback-rate-menu');
+        if (menu) {
+            const container = menu.querySelector('div');
+            if (container) {
+                container.style.animation = 'slideDown 0.3s ease';
+            }
+            menu.style.opacity = '0';
+            setTimeout(() => {
+                menu.remove();
+            }, 300);
+        }
+    }
+}
+
+// 设置播放倍速
+function setPlaybackRate(rate) {
+    if (!art) return;
+
+    art.playbackRate = rate;
+
+    // 更新按钮显示
+    updatePlaybackRateButton(rate);
+
+    // 显示提示
+    art.notice.show = `播放速度: ${rate}x`;
+}
+
+
+
 
 // ========== 其他辅助函数 ==========
