@@ -2668,6 +2668,154 @@ function setPlaybackRate(rate) {
 }
 
 
+// ========== 移动端集数选择弹框 ==========
+
+// 打开集数选择弹框
+function openEpisodeModal() {
+    const modal = document.getElementById('episodeModal');
+    const modalList = document.getElementById('episodeModalList');
+
+    if (!modal || !modalList) return;
+
+    // 更新弹框内的排序按钮状态
+    updateOrderButtonInModal();
+
+    // 同步自动连播开关状态
+    syncAutoplayToggleInModal();
+
+    // 渲染集数列表到弹框
+    renderEpisodesToModal();
+
+    // 显示弹框
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    // 滚动到当前集数
+    setTimeout(() => {
+        const activeButton = modalList.querySelector('.episode-active');
+        if (activeButton) {
+            activeButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
+}
+
+// 渲染集数列表到弹框
+function renderEpisodesToModal() {
+    const modalList = document.getElementById('episodeModalList');
+    if (!modalList) return;
+
+    if (!currentEpisodes || currentEpisodes.length === 0) {
+        modalList.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">没有可用的集数</div>';
+    } else {
+        const episodes = episodesReversed ? [...currentEpisodes].reverse() : currentEpisodes;
+        let html = '';
+
+        episodes.forEach((episode, index) => {
+            // 根据倒序状态计算真实的剧集索引
+            const realIndex = episodesReversed ? currentEpisodes.length - 1 - index : index;
+            const isActive = realIndex === currentEpisodeIndex;
+
+            html += `
+                <button onclick="playEpisodeFromModal(${realIndex})"
+                        class="px-4 py-2 ${isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333]'} !border ${isActive ? '!border-blue-500' : '!border-[#333]'} rounded-lg transition-colors text-center">
+                    ${realIndex + 1}
+                </button>
+            `;
+        });
+
+        modalList.innerHTML = html;
+    }
+}
+
+// 关闭集数选择弹框
+function closeEpisodeModal() {
+    const modal = document.getElementById('episodeModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+// 从弹框播放集数
+function playEpisodeFromModal(index) {
+    closeEpisodeModal();
+    playEpisode(index);
+}
+
+// 弹框内切换排序
+function toggleEpisodeOrderInModal() {
+    // 切换排序状态
+    episodesReversed = !episodesReversed;
+    localStorage.setItem('episodesReversed', episodesReversed);
+
+    // 重新渲染弹框内的集数列表
+    renderEpisodesToModal();
+
+    // 更新弹框内的排序按钮
+    updateOrderButtonInModal();
+
+    // 同步更新页面上的排序按钮（桌面端可见）
+    updateOrderButton();
+
+    // 重新渲染页面上的集数列表（桌面端可见）
+    renderEpisodes();
+}
+
+// 更新弹框内的排序按钮状态
+function updateOrderButtonInModal() {
+    const orderTextModal = document.getElementById('orderTextModal');
+    const orderIconModal = document.getElementById('orderIconModal');
+
+    if (orderTextModal && orderIconModal) {
+        if (episodesReversed) {
+            orderTextModal.textContent = '正序';
+            orderIconModal.innerHTML = `
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
+            `;
+        } else {
+            orderTextModal.textContent = '倒序';
+            orderIconModal.innerHTML = `
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
+            `;
+        }
+    }
+}
+
+// 同步弹框内的自动连播开关状态
+function syncAutoplayToggleInModal() {
+    const autoplayToggle = document.getElementById('autoplayToggle');
+    const autoplayToggleModal = document.getElementById('autoplayToggleModal');
+
+    if (autoplayToggle && autoplayToggleModal) {
+        autoplayToggleModal.checked = autoplayToggle.checked;
+    }
+}
+
+// 点击弹框背景关闭
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('episodeModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeEpisodeModal();
+            }
+        });
+    }
+
+    // 监听弹框内的自动连播开关变化
+    const autoplayToggleModal = document.getElementById('autoplayToggleModal');
+    if (autoplayToggleModal) {
+        autoplayToggleModal.addEventListener('change', function() {
+            const autoplayToggle = document.getElementById('autoplayToggle');
+            if (autoplayToggle) {
+                // 同步到原始开关
+                autoplayToggle.checked = this.checked;
+                // 触发原始开关的 change 事件
+                autoplayToggle.dispatchEvent(new Event('change'));
+            }
+        });
+    }
+});
 
 
 // ========== 其他辅助函数 ==========

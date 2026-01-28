@@ -25,7 +25,7 @@
         -ms-overflow-style: none !important;
     }
 
-    /* 禁止首页整体滚动 */
+    /* 禁止页面整体滚动（首页和播放页面） */
     html,
     body {
         overflow: hidden !important;
@@ -36,16 +36,31 @@
         overscroll-behavior: none !important;
     }
 
-    /* 首页主容器固定 */
-    body > .container {
+    /* 主容器固定（首页和播放页面） */
+    body > .container,
+    body > main.container {
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
         right: 0 !important;
         bottom: 0 !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
+        overflow: hidden !important;
         -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* 播放页面头部固定 */
+    .player-header-fixed {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 100 !important;
+    }
+
+    /* 播放页面主内容区域 - 禁止滚动 */
+    body > main.container {
+        padding-top: 60px !important; /* 为固定头部留出空间 */
+        overflow: hidden !important;
     }
 }
 
@@ -499,6 +514,64 @@
     .episode-grid {
         grid-template-columns: repeat(3, 1fr) !important;
         gap: 0.5rem !important;
+    }
+
+    /* 移动端：显示选集按钮容器 */
+    #mobileEpisodeSelectContainer {
+        display: flex !important;
+    }
+
+    /* 选集按钮完全模仿上一集按钮的样式 */
+    #mobileEpisodeSelectBtn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        /* 覆盖通用按钮样式，保持与上一集按钮一致 */
+        font-size: 1rem !important;
+        line-height: 1.5rem !important;
+        padding: 0.5rem 1rem !important;
+        font-weight: 400 !important;
+        white-space: nowrap !important;
+    }
+
+    #mobileEpisodeSelectBtn svg {
+        display: inline-block !important;
+        width: 1.25rem !important;
+        height: 1.25rem !important;
+        margin-right: 0.25rem !important;
+    }
+
+    /* 移动端：隐藏自动连播容器（已移到弹框内） */
+    #autoplayContainer {
+        display: none !important;
+    }
+
+    /* 移动端：隐藏集数网格容器 */
+    #episodesGridContainer {
+        display: none !important;
+    }
+
+    /* 移动端：隐藏原有的排序按钮（已移到弹框内） */
+    button[onclick="toggleEpisodeOrder()"] {
+        display: none !important;
+    }
+
+    /* 集数选择弹框样式优化 */
+    #episodeModal .grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+
+    #episodeModalList button {
+        min-height: 44px !important;
+        padding: 0.625rem !important;
+        font-size: 0.9375rem !important;
+    }
+}
+
+/* 桌面端：隐藏移动端选集按钮容器 */
+@media (min-width: 641px) {
+    #mobileEpisodeSelectContainer {
+        display: none !important;
     }
 }
 
