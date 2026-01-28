@@ -77,4 +77,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 300);
     }
+
+    initDateTime();
 });
+
+function initDateTime() {
+    const el = document.getElementById('currentDateTime');
+    if (!el) return;
+
+    function update() {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        const year = d.getFullYear();
+        const month = pad(d.getMonth() + 1);
+        const day = pad(d.getDate());
+        const hours = pad(d.getHours());
+        const minutes = pad(d.getMinutes());
+        const seconds = pad(d.getSeconds());
+        el.textContent = year + '\u5e74' + month + '\u6708' + day + '\u65e5 ' + hours + ':' + minutes + ':' + seconds;
+    }
+
+    update();
+    setInterval(update, 1000);
+}
