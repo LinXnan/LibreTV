@@ -459,3 +459,28 @@ input:checked + .slider:before {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 204, 255, 0.2);
 }
+
+/* ========================================
+   选集弹框样式统一 - 与设置/历史弹框保持一致
+   ======================================== */
+
+/* 桌面端：选集弹框容器样式 */
+@media (min-width: 641px) {
+    .episode-modal-container {
+        /* 使用渐变背景，与设置/历史弹框保持一致 */
+        background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start)) !important;
+        /* 去掉边框 */
+        border: none !important;
+        /* 添加阴影效果 */
+        box-shadow: 0 0 20px rgba(0, 204, 255, 0.3);
+    }
+
+    /* 去掉头部和底部边框 */
+    .episode-modal-container .episode-modal-header {
+        border-bottom: none !important;
+    }
+
+    .episode-modal-container > div:last-child {
+        border-top: none !important;
+    }
+}

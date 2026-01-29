@@ -246,8 +246,8 @@
         <!-- 拖拽指示器（仅移动端显示） -->
         <div class="panel-drag-indicator"></div>
 
-        <div class="bg-[#111] rounded-lg w-11/12 max-w-2xl border border-[#333] max-h-[85vh] flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b border-[#333] flex-none episode-modal-header">
+        <div class="episode-modal-container bg-[#111] rounded-lg w-11/12 max-w-2xl max-h-[85vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 flex-none episode-modal-header">
                 <h2 class="text-xl font-bold gradient-text flex-1 min-w-0 truncate episode-modal-title">选择集数</h2>
                 <div class="flex items-center gap-2 flex-shrink-0 episode-modal-actions">
                     <!-- 排序按钮 -->
@@ -267,7 +267,7 @@
                 </div>
             </div>
             <!-- 底部自动连播开关 -->
-            <div class="flex items-center justify-center gap-2 p-4 border-t border-[#333] flex-none">
+            <div class="flex items-center justify-center gap-2 p-4 flex-none">
                 <span class="text-gray-400 text-sm">自动连播</span>
                 <label class="switch">
                     <input type="checkbox" id="autoplayToggleModal">
