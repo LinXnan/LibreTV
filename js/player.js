@@ -2674,6 +2674,7 @@ function setPlaybackRate(rate) {
 function openEpisodeModal() {
     const modal = document.getElementById('episodeModal');
     const modalList = document.getElementById('episodeModalList');
+    const overlay = document.getElementById('episodeOverlay');
 
     if (!modal || !modalList) return;
 
@@ -2686,9 +2687,19 @@ function openEpisodeModal() {
     // 渲染集数列表到弹框
     renderEpisodesToModal();
 
-    // 显示弹框
+    // 显示弹框和遮罩
     modal.classList.remove('hidden');
     modal.classList.add('flex');
+
+    // 移动端使用底部抽屉动画
+    if (window.innerWidth <= 640) {
+        setTimeout(() => {
+            modal.classList.add('show');
+            if (overlay) {
+                overlay.classList.add('show');
+            }
+        }, 10);
+    }
 
     // 滚动到当前集数
     setTimeout(() => {
@@ -2730,9 +2741,24 @@ function renderEpisodesToModal() {
 // 关闭集数选择弹框
 function closeEpisodeModal() {
     const modal = document.getElementById('episodeModal');
+    const overlay = document.getElementById('episodeOverlay');
+
     if (modal) {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        // 移动端使用底部抽屉动画
+        if (window.innerWidth <= 640) {
+            modal.classList.remove('show');
+            if (overlay) {
+                overlay.classList.remove('show');
+            }
+            // 等待动画完成后隐藏
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 400);
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
     }
 }
 
@@ -2794,6 +2820,7 @@ function syncAutoplayToggleInModal() {
 // 点击弹框背景关闭
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('episodeModal');
+
     if (modal) {
         modal.addEventListener('click', function(e) {
             if (e.target === modal) {

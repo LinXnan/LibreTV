@@ -418,6 +418,14 @@ input:checked + .slider:before {
     }
 }
 
+/* Episode modal close button should participate in header layout */
+#episodeModal .close-btn {
+    position: static;
+    top: auto;
+    right: auto;
+    z-index: auto;
+}
+
 /* 隐藏用户名输入框 */
 #username {
     display: none !important;

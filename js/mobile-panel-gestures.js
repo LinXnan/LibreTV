@@ -24,6 +24,9 @@ const focusMap = new WeakMap();
 // body overflow 原始值
 let originalBodyOverflow = '';
 
+// 初始化标志
+let isInitialized = false;
+
 // 配置常量
 const GESTURE_CONFIG = {
     closeThreshold: 100,
@@ -38,19 +41,39 @@ const GESTURE_CONFIG = {
  */
 function initMobilePanelGestures() {
     if (window.innerWidth > 640) return;
+    if (isInitialized) return; // 防止重复初始化
 
     const historyPanel = document.getElementById('historyPanel');
     const settingsPanel = document.getElementById('settingsPanel');
+    const episodeModal = document.getElementById('episodeModal');
     const overlay = document.getElementById('panelOverlay');
+    const episodeOverlay = document.getElementById('episodeOverlay');
 
-    if (!historyPanel || !settingsPanel || !overlay) {
-        return;
+    // 为存在的面板设置手势
+    if (historyPanel) {
+        setupPanelGestures(historyPanel);
     }
 
-    setupPanelGestures(historyPanel);
-    setupPanelGestures(settingsPanel);
-    overlay.addEventListener('click', handleOverlayClick);
+    if (settingsPanel) {
+        setupPanelGestures(settingsPanel);
+    }
+
+    // 为集数弹框添加手势支持
+    if (episodeModal) {
+        setupPanelGestures(episodeModal);
+    }
+
+    // 设置遮罩层点击事件
+    if (overlay) {
+        overlay.addEventListener('click', handleOverlayClick);
+    }
+
+    if (episodeOverlay) {
+        episodeOverlay.addEventListener('click', handleOverlayClick);
+    }
+
     setupBackButtonSupport();
+    isInitialized = true;
 }
 
 /**
@@ -126,7 +149,12 @@ function handleTouchMove(e) {
 
     panel.style.transform = `translateY(${translateY}px)`;
 
-    const overlay = document.getElementById('panelOverlay');
+    // 根据面板类型选择对应的遮罩层
+    const panelId = panel.id;
+    const overlay = panelId === 'episodeModal'
+        ? document.getElementById('episodeOverlay')
+        : document.getElementById('panelOverlay');
+
     if (overlay) {
         const progress = Math.min(1, deltaY / panelHeight);
         overlay.style.opacity = 0.5 * (1 - progress);
@@ -163,7 +191,13 @@ function handleTouchEnd(e) {
         closePanel(panel);
     } else {
         panel.style.transform = '';
-        const overlay = document.getElementById('panelOverlay');
+
+        // 根据面板类型选择对应的遮罩层
+        const panelId = panel.id;
+        const overlay = panelId === 'episodeModal'
+            ? document.getElementById('episodeOverlay')
+            : document.getElementById('panelOverlay');
+
         if (overlay) {
             overlay.style.opacity = '';
         }
@@ -180,7 +214,16 @@ function handleTouchEnd(e) {
 function closePanel(panel) {
     if (!panel) return;
 
-    const overlay = document.getElementById('panelOverlay');
+    const panelId = panel.id;
+    let overlay;
+
+    // 根据面板类型选择对应的遮罩层
+    if (panelId === 'episodeModal') {
+        overlay = document.getElementById('episodeOverlay');
+    } else {
+        overlay = document.getElementById('panelOverlay');
+    }
+
     if (!overlay) return;
 
     panel.classList.remove('show');
@@ -189,6 +232,14 @@ function closePanel(panel) {
     overlay.style.opacity = '';
     panel.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('aria-hidden', 'true');
+
+    // 集数弹框需要额外处理
+    if (panelId === 'episodeModal') {
+        setTimeout(() => {
+            panel.classList.add('hidden');
+            panel.classList.remove('flex');
+        }, 400);
+    }
 
     const triggerElement = focusMap.get(panel);
     if (triggerElement && typeof triggerElement.focus === 'function') {
@@ -203,7 +254,7 @@ function closePanel(panel) {
 
     const liveRegion = document.getElementById('panelLiveRegion');
     if (liveRegion) {
-        const panelTitle = panel.querySelector('h3')?.textContent || '面板';
+        const panelTitle = panel.querySelector('h3, h2')?.textContent || '面板';
         liveRegion.textContent = `${panelTitle}已关闭`;
     }
 }
@@ -214,6 +265,7 @@ function closePanel(panel) {
 function handleOverlayClick(e) {
     const historyPanel = document.getElementById('historyPanel');
     const settingsPanel = document.getElementById('settingsPanel');
+    const episodeModal = document.getElementById('episodeModal');
 
     if (historyPanel && historyPanel.classList.contains('show')) {
         closePanel(historyPanel);
@@ -221,6 +273,10 @@ function handleOverlayClick(e) {
 
     if (settingsPanel && settingsPanel.classList.contains('show')) {
         closePanel(settingsPanel);
+    }
+
+    if (episodeModal && episodeModal.classList.contains('show')) {
+        closePanel(episodeModal);
     }
 }
 
@@ -231,9 +287,15 @@ function setupBackButtonSupport() {
     window.addEventListener('popstate', function(e) {
         if (e.state?.mobilePanel === true) {
             const panelId = e.state.panelId;
-            const panel = panelId === 'history'
-                ? document.getElementById('historyPanel')
-                : document.getElementById('settingsPanel');
+            let panel;
+
+            if (panelId === 'history') {
+                panel = document.getElementById('historyPanel');
+            } else if (panelId === 'settings') {
+                panel = document.getElementById('settingsPanel');
+            } else if (panelId === 'episode') {
+                panel = document.getElementById('episodeModal');
+            }
 
             if (panel && panel.classList.contains('show')) {
                 closePanel(panel);
@@ -248,16 +310,30 @@ function setupBackButtonSupport() {
 function openPanel(panel, triggerElement) {
     if (!panel) return;
 
-    const overlay = document.getElementById('panelOverlay');
+    const panelId = panel.id;
+    let overlay;
+
+    // 根据面板类型选择对应的遮罩层
+    if (panelId === 'episodeModal') {
+        overlay = document.getElementById('episodeOverlay');
+    } else {
+        overlay = document.getElementById('panelOverlay');
+    }
+
     if (!overlay) return;
 
     const historyPanel = document.getElementById('historyPanel');
     const settingsPanel = document.getElementById('settingsPanel');
+    const episodeModal = document.getElementById('episodeModal');
+
     if (historyPanel && historyPanel !== panel && historyPanel.classList.contains('show')) {
         closePanel(historyPanel);
     }
     if (settingsPanel && settingsPanel !== panel && settingsPanel.classList.contains('show')) {
         closePanel(settingsPanel);
+    }
+    if (episodeModal && episodeModal !== panel && episodeModal.classList.contains('show')) {
+        closePanel(episodeModal);
     }
 
     if (triggerElement) {
@@ -279,12 +355,12 @@ function openPanel(panel, triggerElement) {
 
     const liveRegion = document.getElementById('panelLiveRegion');
     if (liveRegion) {
-        const panelTitle = panel.querySelector('h3')?.textContent || '面板';
+        const panelTitle = panel.querySelector('h3, h2')?.textContent || '面板';
         liveRegion.textContent = `${panelTitle}已打开`;
     }
 
-    const panelId = panel.id === 'historyPanel' ? 'history' : 'settings';
-    history.pushState({ mobilePanel: true, panelId: panelId }, null, location.href);
+    const panelType = panel.id === 'historyPanel' ? 'history' : (panel.id === 'settingsPanel' ? 'settings' : 'episode');
+    history.pushState({ mobilePanel: true, panelId: panelType }, null, location.href);
 }
 
 document.addEventListener('DOMContentLoaded', initMobilePanelGestures);

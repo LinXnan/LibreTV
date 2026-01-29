@@ -238,12 +238,18 @@
         </div>
     </div>
 
-    <!-- 集数选择弹框 - 移动端专用 -->
-    <div id="episodeModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center transition-opacity duration-300 z-[10000]">
+    <!-- 集数选择弹框遮罩层 -->
+    <div class="panel-overlay" id="episodeOverlay"></div>
+
+    <!-- 集数选择弹框 - 移动端底部抽屉式，桌面端居中模态框 -->
+    <div id="episodeModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center transition-opacity duration-300 z-[10000] episode-panel">
+        <!-- 拖拽指示器（仅移动端显示） -->
+        <div class="panel-drag-indicator"></div>
+
         <div class="bg-[#111] rounded-lg w-11/12 max-w-2xl border border-[#333] max-h-[85vh] flex flex-col">
-            <div class="flex justify-between items-center p-4 border-b border-[#333] flex-none">
-                <h2 class="text-xl font-bold gradient-text">选择集数</h2>
-                <div class="flex items-center gap-2">
+            <div class="flex justify-between items-center p-4 border-b border-[#333] flex-none episode-modal-header">
+                <h2 class="text-xl font-bold gradient-text flex-1 min-w-0 truncate episode-modal-title">选择集数</h2>
+                <div class="flex items-center gap-2 flex-shrink-0 episode-modal-actions">
                     <!-- 排序按钮 -->
                     <button onclick="toggleEpisodeOrderInModal()" class="px-2 py-1 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors flex items-center space-x-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" id="orderIconModal" viewBox="0 0 20 20" fill="currentColor">
@@ -252,10 +258,10 @@
                         <span id="orderTextModal" class="text-sm">倒序</span>
                     </button>
                     <!-- 关闭按钮 -->
-                    <button onclick="closeEpisodeModal()" class="text-gray-400 hover:text-white text-2xl transition-colors">×</button>
+                    <button onclick="closeEpisodeModal()" aria-label="关闭" class="w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-full text-gray-400 hover:text-white hover:bg-[#333] text-2xl transition-colors close-btn">×</button>
                 </div>
             </div>
-            <div id="episodeModalContent" class="overflow-auto flex-1 p-4">
+            <div id="episodeModalContent" class="overflow-auto flex-1 p-4 panel-content">
                 <div class="grid grid-cols-4 gap-2" id="episodeModalList">
                     <!-- 集数按钮将在这里动态加载 -->
                 </div>
@@ -304,6 +310,7 @@
     <script src="js/api.js" defer></script>
     <script src="js/search.js" defer></script>
     <script src="js/player.js" defer></script>
+    <script src="js/mobile-panel-gestures.js" defer></script>
 
     <script>
         // 修复 home 跳转
