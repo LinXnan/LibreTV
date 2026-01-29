@@ -35,6 +35,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // 默认关闭豆瓣功能
         localStorage.setItem('doubanEnabled', 'false');
 
+        // 默认开启每日一言
+        localStorage.setItem('dailyQuoteEnabled', 'true');
+
         // 标记已初始化默认值
         localStorage.setItem('hasInitializedDefaults', 'true');
     }
@@ -592,6 +595,11 @@ function resetSearchArea() {
     // 如果有豆瓣功能，检查是否需要显示豆瓣推荐区域
     if (typeof updateDoubanVisibility === 'function') {
         updateDoubanVisibility();
+    }
+
+    // 如果有每日一言功能，更新可见性
+    if (typeof updateDailyQuoteVisibility === 'function') {
+        updateDailyQuoteVisibility();
     }
 
     // 重置URL为主页
@@ -1282,6 +1290,7 @@ async function exportConfig() {
         'yellowFilterEnabled',
         'adFilteringEnabled',
         'doubanEnabled',
+        'dailyQuoteEnabled',
         'hasInitializedDefaults'
     ];
 

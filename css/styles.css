@@ -345,6 +345,21 @@ body {
     box-shadow: 0 2px 4px rgba(0, 204, 255, 0.3);
 }
 
+/* 每日一言开关样式 */
+#dailyQuoteToggle:checked + .toggle-bg {
+    background-color: var(--primary-color);
+}
+
+#dailyQuoteToggle:checked ~ .toggle-dot {
+    transform: translateX(1.5rem);
+    box-shadow: 0 2px 4px rgba(0, 204, 255, 0.3);
+}
+
+#dailyQuoteToggle:focus + .toggle-bg,
+#dailyQuoteToggle:hover + .toggle-bg {
+    box-shadow: 0 0 0 2px rgba(0, 204, 255, 0.3);
+}
+
 /* 添加API复选框样式 */
 .form-checkbox {
     appearance: none;

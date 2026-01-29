@@ -235,7 +235,20 @@
                         <div class="toggle-dot absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-transform duration-300 ease-in-out"></div>
                     </div>
                 </div>
-                
+
+                <!-- 每日一言开关 -->
+                <div class="flex items-center justify-between mb-3 pb-3 border-b border-[#222]">
+                    <div>
+                        <label class="text-sm font-medium text-gray-400">每日一言</label>
+                        <p class="text-xs text-gray-500 mt-1">首页展示励志语录</p>
+                    </div>
+                    <div class="relative inline-block w-12 align-middle select-none">
+                        <input type="checkbox" id="dailyQuoteToggle" class="opacity-0 absolute w-full h-full cursor-pointer z-10">
+                        <div class="toggle-bg bg-[#333] w-12 h-6 rounded-full transition-colors duration-300 ease-in-out"></div>
+                        <div class="toggle-dot absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-transform duration-300 ease-in-out"></div>
+                    </div>
+                </div>
+
                 <!-- 豆瓣热门开关 -->
                 <div class="flex items-center justify-between">
                     <div>
@@ -271,6 +284,11 @@
                         </svg>
                         <h1 class="text-5xl font-bold gradient-text">LibreTV</h1>
                     </a>
+                </div>
+                <!-- 每日一言区域 -->
+                <div id="dailyQuoteSection" class="text-center mb-3 hidden" aria-live="polite" aria-hidden="true">
+                    <p id="dailyQuoteText" class="daily-quote-text text-sm sm:text-base px-4"></p>
+                    <p class="daily-quote-source text-xs mt-1">—— <span id="dailyQuoteFrom"></span></p>
                 </div>
                 <p class="text-gray-400 mb-4">自由观影，畅享精彩</p>
                 <p id="currentDateTime" class="text-sm text-gray-400 mb-2"></p>
@@ -558,6 +576,7 @@
     <script src="js/password.js" defer></script>
     <script src="js/search.js" defer></script>
     <script src="js/app.js" defer></script>
+    <script src="js/daily-quote.js" defer></script>
     <script src="js/optimize-apply.js" defer></script>
 
     <!-- PWA 注册 - 使用async异步加载 -->

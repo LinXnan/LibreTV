@@ -579,6 +579,9 @@ async function renderDoubanCards(data, container, requestId) {
 function resetToHome() {
     resetSearchArea();
     updateDoubanVisibility();
+    if (typeof updateDailyQuoteVisibility === 'function') {
+        updateDailyQuoteVisibility();
+    }
 }
 
 // 加载豆瓣首页内容
