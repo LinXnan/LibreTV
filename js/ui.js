@@ -20,7 +20,21 @@ function toggleSettings(e) {
     // 阻止事件冒泡，防止触发document的点击事件
     e && e.stopPropagation();
     const panel = document.getElementById('settingsPanel');
-    panel.classList.toggle('show');
+    if (!panel) return;
+
+    const triggerElement = e?.currentTarget || document.activeElement;
+
+    // 移动端使用增强版打开/关闭
+    if (window.innerWidth <= 640) {
+        if (panel.classList.contains('show')) {
+            window.closePanel && window.closePanel(panel);
+        } else {
+            window.openPanel && window.openPanel(panel, triggerElement);
+        }
+    } else {
+        // 桌面端保持原有逻辑
+        panel.classList.toggle('show');
+    }
 }
 
 // 改进的Toast显示函数 - 支持队列显示多个Toast
@@ -321,18 +335,31 @@ function toggleHistory(e) {
     if (e) e.stopPropagation();
 
     const panel = document.getElementById('historyPanel');
+    const triggerElement = e?.currentTarget || document.activeElement;
+
     if (panel) {
-        panel.classList.toggle('show');
+        // 移动端使用增强版打开/关闭
+        if (window.innerWidth <= 640) {
+            if (panel.classList.contains('show')) {
+                window.closePanel && window.closePanel(panel);
+            } else {
+                window.openPanel && window.openPanel(panel, triggerElement);
+                loadViewingHistory();
+            }
+        } else {
+            // 桌面端保持原有逻辑
+            panel.classList.toggle('show');
 
-        // 如果打开了历史记录面板，则加载历史数据
-        if (panel.classList.contains('show')) {
-            loadViewingHistory();
-        }
+            // 如果打开了历史记录面板，则加载历史数据
+            if (panel.classList.contains('show')) {
+                loadViewingHistory();
+            }
 
-        // 如果设置面板是打开的，则关闭它
-        const settingsPanel = document.getElementById('settingsPanel');
-        if (settingsPanel && settingsPanel.classList.contains('show')) {
-            settingsPanel.classList.remove('show');
+            // 如果设置面板是打开的，则关闭它
+            const settingsPanel = document.getElementById('settingsPanel');
+            if (settingsPanel && settingsPanel.classList.contains('show')) {
+                settingsPanel.classList.remove('show');
+            }
         }
     }
 }

@@ -81,6 +81,12 @@
     <link rel="stylesheet" href="css/performance-optimize.css">
 </head>
 <body class="page-bg text-white">
+    <!-- 移动端弹框遮罩 -->
+    <div id="panelOverlay" class="panel-overlay" aria-hidden="true"></div>
+
+    <!-- aria-live 通知区域（屏幕阅读器） -->
+    <div id="panelLiveRegion" aria-live="polite" class="sr-only"></div>
+
     <!-- 加载遮罩 - Tailwind加载完成后自动移除 -->
     <div id="style-loader"></div>
     <script>
@@ -119,10 +125,13 @@
     </div>
     
     <!-- 历史记录面板 -->
-    <div id="historyPanel" class="history-panel fixed left-0 top-0 h-full p-6 z-40 transform -translate-x-full transition-transform duration-300" aria-label="观看历史" aria-hidden="true">
+    <div id="historyPanel" class="history-panel fixed left-0 top-0 h-full p-6 z-40 transform -translate-x-full transition-transform duration-300" role="dialog" aria-modal="true" aria-labelledby="historyPanelTitle" aria-hidden="true">
+        <!-- 拖拽指示器（仅移动端显示） -->
+        <div class="panel-drag-indicator"></div>
+
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold gradient-text">观看历史</h3>
-            <button onclick="toggleHistory()" class="close-btn">
+            <h3 id="historyPanelTitle" class="text-xl font-bold gradient-text">观看历史</h3>
+            <button onclick="toggleHistory()" class="close-btn" aria-label="关闭面板">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -140,10 +149,13 @@
     </div>
 
     <!-- 设置面板 -->
-    <div id="settingsPanel" class="settings-panel fixed right-0 top-0 h-full w-80 bg-[#111] border-l border-[#333] p-6 z-40 overflow-y-auto" aria-label="设置面板" aria-hidden="true">
+    <div id="settingsPanel" class="settings-panel fixed right-0 top-0 h-full w-80 bg-[#111] border-l border-[#333] p-6 z-40 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="settingsPanelTitle" aria-hidden="true">
+        <!-- 拖拽指示器（仅移动端显示） -->
+        <div class="panel-drag-indicator"></div>
+
         <div class="flex justify-between items-center mb-6">
-            <h3 class="text-xl font-bold gradient-text">设置</h3>
-            <button onclick="toggleSettings()" class="close-btn">
+            <h3 id="settingsPanelTitle" class="text-xl font-bold gradient-text">设置</h3>
+            <button onclick="toggleSettings()" class="close-btn" aria-label="关闭面板">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -576,6 +588,7 @@
     <script src="js/proxy-auth.js" defer></script>
     <script src="js/customer_site.js" defer></script>
     <script src="js/ui.js" defer></script>
+    <script src="js/mobile-panel-gestures.js" defer></script>
     <script src="js/api.js" defer></script>
     <script src="js/douban.js" defer></script>
     <script src="js/password.js" defer></script>

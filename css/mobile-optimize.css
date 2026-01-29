@@ -783,3 +783,133 @@
         right: calc(1rem + env(safe-area-inset-right)) !important;
     }
 }
+
+/* ========================================
+   移动端弹框优化：底部抽屉式
+   ======================================== */
+
+/* sr-only 类用于屏幕阅读器 */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+@media (max-width: 640px) {
+    /* 半透明遮罩 */
+    .panel-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 1);
+        z-index: 39;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease, background-color 0.3s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .panel-overlay.show {
+        opacity: 0.5;
+        visibility: visible;
+    }
+
+    /* 底部抽屉式布局 */
+    .history-panel,
+    .settings-panel {
+        /* 重置侧边样式 */
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+
+        /* 高度和圆角 */
+        height: auto !important;
+        max-height: 85vh !important;
+        border-radius: 16px 16px 0 0 !important;
+
+        /* 初始隐藏在底部 */
+        transform: translateY(100%) !important;
+        transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+
+        /* 边框调整 */
+        border-left: none !important;
+        border-right: none !important;
+        border-top: 1px solid var(--primary-color) !important;
+
+        /* 安全区域适配 */
+        padding-bottom: env(safe-area-inset-bottom) !important;
+
+        /* 禁用橡皮筋效果 */
+        overscroll-behavior: contain !important;
+    }
+
+    .history-panel.show,
+    .settings-panel.show {
+        transform: translateY(0) !important;
+    }
+
+    /* 拖拽指示器 */
+    .panel-drag-indicator {
+        display: block;
+        width: 40px;
+        height: 4px;
+        background: #666;
+        border-radius: 2px;
+        margin: 12px auto 8px;
+        flex-shrink: 0;
+        cursor: grab;
+        touch-action: none;
+    }
+
+    .panel-drag-indicator:active {
+        cursor: grabbing;
+    }
+
+    /* 拖拽中状态 */
+    .history-panel.dragging,
+    .settings-panel.dragging {
+        transition: none !important;
+    }
+
+    .history-panel.dragging .panel-drag-indicator,
+    .settings-panel.dragging .panel-drag-indicator {
+        cursor: grabbing;
+    }
+}
+
+/* 桌面端隐藏拖拽指示器和遮罩 */
+@media (min-width: 641px) {
+    .panel-drag-indicator {
+        display: none;
+    }
+
+    .panel-overlay {
+        display: none;
+    }
+}
+
+/* 减少动画模式 */
+@media (max-width: 640px) and (prefers-reduced-motion: reduce) {
+    .history-panel,
+    .settings-panel {
+        transition: opacity 0.25s ease !important;
+        transform: translateY(0) !important; /* 不使用 transform 动画 */
+    }
+
+    .history-panel.show,
+    .settings-panel.show {
+        opacity: 1;
+    }
+
+    .panel-overlay {
+        transition: opacity 0.2s ease, visibility 0.2s ease !important;
+    }
+}
