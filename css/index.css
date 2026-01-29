@@ -313,7 +313,33 @@
 /* 每日一言样式 */
 #dailyQuoteSection {
     min-height: 60px;
-    transition: none;
+    transform-origin: center;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#dailyQuoteSection:not(.daily-quote-cooldown):not(.daily-quote-refreshing):hover {
+    opacity: 0.85;
+    transform: scale(1.02);
+}
+
+#dailyQuoteSection.daily-quote-cooldown {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#dailyQuoteSection.daily-quote-refreshing {
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+#dailyQuoteSection.daily-quote-pulse {
+    animation: daily-quote-pulse 0.3s ease-out;
+}
+
+@keyframes daily-quote-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
 }
 
 .daily-quote-text {
@@ -345,5 +371,13 @@
 @media (prefers-reduced-motion: reduce) {
     .typing-cursor::after {
         display: none;
+    }
+
+    #dailyQuoteSection {
+        transition: none;
+    }
+
+    #dailyQuoteSection.daily-quote-pulse {
+        animation: none;
     }
 }

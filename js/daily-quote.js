@@ -4,6 +4,7 @@ const DAILY_QUOTE_CONFIG = {
     enabledKey: 'dailyQuoteEnabled',
     apiUrl: 'https://v1.hitokoto.cn/?c=k&c=i&c=d&encode=json',
     timeout: 3000,
+    refreshCooldown: 3000,
     typingSpeedNormal: 80,
     typingSpeedFast: 40,
     longTextThreshold: 50,
@@ -16,17 +17,20 @@ const DAILY_QUOTE_CONFIG = {
 
 let currentAbortController = null;
 let currentRequestId = 0;
+let typingAnimationController = null;
+let lastRefreshTime = 0;
+let refreshCooldownTimer = null;
 
 function getDailyQuoteElements() {
     const section = document.getElementById('dailyQuoteSection');
     const text = document.getElementById('dailyQuoteText');
-    const from = document.getElementById('dailyQuoteFrom');
+    const fromText = document.getElementById('dailyQuoteFromText');
 
-    if (!section || !text || !from) {
+    if (!section || !text || !fromText) {
         return null;
     }
 
-    return { section, text, from };
+    return { section, text, fromText };
 }
 
 function getFallbackQuote() {
@@ -43,15 +47,139 @@ function isQuoteEnabled() {
     }
 }
 
-function typeWriter(element, text, speed, shouldContinue) {
+function stopTypingAnimation() {
+    if (typingAnimationController) {
+        typingAnimationController.abort();
+        typingAnimationController = null;
+    }
+}
+
+function clearClickRefreshState() {
+    const elements = getDailyQuoteElements();
+    if (!elements) return;
+
+    const { section } = elements;
+
+    if (refreshCooldownTimer) {
+        clearTimeout(refreshCooldownTimer);
+        refreshCooldownTimer = null;
+    }
+
+    section.classList.remove('daily-quote-cooldown', 'daily-quote-refreshing', 'daily-quote-pulse');
+    section.removeAttribute('aria-disabled');
+    section.removeAttribute('aria-busy');
+    lastRefreshTime = 0;
+}
+
+function triggerPulse(section) {
+    if (!section) return;
+    section.classList.remove('daily-quote-pulse');
+    void section.offsetWidth;
+    section.classList.add('daily-quote-pulse');
+    section.addEventListener('animationend', () => {
+        section.classList.remove('daily-quote-pulse');
+    }, { once: true });
+}
+
+function applyCooldownState(section) {
+    if (!section) return;
+    section.classList.add('daily-quote-cooldown');
+    section.setAttribute('aria-disabled', 'true');
+
+    if (refreshCooldownTimer) {
+        clearTimeout(refreshCooldownTimer);
+    }
+
+    refreshCooldownTimer = setTimeout(() => {
+        section.classList.remove('daily-quote-cooldown');
+        section.removeAttribute('aria-disabled');
+        refreshCooldownTimer = null;
+    }, DAILY_QUOTE_CONFIG.refreshCooldown);
+}
+
+function handleClickRefresh(event) {
+    const elements = getDailyQuoteElements();
+    if (!elements) return;
+
+    const { section, text } = elements;
+
+    if (!isQuoteEnabled()) {
+        return;
+    }
+
+    if (event && event.type === 'keydown') {
+        if (event.repeat) {
+            return;
+        }
+
+        const key = event.key;
+        if (key !== 'Enter' && key !== ' ' && key !== 'Spacebar') {
+            return;
+        }
+        event.preventDefault();
+    }
+
+    const selection = window.getSelection ? window.getSelection().toString() : '';
+    if (selection) {
+        return;
+    }
+
+    const now = Date.now();
+    if (now - lastRefreshTime < DAILY_QUOTE_CONFIG.refreshCooldown) {
+        if (!section.classList.contains('daily-quote-cooldown')) {
+            applyCooldownState(section);
+        }
+        return;
+    }
+
+    if (currentAbortController !== null) {
+        return;
+    }
+
+    stopTypingAnimation();
+    text.textContent = '';
+    text.classList.remove('typing-cursor');
+
+    triggerPulse(section);
+    lastRefreshTime = now;
+    applyCooldownState(section);
+
+    section.classList.add('daily-quote-refreshing');
+    section.setAttribute('aria-busy', 'true');
+
+    fetchDailyQuote({ showRefreshing: true });
+}
+
+function typeWriter(element, text, speed, shouldContinue, signal) {
     return new Promise((resolve) => {
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let resolved = false;
+        let onAbort;
+
+        const finish = () => {
+            if (resolved) return;
+            resolved = true;
+            element.classList.remove('typing-cursor');
+            if (signal && onAbort) {
+                signal.removeEventListener('abort', onAbort);
+            }
+            resolve();
+        };
+
+        if (signal) {
+            if (signal.aborted) {
+                finish();
+                return;
+            }
+            onAbort = () => finish();
+            signal.addEventListener('abort', onAbort, { once: true });
+        }
 
         if (prefersReducedMotion) {
             if (shouldContinue()) {
                 element.textContent = text;
             }
-            resolve();
+            finish();
             return;
         }
 
@@ -62,9 +190,8 @@ function typeWriter(element, text, speed, shouldContinue) {
         let index = 0;
 
         const type = () => {
-            if (!shouldContinue()) {
-                element.classList.remove('typing-cursor');
-                resolve();
+            if (!shouldContinue() || (signal && signal.aborted)) {
+                finish();
                 return;
             }
 
@@ -73,8 +200,7 @@ function typeWriter(element, text, speed, shouldContinue) {
                 index++;
                 setTimeout(type, speed);
             } else {
-                element.classList.remove('typing-cursor');
-                resolve();
+                finish();
             }
         };
 
@@ -86,7 +212,7 @@ function renderDailyQuote(quote, requestId) {
     const elements = getDailyQuoteElements();
     if (!elements) return;
 
-    const { section, text, from } = elements;
+    const { section, text, fromText } = elements;
 
     if (!quote || !quote.text || !quote.text.trim()) {
         return;
@@ -96,25 +222,40 @@ function renderDailyQuote(quote, requestId) {
         return;
     }
 
-    const fromText = (quote.from && quote.from.trim()) ? quote.from.trim() : '匿名';
-    from.textContent = fromText;
+    const fromValue = (quote.from && quote.from.trim()) ? quote.from.trim() : '匿名';
+    fromText.textContent = fromValue;
 
     const textLength = quote.text.length;
     const speed = textLength > DAILY_QUOTE_CONFIG.longTextThreshold
         ? DAILY_QUOTE_CONFIG.typingSpeedFast
         : DAILY_QUOTE_CONFIG.typingSpeedNormal;
 
-    const shouldContinue = () => requestId === currentRequestId && isQuoteEnabled();
+    stopTypingAnimation();
+    const controller = new AbortController();
+    typingAnimationController = controller;
 
-    typeWriter(text, quote.text, speed, shouldContinue).then(() => {
+    const shouldContinue = () => (
+        requestId === currentRequestId &&
+        isQuoteEnabled() &&
+        !controller.signal.aborted
+    );
+
+    typeWriter(text, quote.text, speed, shouldContinue, controller.signal).then(() => {
         if (shouldContinue()) {
             section.classList.remove('hidden');
             section.setAttribute('aria-hidden', 'false');
         }
+        if (typingAnimationController === controller) {
+            typingAnimationController = null;
+        }
     });
 }
 
-async function fetchDailyQuote() {
+async function fetchDailyQuote(options = {}) {
+    const { showRefreshing = false } = options;
+    const elements = getDailyQuoteElements();
+    const section = elements ? elements.section : null;
+
     if (currentAbortController) {
         currentAbortController.abort();
         currentAbortController = null;
@@ -132,25 +273,19 @@ async function fetchDailyQuote() {
         }
     }, DAILY_QUOTE_CONFIG.timeout);
 
-    if (!window.ProxyAuth || typeof window.ProxyAuth.addAuthToProxyUrl !== 'function') {
-        clearTimeout(timeoutId);
-        renderDailyQuote(getFallbackQuote(), requestId);
-        if (currentAbortController === controller) {
-            currentAbortController = null;
-        }
-        return;
-    }
-
-    if (typeof PROXY_URL === 'undefined') {
-        clearTimeout(timeoutId);
-        renderDailyQuote(getFallbackQuote(), requestId);
-        if (currentAbortController === controller) {
-            currentAbortController = null;
-        }
-        return;
-    }
-
     try {
+        if (!window.ProxyAuth || typeof window.ProxyAuth.addAuthToProxyUrl !== 'function') {
+            clearTimeout(timeoutId);
+            renderDailyQuote(getFallbackQuote(), requestId);
+            return;
+        }
+
+        if (typeof PROXY_URL === 'undefined') {
+            clearTimeout(timeoutId);
+            renderDailyQuote(getFallbackQuote(), requestId);
+            return;
+        }
+
         const proxyUrl = await window.ProxyAuth.addAuthToProxyUrl(
             PROXY_URL + encodeURIComponent(DAILY_QUOTE_CONFIG.apiUrl)
         );
@@ -191,6 +326,10 @@ async function fetchDailyQuote() {
         if (currentAbortController === controller) {
             currentAbortController = null;
         }
+        if (showRefreshing && section) {
+            section.classList.remove('daily-quote-refreshing');
+            section.removeAttribute('aria-busy');
+        }
     }
 }
 
@@ -203,6 +342,8 @@ function updateDailyQuoteVisibility() {
     if (!isQuoteEnabled()) {
         section.classList.add('hidden');
         section.setAttribute('aria-hidden', 'true');
+        clearClickRefreshState();
+        stopTypingAnimation();
     }
 }
 
@@ -242,8 +383,16 @@ document.addEventListener('DOMContentLoaded', function () {
                     currentAbortController.abort();
                     currentAbortController = null;
                 }
+                stopTypingAnimation();
+                clearClickRefreshState();
             }
         });
+    }
+
+    const elements = getDailyQuoteElements();
+    if (elements && elements.section) {
+        elements.section.addEventListener('click', handleClickRefresh);
+        elements.section.addEventListener('keydown', handleClickRefresh);
     }
 
     updateDailyQuoteVisibility();
