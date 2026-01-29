@@ -839,7 +839,7 @@
 
         /* 高度和圆角 */
         height: auto !important;
-        max-height: 85vh !important;
+        max-height: 50vh !important;
         border-radius: 16px 16px 0 0 !important;
 
         /* 初始隐藏在底部 */
@@ -854,12 +854,38 @@
 
         /* 禁用橡皮筋效果 */
         overscroll-behavior: contain !important;
+
+        /* flex布局：固定头部，内容可滚动 */
+        display: flex !important;
+        flex-direction: column !important;
     }
 
     .history-panel.show,
     .settings-panel.show,
     #episodeModal.episode-panel.show {
         transform: translateY(0) !important;
+    }
+
+    /* 面板头部固定 */
+    .history-panel > .flex,
+    .settings-panel > .flex,
+    #episodeModal .episode-modal-header {
+        flex-shrink: 0 !important;
+    }
+
+    /* 面板内容区域可滚动 */
+    #historyList,
+    #settingsPanel .space-y-5,
+    #episodeModalContent {
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+    }
+
+    /* 面板底部固定 */
+    .history-panel > div:last-child,
+    #episodeModal > div > div:last-child {
+        flex-shrink: 0 !important;
     }
 
     /* 集数弹框特殊样式 */
@@ -876,11 +902,13 @@
         width: 100% !important;
         max-width: 100% !important;
         border-radius: 16px 16px 0 0 !important;
-        max-height: 85vh !important;
+        max-height: 50vh !important;
         /* 统一使用渐变背景，与设置/历史弹框保持一致 */
         background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start)) !important;
         /* 去掉所有边框 */
         border: none !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
 
     #episodeModal .episode-modal-header {
