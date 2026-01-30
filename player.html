@@ -258,7 +258,11 @@
                         <span id="orderTextModal" class="text-sm">倒序</span>
                     </button>
                     <!-- 关闭按钮 -->
-                    <button onclick="closeEpisodeModal()" aria-label="关闭" class="w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-full text-gray-400 hover:text-white hover:bg-[#333] text-2xl transition-colors close-btn">×</button>
+                    <button onclick="closeEpisodeModal()" aria-label="关闭" class="close-btn">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
             <div id="episodeModalContent" class="overflow-auto flex-1 p-4 panel-content">
