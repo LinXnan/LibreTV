@@ -926,47 +926,46 @@
         overflow-y: auto !important;
     }
 
-    /* 面板底部固定 */
-    .history-panel > div:last-child,
-    #episodeModal > div > div:last-child {
-        flex-shrink: 0 !important;
+    /* 选集弹框内容区域撑满宽度 */
+    .episode-list-group {
+        width: 100% !important;
     }
 
-    /* 选集弹框底部连播区域 - 添加安全区域内边距 */
-    #episodeModal > div > div:last-child {
-        padding: 1rem !important;
-        padding-bottom: calc(1rem + env(safe-area-inset-bottom)) !important;
+    /* 面板底部固定 */
+    .history-panel > div:last-child {
+        flex-shrink: 0 !important;
     }
 
     /* 集数弹框特殊样式 */
     #episodeModal.episode-panel {
         background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start)) !important;
-        align-items: flex-end !important;
-        justify-content: center !important;
-        flex-direction: column !important;
-        /* 去掉所有边框 */
         border: none !important;
         border-radius: 16px 16px 0 0 !important;
         box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1) !important;
+        /* 确保子元素撑满宽度 */
+        align-items: stretch !important;
     }
 
-    #episodeModal.episode-panel > div:not(.panel-drag-indicator) {
+    /* 弹框内部元素撑满宽度 */
+    #episodeModal .episode-modal-header,
+    #episodeModal #episodeModalContent {
         width: 100% !important;
         max-width: 100% !important;
-        border-radius: 16px 16px 0 0 !important;
-        max-height: 50vh !important;
-        /* 统一使用渐变背景，与设置/历史弹框保持一致 */
-        background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start)) !important;
-        /* 去掉所有边框 */
-        border: none !important;
-        box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1) !important;
-        display: flex !important;
-        flex-direction: column !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
     }
 
+    /* 选集弹框头部自动连播开关居中 */
+    #episodeModal .episode-modal-autoplay {
+        position: absolute !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+    }
+
+    /* 头部使用相对定位 */
     #episodeModal .episode-modal-header {
+        position: relative !important;
         gap: 0.5rem;
-        /* 去掉底部边框 */
         border-bottom: none !important;
     }
 
@@ -986,11 +985,6 @@
 
     #episodeModal button[onclick="toggleEpisodeOrderInModal()"] {
         padding: 0.375rem 0.5rem;
-    }
-
-    /* 底部自动连播区域去掉边框 */
-    #episodeModal > div > div:last-child {
-        border-top: none !important;
     }
 
     /* 拖拽指示器 */

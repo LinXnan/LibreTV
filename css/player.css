@@ -464,23 +464,30 @@ input:checked + .slider:before {
    选集弹框样式统一 - 与设置/历史弹框保持一致
    ======================================== */
 
-/* 桌面端：选集弹框容器样式 */
+/* 桌面端：选集弹框样式 */
 @media (min-width: 641px) {
-    .episode-modal-container {
+    #episodeModal.episode-panel {
         /* 使用渐变背景，与设置/历史弹框保持一致 */
         background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start)) !important;
-        /* 去掉边框 */
-        border: none !important;
+        /* 居中模态框布局 */
+        display: flex !important;
+        flex-direction: column !important;
+        width: 91.666667% !important; /* w-11/12 */
+        max-width: 42rem !important; /* max-w-2xl */
+        max-height: 85vh !important;
+        /* 居中定位 */
+        top: 50% !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: auto !important;
+        transform: translate(-50%, -50%) !important;
+        border-radius: 0.5rem !important;
         /* 添加阴影效果 */
         box-shadow: 0 0 20px rgba(0, 204, 255, 0.3);
     }
 
-    /* 去掉头部和底部边框 */
-    .episode-modal-container .episode-modal-header {
+    /* 去掉头部边框 */
+    #episodeModal .episode-modal-header {
         border-bottom: none !important;
-    }
-
-    .episode-modal-container > div:last-child {
-        border-top: none !important;
     }
 }
