@@ -466,7 +466,7 @@ input:checked + .slider:before {
 
 /* 桌面端：选集弹框样式 */
 @media (min-width: 641px) {
-    #episodeModal.episode-panel {
+    #episodeModal.episode-panel:not(.hidden) {
         /* 使用渐变背景，与设置/历史弹框保持一致 */
         background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start)) !important;
         /* 居中模态框布局 */
