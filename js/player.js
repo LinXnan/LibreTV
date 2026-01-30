@@ -2700,6 +2700,131 @@ function openEpisodeModal() {
             }
         }, 10);
     }
+}
+
+// Tab分组相关变量
+let currentTabIndex = 0;
+const EPISODES_PER_TAB = 20;
+
+// 渲染集数列表到弹框
+function renderEpisodesToModal() {
+    const modalList = document.getElementById('episodeModalList');
+    const tabBar = document.getElementById('episodeTabBar');
+    if (!modalList) return;
+
+    if (!currentEpisodes || currentEpisodes.length === 0) {
+        if (tabBar) tabBar.innerHTML = '';
+        modalList.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">没有可用的集数</div>';
+        return;
+    }
+
+    const totalEpisodes = currentEpisodes.length;
+    const tabCount = Math.ceil(totalEpisodes / EPISODES_PER_TAB);
+
+    // 计算当前集数所在的Tab索引
+    const activeTabIndex = Math.floor(currentEpisodeIndex / EPISODES_PER_TAB);
+    currentTabIndex = activeTabIndex;
+
+    // 渲染Tab栏
+    renderEpisodeTabs(tabCount, totalEpisodes);
+
+    // 渲染当前Tab的集数
+    renderEpisodesForTab(currentTabIndex);
+}
+
+// 渲染Tab栏
+function renderEpisodeTabs(tabCount, totalEpisodes) {
+    const tabBar = document.getElementById('episodeTabBar');
+    if (!tabBar) return;
+
+    // 如果只有一个Tab，隐藏Tab栏
+    if (tabCount <= 1) {
+        tabBar.innerHTML = '';
+        tabBar.style.display = 'none';
+        return;
+    }
+
+    tabBar.style.display = 'flex';
+    let tabHtml = '';
+
+    for (let i = 0; i < tabCount; i++) {
+        const startEp = i * EPISODES_PER_TAB + 1;
+        const endEp = Math.min((i + 1) * EPISODES_PER_TAB, totalEpisodes);
+        const isActive = i === currentTabIndex;
+        const tabLabel = startEp === endEp ? `${startEp}` : `${startEp}-${endEp}`;
+
+        tabHtml += `
+            <button onclick="switchEpisodeTab(${i})"
+                    class="episode-tab ${isActive ? 'episode-tab-active' : ''}"
+                    data-tab-index="${i}">
+                ${tabLabel}
+            </button>
+        `;
+    }
+
+    tabBar.innerHTML = tabHtml;
+
+    // 滚动到当前激活的Tab
+    setTimeout(() => {
+        const activeTab = tabBar.querySelector('.episode-tab-active');
+        if (activeTab) {
+            activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+    }, 10);
+}
+
+// 切换Tab
+function switchEpisodeTab(tabIndex) {
+    currentTabIndex = tabIndex;
+
+    // 更新Tab激活状态
+    const tabBar = document.getElementById('episodeTabBar');
+    if (tabBar) {
+        tabBar.querySelectorAll('.episode-tab').forEach((tab, index) => {
+            if (index === tabIndex) {
+                tab.classList.add('episode-tab-active');
+            } else {
+                tab.classList.remove('episode-tab-active');
+            }
+        });
+    }
+
+    // 渲染对应Tab的集数
+    renderEpisodesForTab(tabIndex);
+}
+
+// 渲染指定Tab的集数
+function renderEpisodesForTab(tabIndex) {
+    const modalList = document.getElementById('episodeModalList');
+    if (!modalList || !currentEpisodes || currentEpisodes.length === 0) return;
+
+    const startIndex = tabIndex * EPISODES_PER_TAB;
+    const endIndex = Math.min(startIndex + EPISODES_PER_TAB, currentEpisodes.length);
+
+    // 获取当前Tab范围内的集数索引
+    let indices = [];
+    for (let i = startIndex; i < endIndex; i++) {
+        indices.push(i);
+    }
+
+    // 根据排序状态调整显示顺序
+    if (episodesReversed) {
+        indices.reverse();
+    }
+
+    let html = '';
+    indices.forEach((realIndex) => {
+        const isActive = realIndex === currentEpisodeIndex;
+
+        html += `
+            <button onclick="playEpisodeFromModal(${realIndex})"
+                    class="px-4 py-2 ${isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333]'} !border ${isActive ? '!border-blue-500' : '!border-[#333]'} rounded-lg transition-colors text-center">
+                ${realIndex + 1}
+            </button>
+        `;
+    });
+
+    modalList.innerHTML = html;
 
     // 滚动到当前集数
     setTimeout(() => {
@@ -2707,35 +2832,7 @@ function openEpisodeModal() {
         if (activeButton) {
             activeButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-    }, 100);
-}
-
-// 渲染集数列表到弹框
-function renderEpisodesToModal() {
-    const modalList = document.getElementById('episodeModalList');
-    if (!modalList) return;
-
-    if (!currentEpisodes || currentEpisodes.length === 0) {
-        modalList.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">没有可用的集数</div>';
-    } else {
-        const episodes = episodesReversed ? [...currentEpisodes].reverse() : currentEpisodes;
-        let html = '';
-
-        episodes.forEach((episode, index) => {
-            // 根据倒序状态计算真实的剧集索引
-            const realIndex = episodesReversed ? currentEpisodes.length - 1 - index : index;
-            const isActive = realIndex === currentEpisodeIndex;
-
-            html += `
-                <button onclick="playEpisodeFromModal(${realIndex})"
-                        class="px-4 py-2 ${isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333]'} !border ${isActive ? '!border-blue-500' : '!border-[#333]'} rounded-lg transition-colors text-center">
-                    ${realIndex + 1}
-                </button>
-            `;
-        });
-
-        modalList.innerHTML = html;
-    }
+    }, 50);
 }
 
 // 关闭集数选择弹框
