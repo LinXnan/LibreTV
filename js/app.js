@@ -501,10 +501,18 @@ function toggleSettings(e) {
     const settingsPanel = document.getElementById('settingsPanel');
     if (!settingsPanel) return;
 
-    if (settingsPanel.classList.contains('show')) {
-        settingsPanel.classList.remove('show');
+    const triggerElement = e?.currentTarget || document.activeElement;
+
+    // 移动端使用增强版打开/关闭
+    if (window.innerWidth <= 640) {
+        if (settingsPanel.classList.contains('show')) {
+            window.closePanel && window.closePanel(settingsPanel);
+        } else {
+            window.openPanel && window.openPanel(settingsPanel, triggerElement);
+        }
     } else {
-        settingsPanel.classList.add('show');
+        // 桌面端保持原有逻辑
+        settingsPanel.classList.toggle('show');
     }
 
     if (e) {

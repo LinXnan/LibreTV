@@ -2674,7 +2674,6 @@ function setPlaybackRate(rate) {
 function openEpisodeModal() {
     const modal = document.getElementById('episodeModal');
     const modalList = document.getElementById('episodeModalList');
-    const overlay = document.getElementById('panelOverlay');
 
     if (!modal || !modalList) return;
 
@@ -2687,16 +2686,22 @@ function openEpisodeModal() {
     // 渲染集数列表到弹框
     renderEpisodesToModal();
 
-    // 显示弹框和遮罩
+    // 显示弹框
     modal.classList.remove('hidden');
     modal.classList.add('flex');
 
-    // 移动端使用底部抽屉动画
+    // 移动端使用统一的面板管理函数
     if (window.innerWidth <= 640) {
         setTimeout(() => {
-            modal.classList.add('show');
-            if (overlay) {
-                overlay.classList.add('show');
+            if (window.openPanel) {
+                window.openPanel(modal);
+            } else {
+                // 降级方案：直接操作类名
+                modal.classList.add('show');
+                const overlay = document.getElementById('panelOverlay');
+                if (overlay) {
+                    overlay.classList.add('show');
+                }
             }
         }, 10);
     }
@@ -2838,21 +2843,28 @@ function renderEpisodesForTab(tabIndex) {
 // 关闭集数选择弹框
 function closeEpisodeModal() {
     const modal = document.getElementById('episodeModal');
-    const overlay = document.getElementById('panelOverlay');
 
     if (modal) {
-        // 移动端使用底部抽屉动画
+        // 移动端使用统一的面板管理函数
         if (window.innerWidth <= 640) {
-            modal.classList.remove('show');
-            if (overlay) {
-                overlay.classList.remove('show');
+            if (window.closePanel) {
+                // 使用统一的关闭函数，它会自动处理动画和隐藏
+                window.closePanel(modal);
+            } else {
+                // 降级方案：直接操作类名
+                modal.classList.remove('show');
+                const overlay = document.getElementById('panelOverlay');
+                if (overlay) {
+                    overlay.classList.remove('show');
+                }
+                // 等待动画完成后隐藏
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }, 400);
             }
-            // 等待动画完成后隐藏
-            setTimeout(() => {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }, 400);
         } else {
+            // 桌面端直接隐藏
             modal.classList.add('hidden');
             modal.classList.remove('flex');
         }
