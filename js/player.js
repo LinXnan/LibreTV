@@ -2674,7 +2674,7 @@ function setPlaybackRate(rate) {
 function openEpisodeModal() {
     const modal = document.getElementById('episodeModal');
     const modalList = document.getElementById('episodeModalList');
-    const overlay = document.getElementById('episodeOverlay');
+    const overlay = document.getElementById('panelOverlay');
 
     if (!modal || !modalList) return;
 
@@ -2838,7 +2838,7 @@ function renderEpisodesForTab(tabIndex) {
 // 关闭集数选择弹框
 function closeEpisodeModal() {
     const modal = document.getElementById('episodeModal');
-    const overlay = document.getElementById('episodeOverlay');
+    const overlay = document.getElementById('panelOverlay');
 
     if (modal) {
         // 移动端使用底部抽屉动画

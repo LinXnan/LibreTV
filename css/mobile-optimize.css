@@ -856,8 +856,7 @@
 
 @media (max-width: 640px) {
     /* 半透明遮罩 */
-    .panel-overlay,
-    #episodeOverlay {
+    .panel-overlay {
         position: fixed !important;
         inset: 0 !important;
         background: rgba(0, 0, 0, 1) !important;
@@ -869,8 +868,7 @@
         -webkit-tap-highlight-color: transparent !important;
     }
 
-    .panel-overlay.show,
-    #episodeOverlay.show {
+    .panel-overlay.show {
         opacity: 0.5 !important;
         visibility: visible !important;
         pointer-events: auto !important;

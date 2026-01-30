@@ -47,7 +47,6 @@ function initMobilePanelGestures() {
     const settingsPanel = document.getElementById('settingsPanel');
     const episodeModal = document.getElementById('episodeModal');
     const overlay = document.getElementById('panelOverlay');
-    const episodeOverlay = document.getElementById('episodeOverlay');
 
     // 为存在的面板设置手势
     if (historyPanel) {
@@ -66,10 +65,6 @@ function initMobilePanelGestures() {
     // 设置遮罩层点击事件
     if (overlay) {
         overlay.addEventListener('click', handleOverlayClick);
-    }
-
-    if (episodeOverlay) {
-        episodeOverlay.addEventListener('click', handleOverlayClick);
     }
 
     setupBackButtonSupport();
@@ -149,11 +144,8 @@ function handleTouchMove(e) {
 
     panel.style.transform = `translateY(${translateY}px)`;
 
-    // 根据面板类型选择对应的遮罩层
-    const panelId = panel.id;
-    const overlay = panelId === 'episodeModal'
-        ? document.getElementById('episodeOverlay')
-        : document.getElementById('panelOverlay');
+    // 获取统一的遮罩层
+    const overlay = document.getElementById('panelOverlay');
 
     if (overlay) {
         const progress = Math.min(1, deltaY / panelHeight);
@@ -192,11 +184,8 @@ function handleTouchEnd(e) {
     } else {
         panel.style.transform = '';
 
-        // 根据面板类型选择对应的遮罩层
-        const panelId = panel.id;
-        const overlay = panelId === 'episodeModal'
-            ? document.getElementById('episodeOverlay')
-            : document.getElementById('panelOverlay');
+        // 获取统一的遮罩层
+        const overlay = document.getElementById('panelOverlay');
 
         if (overlay) {
             overlay.style.opacity = '';
@@ -214,15 +203,8 @@ function handleTouchEnd(e) {
 function closePanel(panel) {
     if (!panel) return;
 
-    const panelId = panel.id;
-    let overlay;
-
-    // 根据面板类型选择对应的遮罩层
-    if (panelId === 'episodeModal') {
-        overlay = document.getElementById('episodeOverlay');
-    } else {
-        overlay = document.getElementById('panelOverlay');
-    }
+    // 获取统一的遮罩层
+    const overlay = document.getElementById('panelOverlay');
 
     if (!overlay) return;
 
@@ -234,7 +216,7 @@ function closePanel(panel) {
     overlay.setAttribute('aria-hidden', 'true');
 
     // 集数弹框需要额外处理
-    if (panelId === 'episodeModal') {
+    if (panel.id === 'episodeModal') {
         setTimeout(() => {
             panel.classList.add('hidden');
             panel.classList.remove('flex');
@@ -310,15 +292,8 @@ function setupBackButtonSupport() {
 function openPanel(panel, triggerElement) {
     if (!panel) return;
 
-    const panelId = panel.id;
-    let overlay;
-
-    // 根据面板类型选择对应的遮罩层
-    if (panelId === 'episodeModal') {
-        overlay = document.getElementById('episodeOverlay');
-    } else {
-        overlay = document.getElementById('panelOverlay');
-    }
+    // 获取统一的遮罩层
+    const overlay = document.getElementById('panelOverlay');
 
     if (!overlay) return;
 
