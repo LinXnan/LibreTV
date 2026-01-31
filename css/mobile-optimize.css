@@ -1696,10 +1696,9 @@
         transform: scale(0.97);
     }
 
-    /* API信息显示区域 - 为底部操作栏留出空间 */
+    /* API信息显示区域 - 移动端样式调整 */
     #apiInfoDisplay {
-        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
-        margin-bottom: -0.75rem; /* 抵消父容器的底部内边距 */
+        /* 移除之前的 padding-bottom，因为现在顺序已调整 */
     }
 }
 
