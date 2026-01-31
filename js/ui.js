@@ -1046,6 +1046,11 @@ function addToViewingHistory(videoInfo) {
 
         // 保存到本地存储
         localStorage.setItem('viewingHistory', JSON.stringify(history));
+
+        // 主动预载封面图
+        if (videoInfo.vod_pic && window.imageCacheManager) {
+            window.imageCacheManager.preload(`/proxy/${encodeURIComponent(videoInfo.vod_pic)}`);
+        }
     } catch (e) {
         // console.error('保存观看历史失败:', e);
     }

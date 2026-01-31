@@ -165,6 +165,162 @@ class StorageManager {
     }
 }
 
+// 图片本地缓存管理类
+class ImageCacheManager {
+    constructor(maxSize = 3 * 1024 * 1024) {
+        this.maxSize = maxSize; // 默认 3MB
+        this.indexKey = 'img_cache_index';
+        this.prefix = 'img_cache_data_';
+        this.isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        this.preloadingUrls = new Set(); // 防止重复下载
+    }
+
+    _getIndex() {
+        try {
+            return JSON.parse(localStorage.getItem(this.indexKey) || '[]');
+        } catch (e) { return []; }
+    }
+
+    _saveIndex(index) {
+        try {
+            localStorage.setItem(this.indexKey, JSON.stringify(index));
+        } catch (e) { console.error('[ImageCache] Index save failed', e); }
+    }
+
+    get(url) {
+        const index = this._getIndex();
+        const entry = index.find(e => e.url === url);
+        if (entry) {
+            const data = localStorage.getItem(this.prefix + entry.id);
+            if (data) {
+                entry.lastAccess = Date.now();
+                this._saveIndex(index);
+                return data;
+            }
+        }
+        return null;
+    }
+
+    async preload(url) {
+        if (!url || typeof url !== 'string') return;
+
+        // 1. 尝试从缓存获取，如果已有则跳过
+        if (this.get(url)) {
+            if (this.isDev) console.log('[ImageCache] Already cached, skipping:', url);
+            return;
+        }
+
+        // 2. 检查是否正在下载中，避免重复请求
+        if (this.preloadingUrls.has(url)) {
+            if (this.isDev) console.log('[ImageCache] Already preloading, skipping:', url);
+            return;
+        }
+
+        this.preloadingUrls.add(url);
+        if (this.isDev) console.log('[ImageCache] Starting preload:', url);
+
+        try {
+            let finalSrc = url;
+            const isProxy = url.startsWith('/proxy/');
+
+            // 如果是代理图片，尝试添加鉴权参数
+            if (isProxy && window.ProxyAuth) {
+                try {
+                    finalSrc = await window.ProxyAuth.addAuthToProxyUrl(url);
+                    if (this.isDev) console.log('[ImageCache] Auth added:', finalSrc);
+                } catch (e) {
+                    if (this.isDev) console.error('[ImageCache] Preload auth failed:', e);
+                }
+            }
+
+            const response = await fetch(finalSrc);
+            if (response.ok) {
+                const blob = await response.blob();
+                const result = await this.compressAndStore(url, blob);
+                if (this.isDev) {
+                    if (result) {
+                        console.log('[ImageCache] Preload successful, size:', result.length, 'chars');
+                    } else {
+                        console.warn('[ImageCache] Preload compress failed');
+                    }
+                }
+            } else {
+                if (this.isDev) console.warn('[ImageCache] Preload fetch failed, status:', response.status);
+            }
+        } catch (e) {
+            if (this.isDev) console.warn('[ImageCache] Preload failed:', e);
+        } finally {
+            this.preloadingUrls.delete(url);
+        }
+    }
+
+    async compressAndStore(url, blob) {
+        try {
+            const base64 = await this._compress(blob);
+            const size = base64.length * 2; // 估算 UTF-16 字节大小
+            let index = this._getIndex();
+
+            // 检查并清理空间
+            this._ensureQuota(size, index);
+
+            const id = Math.random().toString(36).substring(2, 9);
+            localStorage.setItem(this.prefix + id, base64);
+
+            // 移除同 URL 的旧记录（如果存在）
+            index = index.filter(e => e.url !== url);
+            index.push({ url, id, size, lastAccess: Date.now() });
+
+            this._saveIndex(index);
+            return base64;
+        } catch (e) {
+            if (this.isDev) console.warn('[ImageCache] Caching failed:', e);
+            return null;
+        }
+    }
+
+    _ensureQuota(newSize, index) {
+        let currentSize = index.reduce((sum, e) => sum + (e.size || 0), 0);
+        if (currentSize + newSize > this.maxSize) {
+            // LRU: 按最后访问时间排序
+            index.sort((a, b) => (a.lastAccess || 0) - (b.lastAccess || 0));
+            // 删除最旧的 20%
+            const removeCount = Math.max(1, Math.floor(index.length * 0.2));
+            const removed = index.splice(0, removeCount);
+            removed.forEach(e => localStorage.removeItem(this.prefix + e.id));
+            if (this.isDev) console.debug(`[ImageCache] LRU Evicted ${removeCount} items`);
+        }
+    }
+
+    _compress(blob) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const objectUrl = URL.createObjectURL(blob);
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                // 限制宽度 200px，按比例缩放
+                const maxWidth = 200;
+                const scale = Math.min(1, maxWidth / img.width);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // 导出为 JPEG，质量 0.7
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                URL.revokeObjectURL(objectUrl);
+                resolve(dataUrl);
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error('Compression failed'));
+            };
+            img.src = objectUrl;
+        });
+    }
+}
+
 // 图片懒加载类
 /**
  * LazyImageLoader - Handles lazy loading of images with authentication support
@@ -203,6 +359,18 @@ class LazyImageLoader {
             this.observer.unobserve(img);
         }
 
+        // 1. 尝试从缓存获取
+        if (window.imageCacheManager) {
+            const cached = window.imageCacheManager.get(originalSrc);
+            if (cached) {
+                if (this.isDev) console.log('[LazyImageLoader] Cache HIT:', originalSrc);
+                img.src = cached;
+                return;
+            } else {
+                if (this.isDev) console.log('[LazyImageLoader] Cache MISS:', originalSrc);
+            }
+        }
+
         const timeoutId = setTimeout(() => {
             this.handleLoadError(img);
         }, 60000);
@@ -210,42 +378,34 @@ class LazyImageLoader {
         this.loadingImages.set(img, timeoutId);
 
         let finalSrc = originalSrc;
+        const needsAuth = img.dataset.needsAuth === 'true' || originalSrc.startsWith('/proxy/');
 
-        // Check if image needs authentication (both attribute AND URL prefix required)
-        if (img.dataset.needsAuth === 'true' && originalSrc.startsWith('/proxy/')) {
+        if (needsAuth && window.ProxyAuth) {
             try {
-                // Check ProxyAuth availability
-                if (window.ProxyAuth && typeof window.ProxyAuth.addAuthToProxyUrl === 'function') {
-                    finalSrc = await window.ProxyAuth.addAuthToProxyUrl(originalSrc);
-
-                    // Log only in development
-                    if (this.isDev) {
-                        console.debug('[LazyImageLoader] Added auth to image URL');
-                    }
-                } else if (this.isDev) {
-                    console.warn('[LazyImageLoader] ProxyAuth not available, image may fail to load');
-                }
+                finalSrc = await window.ProxyAuth.addAuthToProxyUrl(originalSrc);
             } catch (e) {
-                if (this.isDev) {
-                    console.error('[LazyImageLoader] Failed to add auth to image URL:', e);
-                }
-                // Fall back to original URL (will return 401 but provides error visibility)
-            }
-        } else if (originalSrc.startsWith('/proxy/')) {
-            // Backward compatibility: handle proxy URLs without data-needs-auth attribute
-            if (window.ProxyAuth && typeof window.ProxyAuth.addAuthToProxyUrl === 'function') {
-                try {
-                    finalSrc = await window.ProxyAuth.addAuthToProxyUrl(originalSrc);
-                } catch (e) {
-                    if (this.isDev) {
-                        console.error('图片鉴权失败:', e);
-                    }
-                    // Fall back to original URL instead of failing immediately
-                }
+                if (this.isDev) console.error('[LazyImageLoader] Auth failed:', e);
             }
         }
 
-        // Set event handlers before setting src to avoid missing cached-load events
+        // 2. 如果是代理图片，下载并缓存
+        if (needsAuth && window.imageCacheManager) {
+            try {
+                if (this.isDev) console.log('[LazyImageLoader] Fetching and caching:', finalSrc);
+                const response = await fetch(finalSrc);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const compressed = await window.imageCacheManager.compressAndStore(originalSrc, blob);
+                    if (compressed) {
+                        finalSrc = compressed;
+                        if (this.isDev) console.log('[LazyImageLoader] Cached successfully');
+                    }
+                }
+            } catch (e) {
+                if (this.isDev) console.warn('[LazyImageLoader] Cache process failed, using direct src:', e);
+            }
+        }
+
         img.onload = () => {
             clearTimeout(this.loadingImages.get(img));
             this.loadingImages.delete(img);
@@ -254,9 +414,7 @@ class LazyImageLoader {
         img.onerror = () => {
             clearTimeout(this.loadingImages.get(img));
             this.loadingImages.delete(img);
-            if (this.isDev) {
-                console.error('[LazyImageLoader] Failed to load image:', finalSrc);
-            }
+            if (this.isDev) console.error('[LazyImageLoader] Load failed:', finalSrc);
             this.handleLoadError(img);
         };
 
@@ -300,9 +458,10 @@ class LazyImageLoader {
 if (typeof window !== 'undefined') {
     window.storageManager = new StorageManager(1000);
     window.concurrentPool = new ConcurrentPool(3);
+    window.imageCacheManager = new ImageCacheManager(3 * 1024 * 1024);
     window.lazyImageLoader = new LazyImageLoader();
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { debounce, ConcurrentPool, StorageManager, isValidImageUrl };
+    module.exports = { debounce, ConcurrentPool, StorageManager, ImageCacheManager, isValidImageUrl };
 }
