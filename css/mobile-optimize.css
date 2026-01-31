@@ -1440,3 +1440,300 @@
         transform: translateX(-50%) translateY(20px);
     }
 }
+
+/* ========================================
+   移动端滚动冲突修复 - 固定高度布局
+   ======================================== */
+@media (max-width: 640px) {
+    /* 数据源设置区域固定高度 */
+    .settings-panel .max-h-40.overflow-y-auto {
+        max-height: 40vh !important;
+        overflow-y: auto !important;
+    }
+
+    /* 自定义 API 列表固定高度 */
+    #customApisList.max-h-32.overflow-y-auto {
+        max-height: 20vh !important;
+        overflow-y: auto !important;
+    }
+}
+
+/* ========================================
+   数据源设置项样式 - 两列网格布局
+   ======================================== */
+@media (max-width: 640px) {
+    /* 移动端网格容器 */
+    .mobile-api-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: #222;
+    }
+
+    /* 组标题占满两列 */
+    .mobile-api-grid .api-group-title {
+        grid-column: 1 / -1;
+        background: #1a1a1a;
+        padding: 0.6rem 0.8rem !important;
+        margin: 0 !important;
+        border-top: none !important;
+        border-bottom: 1px solid #2a2a2a !important;
+        font-weight: 600 !important;
+        color: #9ca3af !important;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .mobile-api-grid .api-group-title.adult {
+        color: #f472b6 !important;
+    }
+
+    /* 列表项容器 - 横向布局 */
+    .mobile-api-item {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 0.6rem 0.7rem;
+        min-height: 3rem;
+        background: #151515;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .mobile-api-item:active {
+        background-color: #1e1e1e;
+    }
+
+    .mobile-api-item:has(input:checked) {
+        background-color: rgba(59, 130, 246, 0.08);
+    }
+
+    .mobile-api-item.adult:has(input:checked) {
+        background-color: rgba(244, 114, 182, 0.08);
+    }
+
+    /* 自定义复选框 */
+    .mobile-api-checkbox {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 1.15rem;
+        height: 1.15rem;
+        border: 2px solid #3f3f46;
+        border-radius: 0.3rem;
+        background: #09090b;
+        margin-right: 0.6rem;
+        display: inline-grid;
+        place-content: center;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    .mobile-api-checkbox:checked {
+        background-color: #3b82f6;
+        border-color: #3b82f6;
+    }
+
+    .mobile-api-checkbox:checked::after {
+        content: "";
+        width: 0.5rem;
+        height: 0.28rem;
+        border-left: 2px solid white;
+        border-bottom: 2px solid white;
+        transform: rotate(-45deg) translate(1px, -1px);
+    }
+
+    /* 成人 API 复选框颜色 */
+    .mobile-api-checkbox.api-adult:checked {
+        background-color: #f472b6;
+        border-color: #f472b6;
+    }
+
+    /* 内容区域 */
+    .mobile-api-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .mobile-api-name {
+        font-size: 0.8rem;
+        font-weight: 400;
+        color: #f3f4f6;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.3;
+    }
+
+    .mobile-api-url {
+        font-size: 0.68rem;
+        color: #6b7280;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 1px;
+    }
+
+    .mobile-api-item.adult .mobile-api-name {
+        color: #fbcfe8;
+    }
+
+    .adult-badge {
+        font-size: 0.6rem;
+        font-weight: 600;
+        color: #f472b6;
+        background: rgba(244, 114, 182, 0.1);
+        padding: 0.1rem 0.3rem;
+        border: 1px solid rgba(244, 114, 182, 0.2);
+        border-radius: 0.25rem;
+        margin-left: 0.4rem;
+        flex-shrink: 0;
+    }
+
+    /* 适配滑动容器 - 自定义 API 保持单列 */
+    .swipe-content .mobile-api-item {
+        width: 100%;
+    }
+}
+
+/* ========================================
+   滑动操作样式 - Task 1.2
+   ======================================== */
+@media (max-width: 640px) {
+    .swipe-container {
+        position: relative;
+        overflow: hidden;
+        touch-action: pan-y;
+    }
+
+    .swipe-content {
+        touch-action: pan-x;
+        will-change: transform;
+        transition: transform 180ms ease-out;
+    }
+
+    .swipe-content.swiping {
+        transition: none;
+    }
+
+    .swipe-content.snap-back {
+        transition: transform 120ms ease-in;
+    }
+
+    .swipe-actions {
+        position: absolute;
+        right: 0;
+        top: 0;
+        height: 100%;
+        width: 72px;
+        display: flex;
+        pointer-events: none;
+    }
+
+    .swipe-container.open .swipe-actions {
+        pointer-events: auto;
+    }
+
+    .swipe-actions button {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        color: white;
+        font-size: 1.25rem;
+        min-width: 36px;
+        min-height: 44px;
+    }
+
+    .swipe-actions .edit-btn {
+        background: #2563eb;
+    }
+
+    .swipe-actions .delete-btn {
+        background: #dc2626;
+    }
+}
+
+/* ========================================
+   底部操作栏样式 - Task 1.3
+   ======================================== */
+@media (max-width: 640px) {
+    .api-batch-actions {
+        position: sticky;
+        bottom: 0;
+        margin: 0 -0.75rem -0.75rem -0.75rem; /* 抵消父容器 p-3 */
+        padding: 0.75rem 1rem;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+        background: rgba(17, 17, 17, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-top: 1px solid #2a2a2a;
+        display: flex;
+        gap: 0.6rem;
+        z-index: 20;
+    }
+
+    .api-batch-actions button {
+        flex: 1;
+        min-height: 2.5rem;
+        border-radius: 0.6rem;
+        background: #262626;
+        border: 1px solid #333;
+        color: #efeff1;
+        font-size: 0.825rem;
+        font-weight: 500;
+        transition: all 0.1s ease;
+    }
+
+    .api-batch-actions button:active {
+        background: #333;
+        transform: scale(0.97);
+    }
+}
+
+/* 撤销提示样式 */
+.undo-toast {
+    position: fixed;
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+}
+
+.undo-toast.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.undo-toast button {
+    background: #3b82f6;
+    border: none;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .swipe-content,
+    .undo-toast {
+        transition: none !important;
+    }
+}
