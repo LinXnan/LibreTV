@@ -1695,6 +1695,12 @@
         background: #333;
         transform: scale(0.97);
     }
+
+    /* API信息显示区域 - 为底部操作栏留出空间 */
+    #apiInfoDisplay {
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+        margin-bottom: -0.75rem; /* 抵消父容器的底部内边距 */
+    }
 }
 
 /* 撤销提示样式 */
