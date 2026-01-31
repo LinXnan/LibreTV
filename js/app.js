@@ -850,7 +850,7 @@ function hookInput() {
 document.addEventListener('DOMContentLoaded', hookInput);
 
 // 显示详情 - 修改为支持自定义API
-async function showDetails(id, vod_name, sourceCode) {
+async function showDetails(id, vod_name, sourceCode, vod_pic = '') {
     // 密码保护校验
     if (window.isPasswordProtected && window.isPasswordVerified) {
         if (window.isPasswordProtected() && !window.isPasswordVerified()) {
@@ -898,6 +898,9 @@ async function showDetails(id, vod_name, sourceCode) {
         const modal = document.getElementById('modal');
         const modalTitle = document.getElementById('modalTitle');
         const modalContent = document.getElementById('modalContent');
+
+        // 保存封面URL到全局变量（优先使用传递的vod_pic，否则从API响应获取）
+        window.currentVodPic = vod_pic || (data.videoInfo && data.videoInfo.vod_pic ? data.videoInfo.vod_pic : '');
 
         // 显示来源信息
         const sourceName = data.videoInfo && data.videoInfo.source_name ?
@@ -996,6 +999,11 @@ function playVideo(url, vod_name, sourceCode, episodeIndex = 0, vodId = '') {
 
     // 构建播放页面URL，使用watch.html作为中间跳转页
     let watchUrl = `watch.html?id=${vodId || ''}&source=${sourceCode || ''}&url=${encodeURIComponent(url)}&index=${episodeIndex}&title=${encodeURIComponent(vod_name || '')}`;
+
+    // 添加封面URL参数（如果存在）
+    if (window.currentVodPic) {
+        watchUrl += `&vod_pic=${encodeURIComponent(window.currentVodPic)}`;
+    }
 
     // 添加返回URL参数
     if (currentPath.includes('index.html') || currentPath.endsWith('/')) {
@@ -1628,7 +1636,7 @@ function renderSearchResults(results) {
 
         return `
             <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md"
-                 onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}>
+                 onclick="showDetails('${safeId}','${safeName}','${sourceCode}','${item.vod_pic || ''}')" ${apiUrlAttr}>
                 <div class="flex h-full">
                     ${hasCover ? `
                     <div class="relative flex-shrink-0 search-card-img-container">

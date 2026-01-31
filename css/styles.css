@@ -679,23 +679,46 @@ body {
     padding-right: 6px; /* 为滚动条预留空间，确保内容不被挤压 */
 }
 
-/* 历史记录项样式优化 */
+/* 历史记录项样式优化 - PC端横向布局 */
 .history-item {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
     background: #1a1a1a;
-    border-radius: 6px; /* 减小圆角 */
+    border-radius: 6px;
     border: 1px solid #333;
     overflow: hidden;
     transition: all 0.2s ease;
-    padding: 10px 14px;
     position: relative;
-    margin-bottom: 8px; /* 减小底部间距 */
-    width: 100%; /* 确保宽度一致 */
+    margin-bottom: 8px;
+    width: 100%;
 }
 
 .history-item:hover {
     transform: translateY(-2px);
     border-color: #444;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 封面容器 */
+.history-cover {
+    flex-shrink: 0;
+    width: 100px;
+    height: 150px;
+    overflow: hidden;
+    background: #191919;
+}
+
+.history-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.history-cover-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* 添加组悬停效果，使删除按钮在悬停时显示 */
@@ -709,17 +732,23 @@ body {
 }
 
 .history-info {
-    padding: 0; /* 移除额外的内边距 */
-    min-height: 70px;
+    flex: 1;
+    padding: 10px 14px 10px 0;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 }
 
 .history-title {
     font-weight: 500;
-    font-size: 0.95rem; /* 减小字体大小 */
-    margin-bottom: 2px; /* 减小底部边距 */
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .history-meta {
@@ -746,36 +775,6 @@ body {
 
 .history-separator {
     color: #666;
-}
-
-.history-thumbnail {
-    width: 100%;
-    height: 90px;
-    background-color: #222;
-    overflow: hidden;
-}
-
-.history-thumbnail img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.history-info {
-    padding: 10px;
-}
-
-.history-time {
-    color: #888;
-    font-size: 0.8rem;
-    margin-top: 4px;
-}
-
-.history-title {
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* 添加播放进度条样式 */
@@ -1153,4 +1152,55 @@ body {
     #pagination input[type="number"] {
         width: 4rem;
     }
+}
+
+/* PC端撤销Toast */
+.history-undo-toast-pc {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: toast-slide-in-right 180ms ease-out;
+}
+
+.history-undo-toast-pc.hiding {
+    animation: toast-slide-out-right 180ms ease-out forwards;
+}
+
+.history-undo-toast-pc .undo-btn {
+    background: transparent;
+    border: 1px solid #60a5fa;
+    color: #60a5fa;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.history-undo-toast-pc .undo-btn:hover {
+    background: #60a5fa;
+    color: white;
+}
+
+@keyframes toast-slide-in-right {
+    from { opacity: 0; transform: translateX(100%); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-slide-out-right {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(100%); }
+}
+
+/* 移动端隐藏PC端Toast */
+@media (max-width: 640px) {
+    .history-undo-toast-pc { display: none; }
 }
