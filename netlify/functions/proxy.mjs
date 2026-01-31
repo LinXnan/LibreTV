@@ -260,15 +260,7 @@ export const handler = async (event, context) => {
     logDebug(`Processing proxy request for target: ${targetUrl}`);
 
     try {
-        // 验证鉴权
-        const isValidAuth = validateAuth(event);
-        if (!isValidAuth) {
-            return {
-                statusCode: 403,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ success: false, error: "Forbidden: Invalid auth credentials." }),
-            };
-        }
+        // 鉴权已在前面验证过（第 219 行），这里不需要重复验证
 
         // Fetch Original Content (Pass Netlify event headers)
         const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl, event.headers);
