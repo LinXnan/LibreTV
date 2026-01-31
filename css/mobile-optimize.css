@@ -1112,3 +1112,193 @@
         font-size: 0.8125rem;
     }
 }
+
+/* ========================================
+   移动端历史记录卡片网格
+   ======================================== */
+
+/* 历史网格容器 - 2列布局 */
+@media (max-width: 640px) {
+    #historyList {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+        padding: 8px !important;
+    }
+
+    /* 历史卡片容器 */
+    #historyList .history-item {
+        position: relative !important;
+        padding: 0 !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+        background: #1a1a1a !important;
+    }
+
+    /* 卡片内容层 */
+    .history-item-content {
+        position: relative;
+        background: #1a1a1a;
+        padding: 10px 12px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* 角落删除按钮 */
+    .history-item-corner-delete {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        width: 24px;
+        height: 24px;
+        padding: 4px;
+        opacity: 0.6;
+        transition: opacity 180ms ease-out;
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 4px;
+        z-index: 2;
+        border: none;
+        cursor: pointer;
+        color: white;
+    }
+
+    .history-item-corner-delete:active {
+        opacity: 1;
+    }
+
+    /* 卡片标题 - 2行截断 */
+    .history-item-content .history-title {
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+        font-size: 14px !important;
+        line-height: 1.3 !important;
+        margin-bottom: 4px !important;
+        padding-right: 28px !important;
+    }
+
+    /* 元信息 - 集数+来源 */
+    .history-item-content .history-meta {
+        font-size: 12px !important;
+        color: #9ca3af !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        overflow: hidden !important;
+        margin-bottom: 6px !important;
+    }
+
+    /* 进度条 */
+    .history-item-content .history-progress-bar {
+        height: 4px !important;
+        border-radius: 2px !important;
+        background: #333 !important;
+        margin-bottom: 6px !important;
+        overflow: hidden !important;
+    }
+
+    .history-item-content .history-progress-fill {
+        height: 100% !important;
+        background: linear-gradient(90deg, #3b82f6, #60a5fa) !important;
+        border-radius: 2px !important;
+    }
+
+    /* 时间戳 */
+    .history-item-content .history-timestamp {
+        font-size: 11px !important;
+        color: #6b7280 !important;
+    }
+
+    /* 速度徽章 */
+    .history-item-content .history-speed-badge {
+        display: inline-block;
+        font-size: 10px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        background: #374151;
+        color: #d1d5db;
+        margin-left: 6px;
+    }
+}
+
+/* 极窄屏幕 - 单列布局 */
+@media (max-width: 359px) {
+    #historyList {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ========================================
+   撤销 Toast 样式
+   ======================================== */
+
+.history-undo-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 10000;
+    animation: history-toast-in 180ms ease-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.history-undo-toast.hiding {
+    animation: history-toast-out 180ms ease-out forwards;
+}
+
+.history-undo-toast-text {
+    font-size: 14px;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-undo-toast-btn {
+    color: #60a5fa;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 150ms ease;
+}
+
+.history-undo-toast-btn:hover {
+    background: rgba(96, 165, 250, 0.1);
+}
+
+.history-undo-toast-btn:active {
+    background: rgba(96, 165, 250, 0.2);
+}
+
+@keyframes history-toast-in {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes history-toast-out {
+    from {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+}
