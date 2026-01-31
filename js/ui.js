@@ -430,16 +430,18 @@ function loadViewingHistory() {
 
     // 渲染历史记录
     historyList.innerHTML = history.map((item, index) => {
-        // 防止XSS - 转义 HTML 特殊字符和单引号
-        const safeTitle = item.title
+        // 防止XSS - 转义 HTML 特殊字符和单引号，并提供默认值
+        const safeTitle = (item.title || '未知视频')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
 
-        const safeSource = item.sourceName ?
-            item.sourceName.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;') :
-            '未知来源';
+        const safeSource = (item.sourceName || '未知来源')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
 
         const episodeText = item.episodeIndex !== undefined ?
             `第${item.episodeIndex + 1}集` : '';
@@ -455,15 +457,39 @@ function loadViewingHistory() {
                 progressPercent = Math.min(100, Math.round((item.playbackPosition / item.duration) * 100));
             }
 
-            // 速度徽章 - 仅在 !== 1.0 时显示
+            // 速度徽章 - 仅在 !== 1.0 时显示，带闪电图标
             const speedBadgeHtml = (item.playbackRate && item.playbackRate !== 1.0)
-                ? `<span class="history-speed-badge">${item.playbackRate}x</span>`
+                ? `<span class="history-speed-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    ${item.playbackRate}x
+                   </span>`
                 : '';
+
+            // 封面URL处理
+            const coverUrl = item.vod_pic && isValidImageUrl(item.vod_pic)
+                ? item.vod_pic
+                : '';
+
+            // 背景样式 - 有封面时由 CSS ::before 处理渐变，无封面时使用渐变色
+            const backgroundStyle = coverUrl
+                ? ''
+                : `background: linear-gradient(135deg, ${generateColorFromTitle(item.title || '未知视频')});`;
+
+            // 封面图片 HTML
+            const coverImgHtml = coverUrl
+                ? `<img class="history-cover-img lazy-load" data-src="/proxy/${encodeURIComponent(coverUrl)}" alt="${safeTitle}" loading="lazy">`
+                : '';
+
+            // 安全的 URL 用于 onclick - 转义单引号防止注入
+            const safeURLForOnclick = safeURL.replace(/'/g, '%27');
 
             return `
                 <div class="history-item" data-url="${safeURL}" data-index="${index}">
-                    <div class="history-item-content" onclick="playFromHistoryByIndex(${index})">
-                        <button class="history-item-corner-delete" onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURL}', ${index})" title="删除">
+                    <div class="history-item-content${coverUrl ? ' has-cover' : ''}" style="${backgroundStyle}" onclick="playFromHistoryByIndex(${index})">
+                        ${coverImgHtml}
+                        <button class="history-item-corner-delete" onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURLForOnclick}', ${index})" title="删除">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -474,13 +500,33 @@ function loadViewingHistory() {
                         <div class="history-progress-bar">
                             <div class="history-progress-fill" style="width:${progressPercent}%"></div>
                         </div>` : ''}
-                        <div class="history-timestamp">${formatTimestamp(item.timestamp)}${speedBadgeHtml}</div>
+                        ${speedBadgeHtml}
                     </div>
                 </div>
             `;
         }
 
-        // 桌面端保持原有布局
+        // 桌面端保持原有布局，添加封面支持
+        // 封面URL处理
+        const coverUrl = item.vod_pic && isValidImageUrl(item.vod_pic)
+            ? item.vod_pic
+            : '';
+        const proxiedCoverUrl = coverUrl
+            ? `/proxy/${encodeURIComponent(coverUrl)}`
+            : '';
+
+        // 封面HTML
+        const coverHtml = proxiedCoverUrl
+            ? `<div class="history-cover">
+                   <img data-src="${proxiedCoverUrl}"
+                        alt="${safeTitle}"
+                        class="lazy-load"
+                        loading="lazy">
+               </div>`
+            : `<div class="history-cover history-cover-placeholder"
+                    style="background: linear-gradient(135deg, ${generateColorFromTitle(item.title || '未知视频')});">
+               </div>`;
+
         // 格式化剧集信息
         let episodeInfoHtml = '';
         if (item.episodes && Array.isArray(item.episodes) && item.episodes.length > 0) {
@@ -516,17 +562,18 @@ function loadViewingHistory() {
 
         // 构建历史记录项HTML，添加删除按钮，需要放在position:relative的容器中
         return `
-            <div class="history-item cursor-pointer relative group" onclick="playFromHistory('${item.url}', '${safeTitle}', ${item.episodeIndex || 0}, ${item.playbackPosition || 0})">
-                <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL}')"
-                        class="absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 md:p-1 rounded-full hover:bg-gray-800 bg-gray-900/50 md:bg-transparent z-10 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
-                        title="删除记录"
-                        aria-label="删除此观看记录">
-                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-                ${playbackRateHtml ? `<div class="absolute right-2 bottom-2 z-10">${playbackRateHtml}</div>` : ''}
+            <div class="history-item cursor-pointer relative group" data-url="${safeURL}" data-index="${index}" onclick="playFromHistoryByIndex(${index})">
+                ${coverHtml}
                 <div class="history-info">
+                    <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL}')"
+                            class="absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 md:p-1 rounded-full hover:bg-gray-800 bg-gray-900/50 md:bg-transparent z-10 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center delete-btn"
+                            title="删除记录"
+                            aria-label="删除此观看记录">
+                        <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                    ${playbackRateHtml ? `<div class="absolute right-2 bottom-2 z-10">${playbackRateHtml}</div>` : ''}
                     <div class="history-title">${safeTitle}</div>
                     <div class="history-meta">
                         <span class="history-episode">${episodeText}</span>
@@ -546,6 +593,12 @@ function loadViewingHistory() {
     if (history.length > 5) {
         historyList.classList.add('pb-4');
     }
+
+    // 初始化懒加载
+    if (window.lazyImageLoader) {
+        window.lazyImageLoader.observeAll('.history-cover img.lazy-load');
+        window.lazyImageLoader.observeAll('.history-item-content img.lazy-load');
+    }
 }
 
 // 格式化播放时间为 mm:ss 格式
@@ -558,30 +611,19 @@ function formatPlaybackTime(seconds) {
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-// 删除单个历史记录项
+// 删除单个历史记录项 - 统一使用撤销功能
 function deleteHistoryItem(encodedUrl) {
-    try {
-        // 解码URL
-        const url = decodeURIComponent(encodedUrl);
+    const isMobile = window.innerWidth <= 640;
+    const url = decodeURIComponent(encodedUrl);
+    const history = getViewingHistory();
+    const itemIndex = history.findIndex(item => item.url === url);
 
-        // 获取当前历史记录
-        const history = getViewingHistory();
-
-        // 过滤掉要删除的项
-        const newHistory = history.filter(item => item.url !== url);
-
-        // 保存回localStorage
-        localStorage.setItem('viewingHistory', JSON.stringify(newHistory));
-
-        // 重新加载历史记录显示
-        loadViewingHistory();
-
-        // 显示成功提示
-        showToast('已删除该记录', 'success');
-    } catch (e) {
-        console.error('删除历史记录项失败:', e);
-        showToast('删除记录失败', 'error');
+    if (itemIndex === -1) {
+        showToast('记录不存在', 'error');
+        return;
     }
+
+    deleteHistoryItemWithUndo(encodedUrl, itemIndex);
 }
 
 // 撤销系统状态 (window 作用域，面板关闭后持续)
@@ -591,8 +633,10 @@ window.historyUndoState = {
     timerId: null
 };
 
-// 带撤销的删除历史记录项 (移动端)
+// 带撤销的删除历史记录项 (PC端和移动端统一)
 function deleteHistoryItemWithUndo(encodedUrl, itemIndex) {
+    const isMobile = window.innerWidth <= 640;
+
     try {
         const url = decodeURIComponent(encodedUrl);
         const history = getViewingHistory();
@@ -603,10 +647,9 @@ function deleteHistoryItemWithUndo(encodedUrl, itemIndex) {
             return;
         }
 
-        // 清除之前的撤销状态
-        if (window.historyUndoState.timerId) {
+        // 清除之前的撤销状态（自动提交前一个删除）
+        if (window.historyUndoState && window.historyUndoState.timerId) {
             clearTimeout(window.historyUndoState.timerId);
-            // 如果有待删除的项，立即执行删除
             if (window.historyUndoState.deletedItem) {
                 commitHistoryDeletion(window.historyUndoState.deletedItem.url);
             }
@@ -626,17 +669,8 @@ function deleteHistoryItemWithUndo(encodedUrl, itemIndex) {
         // UI 立即移除
         removeHistoryItemFromDOM(encodedUrl);
 
-        // 显示撤销 toast
-        showHistoryUndoToast(item.title);
-
-        // 检查是否删除了最后一项
-        const remainingItems = document.querySelectorAll('#historyList .history-item');
-        if (remainingItems.length === 0) {
-            const historyList = document.getElementById('historyList');
-            if (historyList) {
-                historyList.innerHTML = `<div class="text-center text-gray-500 py-8" style="grid-column: 1 / -1;">暂无观看记录</div>`;
-            }
-        }
+        // 显示响应式Toast（立即替换旧Toast）
+        showHistoryUndoToast(item.title, isMobile);
     } catch (e) {
         console.error('删除历史记录项失败:', e);
         showToast('删除记录失败', 'error');
@@ -650,7 +684,18 @@ function removeHistoryItemFromDOM(encodedUrl) {
         item.style.transition = 'opacity 180ms ease-out, transform 180ms ease-out';
         item.style.opacity = '0';
         item.style.transform = 'scale(0.9)';
-        setTimeout(() => item.remove(), 180);
+        setTimeout(() => {
+            item.remove();
+
+            // 检查是否删除了最后一项（在动画完成后）
+            const remainingItems = document.querySelectorAll('#historyList .history-item');
+            if (remainingItems.length === 0) {
+                const historyList = document.getElementById('historyList');
+                if (historyList) {
+                    historyList.innerHTML = `<div class="text-center text-gray-500 py-8" style="grid-column: 1 / -1;">暂无观看记录</div>`;
+                }
+            }
+        }, 180);
     }
 }
 
@@ -686,20 +731,26 @@ function undoHistoryDeletion() {
 }
 
 // 显示撤销 toast (使用 DOM API 防止 XSS)
-function showHistoryUndoToast(title) {
+function showHistoryUndoToast(title, isMobile) {
     hideHistoryUndoToast();
 
     const truncatedTitle = title.length > 15 ? title.slice(0, 15) + '...' : title;
     const toast = document.createElement('div');
-    toast.className = 'history-undo-toast';
-    toast.id = 'history-undo-toast';
+
+    // PC端和移动端使用不同的样式
+    if (isMobile) {
+        toast.className = 'history-undo-toast';
+        toast.id = 'history-undo-toast';
+    } else {
+        toast.className = 'history-undo-toast-pc';
+        toast.id = 'history-undo-toast-pc';
+    }
 
     const textSpan = document.createElement('span');
-    textSpan.className = 'history-undo-toast-text';
     textSpan.textContent = `已删除 "${truncatedTitle}"`;
 
     const undoBtn = document.createElement('button');
-    undoBtn.className = 'history-undo-toast-btn';
+    undoBtn.className = isMobile ? 'history-undo-toast-btn' : 'undo-btn';
     undoBtn.textContent = '撤销';
     undoBtn.onclick = function(e) {
         e.stopPropagation();
@@ -719,10 +770,18 @@ function showHistoryUndoToast(title) {
 
 // 隐藏撤销 toast
 function hideHistoryUndoToast() {
-    const toast = document.getElementById('history-undo-toast');
-    if (toast) {
-        toast.classList.add('hiding');
-        setTimeout(() => toast.remove(), 180);
+    // 移动端toast
+    const toastMobile = document.getElementById('history-undo-toast');
+    if (toastMobile) {
+        toastMobile.classList.add('hiding');
+        setTimeout(() => toastMobile.remove(), 180);
+    }
+
+    // PC端toast
+    const toastPC = document.getElementById('history-undo-toast-pc');
+    if (toastPC) {
+        toastPC.classList.add('hiding');
+        setTimeout(() => toastPC.remove(), 180);
     }
 }
 
@@ -1205,3 +1264,11 @@ function showImportBox(fun) {
         fun(fileInput.files[0]);
     });
 }
+
+// 页面刷新时静默提交待删除的历史记录
+window.addEventListener('beforeunload', () => {
+    if (window.historyUndoState && window.historyUndoState.deletedItem) {
+        clearTimeout(window.historyUndoState.timerId);
+        commitHistoryDeletion(window.historyUndoState.deletedItem.url);
+    }
+});

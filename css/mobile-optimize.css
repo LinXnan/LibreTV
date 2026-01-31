@@ -690,6 +690,11 @@
     .history-item .delete-btn {
         opacity: 1 !important;
     }
+
+    /* 角落删除按钮也始终可见 */
+    .history-item-corner-delete {
+        opacity: 0.8 !important;
+    }
 }
 
 /* ========================================
@@ -1117,53 +1122,162 @@
    移动端历史记录卡片网格
    ======================================== */
 
-/* 历史网格容器 - 2列布局 */
+/* 历史网格容器 - 3列布局 */
 @media (max-width: 640px) {
     #historyList {
         display: grid !important;
-        grid-template-columns: repeat(2, 1fr) !important;
+        grid-template-columns: repeat(3, 1fr) !important;
         gap: 8px !important;
         padding: 8px !important;
     }
 
-    /* 历史卡片容器 */
+    /* 历史卡片容器 - 使用 padding-bottom 实现 2:3 比例 */
     #historyList .history-item {
         position: relative !important;
         padding: 0 !important;
+        padding-bottom: 150% !important;
+        margin: 0 !important;
         border-radius: 8px !important;
         overflow: hidden !important;
         background: #1a1a1a !important;
+        display: block !important;
+        height: 0 !important;
+        border: none !important;
+        contain: none !important;
     }
 
-    /* 卡片内容层 */
-    .history-item-content {
-        position: relative;
-        background: #1a1a1a;
-        padding: 10px 12px;
+    /* 隐藏PC端封面容器 */
+    .history-cover {
+        display: none !important;
+    }
+
+    /* 卡片内容层 - 绝对定位填满父容器 */
+    #historyList .history-item .history-item-content {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        height: auto !important;
+        overflow: hidden;
+        padding: 0;
         width: 100%;
         box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
     }
 
-    /* 角落删除按钮 */
+    /* 移动端封面图片 - 绝对定位作为背景 */
+    .history-item-content .history-cover-img {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* 有封面时的渐变遮罩层 - 底部更强 */
+    .history-item-content.has-cover::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 70%;
+        background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0.95) 100%);
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    /* 底部信息区域 - 增强文字可读性 */
+    .history-item-content .history-title,
+    .history-item-content .history-meta,
+    .history-item-content .history-timestamp {
+        text-shadow:
+            0 1px 2px rgba(0,0,0,1),
+            0 2px 4px rgba(0,0,0,0.8),
+            0 0 8px rgba(0,0,0,0.6);
+        position: relative;
+        z-index: 2;
+        padding: 0 8px;
+        color: #fff !important;
+    }
+
+    .history-item-content .history-title {
+        font-size: 12px !important;
+        font-weight: 500 !important;
+        line-height: 1.2 !important;
+        margin-bottom: 2px !important;
+        padding-right: 8px !important;
+    }
+
+    .history-item-content .history-meta {
+        font-size: 10px !important;
+        margin-bottom: 6px !important;
+        opacity: 0.9;
+    }
+
+    .history-item-content .history-timestamp {
+        font-size: 10px !important;
+        padding-bottom: 8px !important;
+    }
+
+    /* 删除按钮 - 44x44px 触摸区域，圆形毛玻璃风格 */
     .history-item-corner-delete {
         position: absolute;
-        top: 4px;
-        right: 4px;
-        width: 24px;
-        height: 24px;
-        padding: 4px;
-        opacity: 0.6;
-        transition: opacity 180ms ease-out;
-        background: rgba(0, 0, 0, 0.5);
-        border-radius: 4px;
-        z-index: 2;
+        top: 0;
+        right: 0;
+        width: 44px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
         border: none;
         cursor: pointer;
-        color: white;
+        z-index: 10;
+        padding: 0;
+        margin: 0;
+        -webkit-tap-highlight-color: transparent;
     }
 
-    .history-item-corner-delete:active {
-        opacity: 1;
+    .history-item-corner-delete::after {
+        content: '';
+        position: absolute;
+        width: 26px;
+        height: 26px;
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: -1;
+    }
+
+    .history-item-corner-delete svg {
+        width: 14px;
+        height: 14px;
+        color: rgba(255, 255, 255, 0.9);
+        stroke-width: 2.5;
+        transition: transform 0.2s ease;
+    }
+
+    .history-item-corner-delete:active::after {
+        transform: scale(0.9);
+        background: rgba(220, 38, 38, 0.85);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .history-item-corner-delete:active svg {
+        transform: scale(0.85);
+        color: #ffffff;
     }
 
     /* 卡片标题 - 2行截断 */
@@ -1172,10 +1286,10 @@
         -webkit-line-clamp: 2 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
-        font-size: 14px !important;
-        line-height: 1.3 !important;
-        margin-bottom: 4px !important;
-        padding-right: 28px !important;
+        font-size: 12px !important;
+        line-height: 1.2 !important;
+        margin-bottom: 2px !important;
+        padding-right: 32px !important;
     }
 
     /* 元信息 - 集数+来源 */
@@ -1188,36 +1302,60 @@
         margin-bottom: 6px !important;
     }
 
-    /* 进度条 */
+    /* 进度条 - 固定在卡片底部 */
     .history-item-content .history-progress-bar {
-        height: 4px !important;
-        border-radius: 2px !important;
-        background: #333 !important;
-        margin-bottom: 6px !important;
+        position: absolute !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 3px !important;
+        border-radius: 0 !important;
+        background: rgba(51, 51, 51, 0.6) !important;
+        margin: 0 !important;
         overflow: hidden !important;
+        z-index: 3;
     }
 
     .history-item-content .history-progress-fill {
         height: 100% !important;
         background: linear-gradient(90deg, #3b82f6, #60a5fa) !important;
-        border-radius: 2px !important;
+        border-radius: 0 !important;
     }
 
-    /* 时间戳 */
+    /* 时间戳 - 隐藏，空间有限 */
     .history-item-content .history-timestamp {
-        font-size: 11px !important;
-        color: #6b7280 !important;
+        display: none !important;
     }
 
-    /* 速度徽章 */
+    /* 速度徽章 - 左上角药丸毛玻璃风格 */
     .history-item-content .history-speed-badge {
-        display: inline-block;
-        font-size: 10px;
-        padding: 2px 4px;
-        border-radius: 4px;
-        background: #374151;
-        color: #d1d5db;
-        margin-left: 6px;
+        position: absolute !important;
+        top: 8px !important;
+        left: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 3px !important;
+        height: 20px !important;
+        padding: 0 7px !important;
+        font-size: 10px !important;
+        font-weight: 600 !important;
+        color: #ffffff !important;
+        background: rgba(0, 0, 0, 0.45) !important;
+        backdrop-filter: blur(8px) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 20px !important;
+        z-index: 5 !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        pointer-events: none;
+        margin: 0;
+    }
+
+    .history-speed-badge svg {
+        width: 10px;
+        height: 10px;
+        stroke-width: 2.5;
+        opacity: 0.9;
     }
 }
 

@@ -16,6 +16,25 @@ function debounce(func, wait) {
     };
 }
 
+// URL安全验证
+function isValidImageUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    try {
+        const parsed = new URL(url);
+        return ['http:', 'https:'].includes(parsed.protocol);
+    } catch (e) {
+        return false;
+    }
+}
+
+// 根据标题生成渐变色
+function generateColorFromTitle(title) {
+    const hash = Array.from(title).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const hue1 = hash % 360;
+    const hue2 = (hash * 137) % 360;
+    return `hsl(${hue1}, 60%, 30%), hsl(${hue2}, 60%, 20%)`;
+}
+
 // 并发池控制类
 class ConcurrentPool {
     constructor(limit = 3) {
@@ -39,12 +58,14 @@ class ConcurrentPool {
     }
 }
 
-// localStorage 管理类（带防抖）
+// localStorage 管理类（带防抖和配额管理）
 class StorageManager {
     constructor(debounceTime = 1000) {
         this.debounceTime = debounceTime;
         this.timers = new Map();
         this.cache = new Map();
+        this.MAX_SIZE = 5 * 1024 * 1024;
+        this.MIN_RECORDS = 10;
     }
 
     setItem(key, value) {
@@ -91,7 +112,6 @@ class StorageManager {
         localStorage.removeItem(key);
     }
 
-    // 立即写入（用于关键数据）
     setItemImmediate(key, value) {
         if (this.timers.has(key)) {
             clearTimeout(this.timers.get(key));
@@ -104,12 +124,59 @@ class StorageManager {
             console.error('localStorage write error:', e);
         }
     }
+
+    getStorageSize() {
+        let total = 0;
+        for (let key in localStorage) {
+            if (localStorage.hasOwnProperty(key)) {
+                total += (localStorage[key].length + key.length) * 2;
+            }
+        }
+        return total;
+    }
+
+    needsCleanup() {
+        return this.getStorageSize() > this.MAX_SIZE;
+    }
+
+    cleanupHistory() {
+        const history = JSON.parse(localStorage.getItem('viewingHistory') || '[]');
+        history.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+        while (history.length > this.MIN_RECORDS && this.getStorageSize() > this.MAX_SIZE) {
+            history.pop();
+        }
+
+        localStorage.setItem('viewingHistory', JSON.stringify(history));
+        return history.length;
+    }
+
+    saveWithRetry(key, value) {
+        try {
+            localStorage.setItem(key, value);
+            return true;
+        } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+                console.warn('localStorage quota exceeded, cleaning up...');
+                this.cleanupHistory();
+                try {
+                    localStorage.setItem(key, value);
+                    return true;
+                } catch (retryError) {
+                    console.error('Save failed after cleanup');
+                    return false;
+                }
+            }
+            throw e;
+        }
+    }
 }
 
 // 图片懒加载类
 class LazyImageLoader {
     constructor() {
         this.observer = null;
+        this.loadingImages = new Map();
         this.init();
     }
 
@@ -118,12 +185,7 @@ class LazyImageLoader {
             this.observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        const img = entry.target;
-                        if (img.dataset.src) {
-                            img.src = img.dataset.src;
-                            img.removeAttribute('data-src');
-                            this.observer.unobserve(img);
-                        }
+                        this.handleIntersection(entry.target);
                     }
                 });
             }, {
@@ -132,13 +194,61 @@ class LazyImageLoader {
         }
     }
 
+    async handleIntersection(img) {
+        const originalSrc = img.dataset.src;
+        if (!originalSrc) return;
+
+        if (this.observer) {
+            this.observer.unobserve(img);
+        }
+
+        const timeoutId = setTimeout(() => {
+            this.handleLoadError(img);
+        }, 3000);
+
+        this.loadingImages.set(img, timeoutId);
+
+        if (originalSrc.includes('/proxy/')) {
+            try {
+                const signedUrl = await window.ProxyAuth.addAuthToProxyUrl(originalSrc);
+                img.src = signedUrl;
+            } catch (e) {
+                console.error('图片鉴权失败:', e);
+                this.handleLoadError(img);
+                return;
+            }
+        } else {
+            img.src = originalSrc;
+        }
+
+        img.onload = () => {
+            clearTimeout(this.loadingImages.get(img));
+            this.loadingImages.delete(img);
+        };
+
+        img.onerror = () => {
+            this.handleLoadError(img);
+        };
+    }
+
+    handleLoadError(img) {
+        clearTimeout(this.loadingImages.get(img));
+        this.loadingImages.delete(img);
+
+        const title = img.alt || '未知';
+        const parent = img.parentElement;
+        if (parent) {
+            parent.style.background = `linear-gradient(135deg, ${generateColorFromTitle(title)})`;
+            parent.classList.remove('has-cover');
+            img.style.display = 'none';
+        }
+    }
+
     observe(img) {
         if (this.observer && img.dataset.src) {
             this.observer.observe(img);
         } else if (img.dataset.src) {
-            // 降级方案：直接加载
-            img.src = img.dataset.src;
-            img.removeAttribute('data-src');
+            this.handleIntersection(img);
         }
     }
 
@@ -150,6 +260,12 @@ class LazyImageLoader {
 }
 
 // 创建全局实例
-window.storageManager = new StorageManager(1000);
-window.concurrentPool = new ConcurrentPool(3);
-window.lazyImageLoader = new LazyImageLoader();
+if (typeof window !== 'undefined') {
+    window.storageManager = new StorageManager(1000);
+    window.concurrentPool = new ConcurrentPool(3);
+    window.lazyImageLoader = new LazyImageLoader();
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { debounce, ConcurrentPool, StorageManager, isValidImageUrl, generateColorFromTitle };
+}
