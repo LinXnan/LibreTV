@@ -212,7 +212,7 @@ class LazyImageLoader {
 
         const timeoutId = setTimeout(() => {
             this.handleLoadError(img);
-        }, 3000);
+        }, 60000);
 
         this.loadingImages.set(img, timeoutId);
 
