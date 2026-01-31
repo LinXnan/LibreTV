@@ -479,7 +479,7 @@ function loadViewingHistory() {
 
             // 封面图片 HTML
             const coverImgHtml = coverUrl
-                ? `<img class="history-cover-img lazy-load" data-src="/proxy/${encodeURIComponent(coverUrl)}" alt="${safeTitle}" loading="lazy">`
+                ? `<img class="history-cover-img lazy-load" data-src="/proxy/${encodeURIComponent(coverUrl)}" data-needs-auth="true" alt="${safeTitle}" loading="lazy">`
                 : '';
 
             // 安全的 URL 用于 onclick - 转义单引号防止注入
@@ -519,6 +519,7 @@ function loadViewingHistory() {
         const coverHtml = proxiedCoverUrl
             ? `<div class="history-cover">
                    <img data-src="${proxiedCoverUrl}"
+                        data-needs-auth="true"
                         alt="${safeTitle}"
                         class="lazy-load"
                         loading="lazy">

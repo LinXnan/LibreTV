@@ -173,10 +173,18 @@ class StorageManager {
 }
 
 // 图片懒加载类
+/**
+ * LazyImageLoader - Handles lazy loading of images with authentication support
+ *
+ * For images that require proxy authentication (marked with data-needs-auth="true"),
+ * this loader automatically adds auth parameters before loading the image.
+ * This ensures images load correctly on Cloudflare deployment.
+ */
 class LazyImageLoader {
     constructor() {
         this.observer = null;
         this.loadingImages = new Map();
+        this.isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         this.init();
     }
 
@@ -208,27 +216,58 @@ class LazyImageLoader {
 
         this.loadingImages.set(img, timeoutId);
 
-        if (originalSrc.includes('/proxy/')) {
+        let finalSrc = originalSrc;
+
+        // Check if image needs authentication (both attribute AND URL prefix required)
+        if (img.dataset.needsAuth === 'true' && originalSrc.startsWith('/proxy/')) {
             try {
-                const signedUrl = await window.ProxyAuth.addAuthToProxyUrl(originalSrc);
-                img.src = signedUrl;
+                // Check ProxyAuth availability
+                if (window.ProxyAuth && typeof window.ProxyAuth.addAuthToProxyUrl === 'function') {
+                    finalSrc = await window.ProxyAuth.addAuthToProxyUrl(originalSrc);
+
+                    // Log only in development
+                    if (this.isDev) {
+                        console.debug('[LazyImageLoader] Added auth to image URL');
+                    }
+                } else if (this.isDev) {
+                    console.warn('[LazyImageLoader] ProxyAuth not available, image may fail to load');
+                }
             } catch (e) {
-                console.error('图片鉴权失败:', e);
-                this.handleLoadError(img);
-                return;
+                if (this.isDev) {
+                    console.error('[LazyImageLoader] Failed to add auth to image URL:', e);
+                }
+                // Fall back to original URL (will return 401 but provides error visibility)
             }
-        } else {
-            img.src = originalSrc;
+        } else if (originalSrc.startsWith('/proxy/')) {
+            // Backward compatibility: handle proxy URLs without data-needs-auth attribute
+            if (window.ProxyAuth && typeof window.ProxyAuth.addAuthToProxyUrl === 'function') {
+                try {
+                    finalSrc = await window.ProxyAuth.addAuthToProxyUrl(originalSrc);
+                } catch (e) {
+                    if (this.isDev) {
+                        console.error('图片鉴权失败:', e);
+                    }
+                    // Fall back to original URL instead of failing immediately
+                }
+            }
         }
 
+        // Set event handlers before setting src to avoid missing cached-load events
         img.onload = () => {
             clearTimeout(this.loadingImages.get(img));
             this.loadingImages.delete(img);
         };
 
         img.onerror = () => {
+            clearTimeout(this.loadingImages.get(img));
+            this.loadingImages.delete(img);
+            if (this.isDev) {
+                console.error('[LazyImageLoader] Failed to load image:', finalSrc);
+            }
             this.handleLoadError(img);
         };
+
+        img.src = finalSrc;
     }
 
     handleLoadError(img) {
@@ -253,7 +292,14 @@ class LazyImageLoader {
     }
 
     observeAll(selector = 'img[data-src]') {
-        document.querySelectorAll(selector).forEach(img => {
+        const images = document.querySelectorAll(selector);
+
+        // Log only in development
+        if (this.isDev) {
+            console.debug(`[LazyImageLoader] Observing ${images.length} images with selector: ${selector}`);
+        }
+
+        images.forEach(img => {
             this.observe(img);
         });
     }
