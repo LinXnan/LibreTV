@@ -293,30 +293,47 @@ class ImageCacheManager {
 
     _compress(blob) {
         return new Promise((resolve, reject) => {
-            const img = new Image();
-            const objectUrl = URL.createObjectURL(blob);
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+            // 使用 FileReader 读取 blob，避免 CSP 阻止 blob: URL
+            const reader = new FileReader();
 
-                // 限制宽度 200px，按比例缩放
-                const maxWidth = 200;
-                const scale = Math.min(1, maxWidth / img.width);
-                canvas.width = img.width * scale;
-                canvas.height = img.height * scale;
+            reader.onload = (e) => {
+                const img = new Image();
 
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
 
-                // 导出为 JPEG，质量 0.7
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                URL.revokeObjectURL(objectUrl);
-                resolve(dataUrl);
+                        // 限制宽度 200px，按比例缩放
+                        const maxWidth = 200;
+                        const scale = Math.min(1, maxWidth / img.width);
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                        // 导出为 JPEG，质量 0.7
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                        resolve(dataUrl);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+
+                img.onerror = () => {
+                    reject(new Error('Image load failed'));
+                };
+
+                // 直接使用 base64 data URL，不使用 blob URL
+                img.src = e.target.result;
             };
-            img.onerror = () => {
-                URL.revokeObjectURL(objectUrl);
-                reject(new Error('Compression failed'));
+
+            reader.onerror = () => {
+                reject(new Error('FileReader failed'));
             };
-            img.src = objectUrl;
+
+            // 读取为 data URL
+            reader.readAsDataURL(blob);
         });
     }
 }
