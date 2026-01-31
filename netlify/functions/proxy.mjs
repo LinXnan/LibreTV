@@ -110,10 +110,10 @@ function validateAuth(event) {
         return false;
     }
     
-    // 验证时间戳（10分钟有效期）
+    // 验证时间戳（60分钟有效期）
     if (timestamp) {
         const now = Date.now();
-        const maxAge = 10 * 60 * 1000; // 10分钟
+        const maxAge = 60 * 60 * 1000; // 60分钟
         if (now - parseInt(timestamp) > maxAge) {
             console.warn('代理请求鉴权失败：时间戳过期');
             return false;
@@ -260,15 +260,7 @@ export const handler = async (event, context) => {
     logDebug(`Processing proxy request for target: ${targetUrl}`);
 
     try {
-        // 验证鉴权
-        const isValidAuth = validateAuth(event);
-        if (!isValidAuth) {
-            return {
-                statusCode: 403,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ success: false, error: "Forbidden: Invalid auth credentials." }),
-            };
-        }
+        // 鉴权已在前面验证过（第 219 行），这里不需要重复验证
 
         // Fetch Original Content (Pass Netlify event headers)
         const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl, event.headers);

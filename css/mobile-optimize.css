@@ -1670,7 +1670,7 @@
         margin: 0 -0.75rem -0.75rem -0.75rem; /* 抵消父容器 p-3 */
         padding: 0.75rem 1rem;
         padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
-        background: rgba(17, 17, 17, 0.95);
+        background: #111111;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         border-top: 1px solid #2a2a2a;
@@ -1694,6 +1694,11 @@
     .api-batch-actions button:active {
         background: #333;
         transform: scale(0.97);
+    }
+
+    /* API信息显示区域 - 移动端样式调整 */
+    #apiInfoDisplay {
+        /* 移除之前的 padding-bottom，因为现在顺序已调整 */
     }
 }
 

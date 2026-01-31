@@ -167,7 +167,7 @@
                 <label class="block text-sm font-medium text-gray-400 mb-3 border-b border-[#333] pb-1">数据源设置</label>
                 
                 <!-- 批量操作按钮 -->
-                <div class="flex space-x-2 mb-3 sm:flex hidden">
+                <div class="hidden sm:flex space-x-2 mb-3">
                     <button onclick="selectAllAPIs(true)" class="px-2 py-1 bg-[#333] hover:bg-[#444] text-white text-xs rounded">全选</button>
                     <button onclick="selectAllAPIs(false)" class="px-2 py-1 bg-[#333] hover:bg-[#444] text-white text-xs rounded">全不选</button>
                     <button onclick="selectAllAPIs(true, true)" class="px-2 py-1 bg-[#333] hover:bg-[#444] text-white text-xs rounded">全选普通资源</button>
@@ -175,9 +175,15 @@
 
                 <!-- API选择区域 - 使用滚动区域 -->
                 <div class="max-h-40 overflow-y-auto bg-[#191919] p-2 rounded-lg mb-3">
-                    <div id="apiCheckboxes" class="api-card-container sm:grid sm:grid-cols-2 sm:gap-2 sm:pb-0">
+                    <div id="apiCheckboxes" class="api-card-container">
                         <!-- 内置 API 由 JavaScript 渲染 -->
                     </div>
+                </div>
+
+                <!-- API信息显示 -->
+                <div id="apiInfoDisplay" class="text-xs text-gray-500 flex justify-between items-center mb-3 sm:mb-0">
+                    <span>已选API数量：<span id="selectedApiCount" class="text-white">0</span></span>
+                    <span id="siteStatus" class="ml-2"></span>
                 </div>
 
                 <!-- 移动端底部操作栏 -->
@@ -185,12 +191,6 @@
                     <button type="button" onclick="selectAllAPIs(true)">全选</button>
                     <button type="button" onclick="selectAllAPIs(false)">全不选</button>
                     <button type="button" onclick="selectAllAPIs(true, true)">选择普通</button>
-                </div>
-
-                <!-- API信息显示 -->
-                <div class="text-xs text-gray-500 flex justify-between items-center">
-                    <span>已选API数量：<span id="selectedApiCount" class="text-white">0</span></span>
-                    <span id="siteStatus" class="ml-2"></span>
                 </div>
             </div>
 
@@ -606,8 +606,6 @@
     <script src="js/douban.js" defer></script>
     <script src="js/password.js" defer></script>
     <script src="js/search.js" defer></script>
-    <script src="js/swipe-actions.js" defer></script>
-    <script src="js/undo-toast.js" defer></script>
     <script src="js/app.js" defer></script>
     <script src="js/daily-quote.js" defer></script>
     <script src="js/optimize-apply.js" defer></script>
