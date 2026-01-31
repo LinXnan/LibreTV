@@ -472,11 +472,6 @@ function loadViewingHistory() {
                 ? item.vod_pic
                 : '';
 
-            // 背景样式 - 有封面时由 CSS ::before 处理渐变，无封面时使用渐变色
-            const backgroundStyle = coverUrl
-                ? ''
-                : `background: linear-gradient(135deg, ${generateColorFromTitle(item.title || '未知视频')});`;
-
             // 封面图片 HTML
             const coverImgHtml = coverUrl
                 ? `<img class="history-cover-img lazy-load" data-src="/proxy/${encodeURIComponent(coverUrl)}" data-needs-auth="true" alt="${safeTitle}" loading="lazy">`
@@ -487,7 +482,7 @@ function loadViewingHistory() {
 
             return `
                 <div class="history-item" data-url="${safeURL}" data-index="${index}">
-                    <div class="history-item-content${coverUrl ? ' has-cover' : ''}" style="${backgroundStyle}" onclick="playFromHistoryByIndex(${index})">
+                    <div class="history-item-content${coverUrl ? ' has-cover' : ''}" onclick="playFromHistoryByIndex(${index})">
                         ${coverImgHtml}
                         <button class="history-item-corner-delete" onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURLForOnclick}', ${index})" title="删除">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -524,8 +519,7 @@ function loadViewingHistory() {
                         class="lazy-load"
                         loading="lazy">
                </div>`
-            : `<div class="history-cover history-cover-placeholder"
-                    style="background: linear-gradient(135deg, ${generateColorFromTitle(item.title || '未知视频')});">
+            : `<div class="history-cover history-cover-placeholder">
                </div>`;
 
         // 格式化剧集信息

@@ -27,13 +27,6 @@ function isValidImageUrl(url) {
     }
 }
 
-// 根据标题生成渐变色
-function generateColorFromTitle(title) {
-    const hash = Array.from(title).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const hue1 = hash % 360;
-    const hue2 = (hash * 137) % 360;
-    return `hsl(${hue1}, 60%, 30%), hsl(${hue2}, 60%, 20%)`;
-}
 
 // 并发池控制类
 class ConcurrentPool {
@@ -274,10 +267,8 @@ class LazyImageLoader {
         clearTimeout(this.loadingImages.get(img));
         this.loadingImages.delete(img);
 
-        const title = img.alt || '未知';
         const parent = img.parentElement;
         if (parent) {
-            parent.style.background = `linear-gradient(135deg, ${generateColorFromTitle(title)})`;
             parent.classList.remove('has-cover');
             img.style.display = 'none';
         }
@@ -313,5 +304,5 @@ if (typeof window !== 'undefined') {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { debounce, ConcurrentPool, StorageManager, isValidImageUrl, generateColorFromTitle };
+    module.exports = { debounce, ConcurrentPool, StorageManager, isValidImageUrl };
 }
