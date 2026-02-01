@@ -1,0 +1,32 @@
+{
+  "id": "remove-history-cover-preload",
+  "name": "remove-history-cover-preload",
+  "title": "移除历史记录封面预加载逻辑",
+  "description": "修改历史记录封面图片保存逻辑，采用一开始缓存的时候直接保存源URL，只有在查看历史记录的时候，展示图片的时候，才采用代理请求并展示",
+  "status": "planning",
+  "dev_type": "frontend",
+  "scope": "history",
+  "priority": "P2",
+  "creator": "claude-agent",
+  "assignee": "claude-agent",
+  "createdAt": "2026-02-01",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": null,
+  "worktree_path": null,
+  "current_phase": 0,
+  "next_action": [
+    {"phase": 1, "action": "implement"},
+    {"phase": 2, "action": "check"},
+    {"phase": 3, "action": "finish"},
+    {"phase": 4, "action": "create-pr"}
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "relatedFiles": [
+    "js/player.js",
+    "js/ui.js"
+  ],
+  "notes": ""
+}

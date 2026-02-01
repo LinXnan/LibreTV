@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./.trellis/scripts/get-context.sh:*)",
+      "Bash(./.trellis/scripts/get-developer.sh)",
+      "Bash(./.trellis/scripts/task.sh:*)",
+      "Bash(./.trellis/scripts/init-developer.sh:*)",
+      "Bash(node --check:*)",
+      "Bash(grep:*)",
+      "Bash(./.trellis/scripts/add-session.sh:*)",
+      "Bash(./.trellis/scripts/multi-agent/plan.sh:*)",
+      "Bash(./.trellis/scripts/multi-agent/status.sh:*)",
+      "Bash(bash:*)",
+      "Bash(./.trellis/scripts/multi-agent/start.sh:*)",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(node -c:*)",
+      "Bash(node --version:*)",
+      "Bash(timeout 5 node:*)",
+      "Bash(node -e \"console.log\\(''需要在浏览器控制台执行：localStorage.getItem\\(\"\"proxyAuthHash\"\"\\), localStorage.getItem\\(\"\"passwordVerified\"\"\\), localStorage.getItem\\(\"\"passwordHash\"\"\\)''\\)\")",
+      "Bash(find:*)",
+      "Bash(node -e:*)",
+      "Bash(echo:*)",
+      "Bash(D:IdeaProjectsLibreTV_Trellis.trellisscriptsget-context.sh)",
+      "mcp__ace-tool__search_context",
+      "mcp__augment-context-engine__codebase-retrieval",
+      "Bash(test:*)",
+      "mcp__codex__codex",
+      "mcp__gemini__gemini",
+      "Bash(if [ -d \".trellis/spec\" ])",
+      "Bash(then echo \"Trellis spec directory exists\")",
+      "Bash(else echo \"Trellis spec directory NOT found\")",
+      "Bash(fi)",
+      "Bash(git show:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(wc:*)"
+    ]
+  }
+}

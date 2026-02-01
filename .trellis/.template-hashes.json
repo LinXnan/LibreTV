@@ -87,5 +87,11 @@
   ".cursor/commands/trellis-record-session.md": "bbb8140082f51128ed5b20eaead97ff084c10eafd52b5763acc879cde77a9351",
   ".cursor/commands/trellis-start.md": "91653b5216c58617a98d8c332937fd99534083a10cd22d6a782f7fe4053f5a15",
   ".cursor/commands/trellis-update-spec.md": "008df54aa9b43d94dbc5107452628cac6cf18fb93bf801f8944f4a89904d066a",
-  ".trellis/spec/frontend/index.md": "adc1694bfef9c77bc01cec36589d9f05a97178cc5d5d965bdf324a555048ceb7"
+  ".trellis/spec/frontend/index.md": "adc1694bfef9c77bc01cec36589d9f05a97178cc5d5d965bdf324a555048ceb7",
+  ".trellis/spec/frontend/directory-structure.md": "731713ac66d21f383bb49fb19d30888aa8db9e50acb5c77329fa4b98546cd7bc",
+  ".trellis/spec/frontend/type-safety.md": "1ced8d3ea4f5e6e63599a5a606db52fa86b3973046db57d550ed2964a8d4c40f",
+  ".trellis/spec/frontend/hook-guidelines.md": "49801cb1eb7c779e9b01cdeabcd47dd0bc12be018405fc248646cf8a829aaf6c",
+  ".trellis/spec/frontend/component-guidelines.md": "7ca6ea4f9305a8267b7570505f9ebf6030bb5911cbe3f2a135cfb7ebd402805b",
+  ".trellis/spec/frontend/quality-guidelines.md": "ac5a4da858d93492cbb4c721b164850b625f38696905e463e8feb5968eae78bc",
+  ".trellis/spec/frontend/state-management.md": "a007d40daba4db27f1fcfad8d6192d5de2cd385f4bbbd0161a39a3e4c0dd6c1b"
 }

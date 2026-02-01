@@ -1,0 +1,10 @@
+{
+  "title": "重构选集弹框为横向Tab分组展示",
+  "slug": "refactor-episode-modal-mobile-ux",
+  "type": "frontend",
+  "status": "active",
+  "branch": "feature/refactor-episode-modal-mobile-ux",
+  "scope": "player",
+  "created_at": "2026-01-30",
+  "developer": "claude-agent"
+}
