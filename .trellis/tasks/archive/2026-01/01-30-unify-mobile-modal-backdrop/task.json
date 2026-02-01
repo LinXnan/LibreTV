@@ -1,0 +1,13 @@
+{
+  "id": "01-30-unify-mobile-modal-backdrop",
+  "name": "unify-mobile-modal-backdrop",
+  "title": "统一移动端历史、设置、选集弹框的背景遮罩效果",
+  "slug": "unify-mobile-modal-backdrop",
+  "status": "active",
+  "priority": "P1",
+  "assignee": "claude-parallel-agent",
+  "created_at": "2026-01-30T22:40:00+08:00",
+  "dev_type": "frontend",
+  "branch": "feature/unify-mobile-modal-backdrop",
+  "scope": "mobile-ui"
+}
