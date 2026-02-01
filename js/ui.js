@@ -409,6 +409,40 @@ function getViewingHistory() {
     }
 }
 
+// 基于字符串生成渐变色
+function generateGradientFromString(str) {
+    if (!str) str = '未知';
+
+    // 使用标题首字符的 charCode 生成色相值
+    const charCode = str.charCodeAt(0);
+    const hue1 = (charCode * 137.5) % 360; // 黄金角度分布
+    const hue2 = (hue1 + 60) % 360; // 相邻色相
+
+    return `linear-gradient(135deg, hsl(${hue1}, 70%, 50%), hsl(${hue2}, 70%, 35%))`;
+}
+
+// 根据标题获取内容类型图标
+function getContentTypeIcon(title) {
+    if (!title) return '📺';
+
+    const lowerTitle = title.toLowerCase();
+
+    // 动漫相关关键词
+    if (lowerTitle.includes('动漫') || lowerTitle.includes('番') ||
+        lowerTitle.includes('anime') || lowerTitle.includes('漫画')) {
+        return '🎭';
+    }
+
+    // 电影相关关键词
+    if (lowerTitle.includes('电影') || lowerTitle.includes('movie') ||
+        lowerTitle.includes('影') || lowerTitle.includes('剧场版')) {
+        return '🎬';
+    }
+
+    // 默认电视剧
+    return '📺';
+}
+
 // 加载观看历史并渲染
 function loadViewingHistory() {
     const historyList = document.getElementById('historyList');
@@ -467,23 +501,17 @@ function loadViewingHistory() {
                    </span>`
                 : '';
 
-            // 封面URL处理
-            const coverUrl = item.vod_pic && isValidImageUrl(item.vod_pic)
-                ? item.vod_pic
-                : '';
-
-            // 封面图片 HTML
-            const coverImgHtml = coverUrl
-                ? `<img class="history-cover-img lazy-load" data-src="/proxy/${encodeURIComponent(coverUrl)}" data-needs-auth="true" alt="${safeTitle}" loading="lazy">`
-                : '';
+            // 生成渐变色背景和图标
+            const gradientBg = generateGradientFromString(safeTitle);
+            const contentIcon = getContentTypeIcon(item.title);
 
             // 安全的 URL 用于 onclick - 转义单引号防止注入
             const safeURLForOnclick = safeURL.replace(/'/g, '%27');
 
             return `
                 <div class="history-item" data-url="${safeURL}" data-index="${index}">
-                    <div class="history-item-content${coverUrl ? ' has-cover' : ''}" onclick="playFromHistoryByIndex(${index})">
-                        ${coverImgHtml}
+                    <div class="history-item-content" style="background: ${gradientBg};" onclick="playFromHistoryByIndex(${index})">
+                        <div class="history-icon-mobile">${contentIcon}</div>
                         <button class="history-item-corner-delete" onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURLForOnclick}', ${index})" title="删除">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -501,26 +529,17 @@ function loadViewingHistory() {
             `;
         }
 
-        // 桌面端保持原有布局，添加封面支持
-        // 封面URL处理
-        const coverUrl = item.vod_pic && isValidImageUrl(item.vod_pic)
-            ? item.vod_pic
-            : '';
-        const proxiedCoverUrl = coverUrl
-            ? `/proxy/${encodeURIComponent(coverUrl)}`
-            : '';
+        // 桌面端使用渐变色占位符
+        // 生成渐变色背景和图标
+        const gradientBg = generateGradientFromString(safeTitle);
+        const contentIcon = getContentTypeIcon(item.title);
 
-        // 封面HTML
-        const coverHtml = proxiedCoverUrl
-            ? `<div class="history-cover">
-                   <img data-src="${proxiedCoverUrl}"
-                        data-needs-auth="true"
-                        alt="${safeTitle}"
-                        class="lazy-load"
-                        loading="lazy">
-               </div>`
-            : `<div class="history-cover history-cover-placeholder">
-               </div>`;
+        // 渐变色占位符HTML
+        const placeholderHtml = `
+            <div class="history-icon-placeholder" style="background: ${gradientBg};">
+                <span class="history-icon">${contentIcon}</span>
+            </div>
+        `;
 
         // 格式化剧集信息
         let episodeInfoHtml = '';
@@ -558,7 +577,7 @@ function loadViewingHistory() {
         // 构建历史记录项HTML，添加删除按钮，需要放在position:relative的容器中
         return `
             <div class="history-item cursor-pointer relative group" data-url="${safeURL}" data-index="${index}" onclick="playFromHistoryByIndex(${index})">
-                ${coverHtml}
+                ${placeholderHtml}
                 <div class="history-info">
                     <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL}')"
                             class="absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 md:p-1 rounded-full hover:bg-gray-800 bg-gray-900/50 md:bg-transparent z-10 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center delete-btn"
@@ -589,11 +608,7 @@ function loadViewingHistory() {
         historyList.classList.add('pb-4');
     }
 
-    // 初始化懒加载
-    if (window.lazyImageLoader) {
-        window.lazyImageLoader.observeAll('.history-cover img.lazy-load');
-        window.lazyImageLoader.observeAll('.history-item-content img.lazy-load');
-    }
+    // 注意：已移除图片懒加载代码，因为不再使用封面图片
 }
 
 // 格式化播放时间为 mm:ss 格式
