@@ -1007,6 +1007,8 @@ function addToViewingHistory(videoInfo) {
             existingItem.url = videoInfo.url || existingItem.url;
             existingItem.playbackPosition = videoInfo.playbackPosition > 10 ? videoInfo.playbackPosition : (existingItem.playbackPosition || 0);
             existingItem.duration = videoInfo.duration || existingItem.duration;
+            existingItem.playbackRate = videoInfo.playbackRate;
+            existingItem.vod_pic = videoInfo.vod_pic || existingItem.vod_pic || '';
 
             if (videoInfo.episodes && Array.isArray(videoInfo.episodes) && videoInfo.episodes.length > 0) {
                 if (!existingItem.episodes ||
@@ -1046,11 +1048,6 @@ function addToViewingHistory(videoInfo) {
 
         // 保存到本地存储
         localStorage.setItem('viewingHistory', JSON.stringify(history));
-
-        // 主动预载封面图
-        if (videoInfo.vod_pic && window.imageCacheManager) {
-            window.imageCacheManager.preload(`/proxy/${encodeURIComponent(videoInfo.vod_pic)}`);
-        }
     } catch (e) {
         // console.error('保存观看历史失败:', e);
     }

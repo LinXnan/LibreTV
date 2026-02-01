@@ -1610,11 +1610,6 @@ function saveToHistory() {
         if (history.length > 50) history.splice(50);
 
         localStorage.setItem('viewingHistory', JSON.stringify(history));
-
-        // 主动预载封面图
-        if (videoInfo.vod_pic && window.imageCacheManager) {
-            window.imageCacheManager.preload(`/proxy/${encodeURIComponent(videoInfo.vod_pic)}`);
-        }
     } catch (e) {
         console.error('保存历史记录失败:', e);
     }
