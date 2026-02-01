@@ -139,10 +139,10 @@ function validateProxyAuth(req) {
     return false;
   }
   
-  // 验证时间戳（10分钟有效期）
+  // 验证时间戳（60分钟有效期）
   if (timestamp) {
     const now = Date.now();
-    const maxAge = 10 * 60 * 1000; // 10分钟
+    const maxAge = 60 * 60 * 1000; // 60分钟
     if (now - parseInt(timestamp) > maxAge) {
       console.warn('代理请求鉴权失败：时间戳过期');
       return false;
@@ -214,8 +214,17 @@ app.get('/proxy/:encodedUrl', async (req, res) => {
   } catch (error) {
     console.error('代理请求错误:', error.message);
     if (error.response) {
+      // 处理上游服务器返回的错误
       res.status(error.response.status || 500);
-      error.response.data.pipe(res);
+      if (error.response.data && typeof error.response.data.pipe === 'function') {
+        error.response.data.pipe(res);
+      } else {
+        res.send(error.response.data || `请求失败: ${error.message}`);
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      res.status(504).send('请求超时');
+    } else if (error.code === 'ENOTFOUND') {
+      res.status(502).send('无法解析目标地址');
     } else {
       res.status(500).send(`请求失败: ${error.message}`);
     }

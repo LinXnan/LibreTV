@@ -1512,6 +1512,19 @@ function saveToHistory() {
     const sourceCode = urlParams.get('source') || '';
     const id_from_params = urlParams.get('id');
 
+    // 获取并验证封面URL（添加异常处理）
+    const vodPicParam = urlParams.get('vod_pic');
+    let vod_pic = '';
+    if (vodPicParam) {
+        try {
+            const decodedUrl = decodeURIComponent(vodPicParam);
+            vod_pic = isValidImageUrl(decodedUrl) ? decodedUrl : '';
+        } catch (e) {
+            console.warn('Invalid vod_pic URL encoding:', e);
+            vod_pic = '';
+        }
+    }
+
     // 获取当前播放进度
     let currentPosition = 0;
     let videoDuration = 0;
@@ -1546,7 +1559,8 @@ function saveToHistory() {
         playbackPosition: currentPosition,
         duration: videoDuration,
         playbackRate: art && art.playbackRate ? art.playbackRate : 1.0,
-        episodes: currentEpisodes && currentEpisodes.length > 0 ? [...currentEpisodes] : []
+        episodes: currentEpisodes && currentEpisodes.length > 0 ? [...currentEpisodes] : [],
+        vod_pic: vod_pic
     };
 
     try {
@@ -1573,6 +1587,7 @@ function saveToHistory() {
             existingItem.playbackPosition = videoInfo.playbackPosition > 10 ? videoInfo.playbackPosition : (existingItem.playbackPosition || 0);
             existingItem.duration = videoInfo.duration || existingItem.duration;
             existingItem.playbackRate = videoInfo.playbackRate;
+            existingItem.vod_pic = videoInfo.vod_pic || existingItem.vod_pic || '';
 
             // 更新集数列表
             if (videoInfo.episodes && videoInfo.episodes.length > 0) {
@@ -1595,6 +1610,11 @@ function saveToHistory() {
         if (history.length > 50) history.splice(50);
 
         localStorage.setItem('viewingHistory', JSON.stringify(history));
+
+        // 主动预载封面图
+        if (videoInfo.vod_pic && window.imageCacheManager) {
+            window.imageCacheManager.preload(`/proxy/${encodeURIComponent(videoInfo.vod_pic)}`);
+        }
     } catch (e) {
         console.error('保存历史记录失败:', e);
     }

@@ -1,6 +1,28 @@
 // 全局变量
 let selectedAPIs = JSON.parse(localStorage.getItem('selectedAPIs') || '["tyyszy","dyttzy", "bfzy", "ruyi"]'); // 默认选中资源
-let customAPIs = JSON.parse(localStorage.getItem('customAPIs') || '[]'); // 存储自定义API列表
+
+// 规范化自定义 API 数据格式，支持 api/adult 和 url/isAdult 两种格式
+function normalizeCustomAPI(api) {
+    return {
+        name: api.name || '',
+        url: api.url || api.api || '',
+        detail: api.detail || '',
+        isAdult: api.isAdult ?? api.adult ?? false
+    };
+}
+
+// 暴露为全局函数供其他模块使用
+window.normalizeCustomAPI = normalizeCustomAPI;
+
+// 加载并规范化自定义 API 列表
+let customAPIs = JSON.parse(localStorage.getItem('customAPIs') || '[]').map(normalizeCustomAPI);
+
+// HTML 转义函数，防止 XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 // 添加当前播放的集数索引
 let currentEpisodeIndex = 0;
@@ -83,10 +105,12 @@ function initAPICheckboxes() {
     const container = document.getElementById('apiCheckboxes');
     container.innerHTML = '';
 
+    const isMobile = window.innerWidth <= 640;
+
     // 添加普通API组标题
     const normaldiv = document.createElement('div');
     normaldiv.id = 'normaldiv';
-    normaldiv.className = 'grid grid-cols-2 gap-2';
+    normaldiv.className = isMobile ? 'mobile-api-grid' : 'grid grid-cols-2 gap-2';
     const normalTitle = document.createElement('div');
     normalTitle.className = 'api-group-title';
     normalTitle.textContent = '普通资源';
@@ -95,26 +119,45 @@ function initAPICheckboxes() {
     // 创建普通API源的复选框
     Object.keys(API_SITES).forEach(apiKey => {
         const api = API_SITES[apiKey];
-        if (api.adult) return; // 跳过成人内容API，稍后添加
+        if (api.adult) return;
 
         const checked = selectedAPIs.includes(apiKey);
 
-        const checkbox = document.createElement('div');
-        checkbox.className = 'flex items-center';
-        checkbox.innerHTML = `
-            <input type="checkbox" id="api_${apiKey}" 
-                   class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333]" 
-                   ${checked ? 'checked' : ''} 
-                   data-api="${apiKey}">
-            <label for="api_${apiKey}" class="ml-1 text-xs text-gray-400 truncate">${api.name}</label>
-        `;
-        normaldiv.appendChild(checkbox);
+        if (isMobile) {
+            const item = document.createElement('label');
+            item.className = 'mobile-api-item';
+            item.innerHTML = `
+                <input type="checkbox" id="api_${apiKey}"
+                       class="mobile-api-checkbox"
+                       ${checked ? 'checked' : ''}
+                       data-api="${apiKey}">
+                <div class="mobile-api-content">
+                    <span class="mobile-api-name">${api.name}</span>
+                </div>
+            `;
+            normaldiv.appendChild(item);
 
-        // 添加事件监听器
-        checkbox.querySelector('input').addEventListener('change', function () {
-            updateSelectedAPIs();
-            checkAdultAPIsSelected();
-        });
+            item.querySelector('input').addEventListener('change', function () {
+                updateSelectedAPIs();
+                checkAdultAPIsSelected();
+            });
+        } else {
+            const checkbox = document.createElement('div');
+            checkbox.className = 'flex items-center';
+            checkbox.innerHTML = `
+                <input type="checkbox" id="api_${apiKey}"
+                       class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333]"
+                       ${checked ? 'checked' : ''}
+                       data-api="${apiKey}">
+                <label for="api_${apiKey}" class="ml-1 text-xs text-gray-400 truncate">${api.name}</label>
+            `;
+            normaldiv.appendChild(checkbox);
+
+            checkbox.querySelector('input').addEventListener('change', function () {
+                updateSelectedAPIs();
+                checkAdultAPIsSelected();
+            });
+        }
     });
     container.appendChild(normaldiv);
 
@@ -130,11 +173,12 @@ function addAdultAPI() {
     // 仅在隐藏设置为false时添加成人API组
     if (!HIDE_BUILTIN_ADULT_APIS && (localStorage.getItem('yellowFilterEnabled') === 'false')) {
         const container = document.getElementById('apiCheckboxes');
+        const isMobile = window.innerWidth <= 640;
 
         // 添加成人API组标题
         const adultdiv = document.createElement('div');
         adultdiv.id = 'adultdiv';
-        adultdiv.className = 'grid grid-cols-2 gap-2';
+        adultdiv.className = isMobile ? 'mobile-api-grid' : 'grid grid-cols-2 gap-2';
         const adultTitle = document.createElement('div');
         adultTitle.className = 'api-group-title adult';
         adultTitle.innerHTML = `黄色资源采集站 <span class="adult-warning">
@@ -147,26 +191,46 @@ function addAdultAPI() {
         // 创建成人API源的复选框
         Object.keys(API_SITES).forEach(apiKey => {
             const api = API_SITES[apiKey];
-            if (!api.adult) return; // 仅添加成人内容API
+            if (!api.adult) return;
 
             const checked = selectedAPIs.includes(apiKey);
 
-            const checkbox = document.createElement('div');
-            checkbox.className = 'flex items-center';
-            checkbox.innerHTML = `
-                <input type="checkbox" id="api_${apiKey}" 
-                       class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333] api-adult" 
-                       ${checked ? 'checked' : ''} 
-                       data-api="${apiKey}">
-                <label for="api_${apiKey}" class="ml-1 text-xs text-pink-400 truncate">${api.name}</label>
-            `;
-            adultdiv.appendChild(checkbox);
+            if (isMobile) {
+                const item = document.createElement('label');
+                item.className = 'mobile-api-item adult';
+                item.innerHTML = `
+                    <input type="checkbox" id="api_${apiKey}"
+                           class="mobile-api-checkbox api-adult"
+                           ${checked ? 'checked' : ''}
+                           data-api="${apiKey}">
+                    <div class="mobile-api-content">
+                        <span class="mobile-api-name">${api.name}</span>
+                    </div>
+                    <span class="adult-badge">18+</span>
+                `;
+                adultdiv.appendChild(item);
 
-            // 添加事件监听器
-            checkbox.querySelector('input').addEventListener('change', function () {
-                updateSelectedAPIs();
-                checkAdultAPIsSelected();
-            });
+                item.querySelector('input').addEventListener('change', function () {
+                    updateSelectedAPIs();
+                    checkAdultAPIsSelected();
+                });
+            } else {
+                const checkbox = document.createElement('div');
+                checkbox.className = 'flex items-center';
+                checkbox.innerHTML = `
+                    <input type="checkbox" id="api_${apiKey}"
+                           class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333] api-adult"
+                           ${checked ? 'checked' : ''}
+                           data-api="${apiKey}">
+                    <label for="api_${apiKey}" class="ml-1 text-xs text-pink-400 truncate">${api.name}</label>
+                `;
+                adultdiv.appendChild(checkbox);
+
+                checkbox.querySelector('input').addEventListener('change', function () {
+                    updateSelectedAPIs();
+                    checkAdultAPIsSelected();
+                });
+            }
         });
         container.appendChild(adultdiv);
     }
@@ -233,39 +297,79 @@ function renderCustomAPIsList() {
         return;
     }
 
+    const isMobile = window.innerWidth <= 640;
     container.innerHTML = '';
+
     customAPIs.forEach((api, index) => {
-        const apiItem = document.createElement('div');
-        apiItem.className = 'flex items-center justify-between p-1 mb-1 bg-[#222] rounded';
         const textColorClass = api.isAdult ? 'text-pink-400' : 'text-white';
         const adultTag = api.isAdult ? '<span class="text-xs text-pink-400 mr-1">(18+)</span>' : '';
-        // 新增 detail 地址显示
-        const detailLine = api.detail ? `<div class="text-xs text-gray-400 truncate">detail: ${api.detail}</div>` : '';
-        apiItem.innerHTML = `
-            <div class="flex items-center flex-1 min-w-0">
-                <input type="checkbox" id="custom_api_${index}" 
-                       class="form-checkbox h-3 w-3 text-blue-600 mr-1 ${api.isAdult ? 'api-adult' : ''}" 
-                       ${selectedAPIs.includes('custom_' + index) ? 'checked' : ''} 
-                       data-custom-index="${index}">
-                <div class="flex-1 min-w-0">
-                    <div class="text-xs font-medium ${textColorClass} truncate">
-                        ${adultTag}${api.name}
-                    </div>
-                    <div class="text-xs text-gray-500 truncate">${api.url}</div>
-                    ${detailLine}
+        const escapedName = escapeHtml(api.name || '');
+        const escapedUrl = escapeHtml(api.url || '');
+        const detailLine = api.detail ? `<div class="text-xs text-gray-400 truncate">detail: ${escapeHtml(api.detail)}</div>` : '';
+
+        if (isMobile) {
+            const swipeContainer = document.createElement('div');
+            swipeContainer.className = 'swipe-container mb-1';
+            swipeContainer.innerHTML = `
+                <div class="swipe-content">
+                    <label class="mobile-api-item ${api.isAdult ? 'adult' : ''}">
+                        <input type="checkbox" id="custom_api_${index}"
+                               class="mobile-api-checkbox ${api.isAdult ? 'api-adult' : ''}"
+                               ${selectedAPIs.includes('custom_' + index) ? 'checked' : ''}
+                               data-custom-index="${index}">
+                        <div class="mobile-api-content">
+                            <div class="mobile-api-name">${escapedName}</div>
+                            <div class="mobile-api-url">${escapedUrl}</div>
+                            ${api.detail ? `<div class="text-[10px] text-gray-500 truncate">detail: ${escapeHtml(api.detail)}</div>` : ''}
+                        </div>
+                        ${api.isAdult ? '<span class="adult-badge">18+</span>' : ''}
+                    </label>
                 </div>
-            </div>
-            <div class="flex items-center">
-                <button class="text-blue-500 hover:text-blue-700 text-xs px-1" onclick="editCustomApi(${index})">✎</button>
-                <button class="text-red-500 hover:text-red-700 text-xs px-1" onclick="removeCustomApi(${index})">✕</button>
-            </div>
-        `;
-        container.appendChild(apiItem);
-        apiItem.querySelector('input').addEventListener('change', function () {
-            updateSelectedAPIs();
-            checkAdultAPIsSelected();
-        });
+                <div class="swipe-actions">
+                    <button class="edit-btn" onclick="editCustomApi(${index})" aria-label="编辑">✎</button>
+                    <button class="delete-btn" onclick="removeCustomApi(${index})" aria-label="删除">✕</button>
+                </div>
+            `;
+            container.appendChild(swipeContainer);
+
+            swipeContainer.querySelector('input').addEventListener('change', function () {
+                updateSelectedAPIs();
+                checkAdultAPIsSelected();
+            });
+        } else {
+            const apiItem = document.createElement('div');
+            apiItem.className = 'flex items-center justify-between p-1 mb-1 bg-[#222] rounded';
+            apiItem.innerHTML = `
+                <div class="flex items-center flex-1 min-w-0">
+                    <input type="checkbox" id="custom_api_${index}"
+                           class="form-checkbox h-3 w-3 text-blue-600 mr-1 ${api.isAdult ? 'api-adult' : ''}"
+                           ${selectedAPIs.includes('custom_' + index) ? 'checked' : ''}
+                           data-custom-index="${index}">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-medium ${textColorClass} truncate">
+                            ${adultTag}${escapedName}
+                        </div>
+                        <div class="text-xs text-gray-500 truncate">${escapedUrl}</div>
+                        ${detailLine}
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    <button class="text-blue-500 hover:text-blue-700 text-xs px-1" onclick="editCustomApi(${index})">✎</button>
+                    <button class="text-red-500 hover:text-red-700 text-xs px-1" onclick="removeCustomApi(${index})">✕</button>
+                </div>
+            `;
+            container.appendChild(apiItem);
+
+            apiItem.querySelector('input').addEventListener('change', function () {
+                updateSelectedAPIs();
+                checkAdultAPIsSelected();
+            });
+        }
     });
+
+    if (isMobile && typeof SwipeActions !== 'undefined') {
+        SwipeActions.init(container);
+    }
 }
 
 // 编辑自定义API
@@ -462,14 +566,15 @@ function addCustomApi() {
 function removeCustomApi(index) {
     if (index < 0 || index >= customAPIs.length) return;
 
-    const apiName = customAPIs[index].name;
+    const deletedItem = customAPIs[index];
+    const customApiId = 'custom_' + index;
+    const wasSelected = selectedAPIs.includes(customApiId);
 
     // 从列表中移除API
     customAPIs.splice(index, 1);
     localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
 
     // 从选中列表中移除此API
-    const customApiId = 'custom_' + index;
     selectedAPIs = selectedAPIs.filter(id => id !== customApiId);
 
     // 更新大于此索引的自定义API索引
@@ -494,7 +599,12 @@ function removeCustomApi(index) {
     // 重新检查成人API选中状态
     checkAdultAPIsSelected();
 
-    showToast('已移除自定义API: ' + apiName, 'info');
+    // 显示撤销提示
+    if (typeof UndoToast !== 'undefined') {
+        UndoToast.show(deletedItem, index, wasSelected);
+    } else {
+        showToast('已移除自定义API: ' + deletedItem.name, 'info');
+    }
 }
 
 function toggleSettings(e) {
@@ -850,7 +960,7 @@ function hookInput() {
 document.addEventListener('DOMContentLoaded', hookInput);
 
 // 显示详情 - 修改为支持自定义API
-async function showDetails(id, vod_name, sourceCode) {
+async function showDetails(id, vod_name, sourceCode, vod_pic = '') {
     // 密码保护校验
     if (window.isPasswordProtected && window.isPasswordVerified) {
         if (window.isPasswordProtected() && !window.isPasswordVerified()) {
@@ -898,6 +1008,9 @@ async function showDetails(id, vod_name, sourceCode) {
         const modal = document.getElementById('modal');
         const modalTitle = document.getElementById('modalTitle');
         const modalContent = document.getElementById('modalContent');
+
+        // 保存封面URL到全局变量（优先使用传递的vod_pic，否则从API响应获取）
+        window.currentVodPic = vod_pic || (data.videoInfo && data.videoInfo.vod_pic ? data.videoInfo.vod_pic : '');
 
         // 显示来源信息
         const sourceName = data.videoInfo && data.videoInfo.source_name ?
@@ -996,6 +1109,11 @@ function playVideo(url, vod_name, sourceCode, episodeIndex = 0, vodId = '') {
 
     // 构建播放页面URL，使用watch.html作为中间跳转页
     let watchUrl = `watch.html?id=${vodId || ''}&source=${sourceCode || ''}&url=${encodeURIComponent(url)}&index=${episodeIndex}&title=${encodeURIComponent(vod_name || '')}`;
+
+    // 添加封面URL参数（如果存在）
+    if (window.currentVodPic) {
+        watchUrl += `&vod_pic=${encodeURIComponent(window.currentVodPic)}`;
+    }
 
     // 添加返回URL参数
     if (currentPath.includes('index.html') || currentPath.endsWith('/')) {
@@ -1628,7 +1746,7 @@ function renderSearchResults(results) {
 
         return `
             <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md"
-                 onclick="showDetails('${safeId}','${safeName}','${sourceCode}')" ${apiUrlAttr}>
+                 onclick="showDetails('${safeId}','${safeName}','${sourceCode}','${item.vod_pic || ''}')" ${apiUrlAttr}>
                 <div class="flex h-full">
                     ${hasCover ? `
                     <div class="relative flex-shrink-0 search-card-img-container">

@@ -91,7 +91,15 @@ function handleTouchStart(e) {
     const rect = panel.getBoundingClientRect();
     const relativeY = touch.clientY - rect.top;
 
-    if (relativeY >= GESTURE_CONFIG.dragHandleHeight) return;
+    // 获取当前滚动容器（内容层）
+    const scrollContainer = panel.querySelector('.space-y-5');
+
+    // 允许拖拽的条件：
+    // 1. 点击在顶部拖拽指示区 (60px)
+    // 2. 或者滚动容器已经滚动到了顶部 (scrollTop <= 0)
+    const isAtTop = scrollContainer ? scrollContainer.scrollTop <= 0 : true;
+
+    if (relativeY >= GESTURE_CONFIG.dragHandleHeight && !isAtTop) return;
 
     const now = Date.now();
     gestureState.isDragging = true;
@@ -130,6 +138,7 @@ function handleTouchMove(e) {
         return;
     }
 
+    // 只有当下滑 (deltaY > 0) 时才触发面板位移
     if (deltaY < 0) return;
 
     e.preventDefault();

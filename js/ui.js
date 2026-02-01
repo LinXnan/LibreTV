@@ -414,27 +414,113 @@ function loadViewingHistory() {
     const historyList = document.getElementById('historyList');
     if (!historyList) return;
 
-    const history = getViewingHistory();
+    let history = getViewingHistory();
+
+    // 过滤掉待删除的项 (撤销期间)
+    if (window.historyUndoState && window.historyUndoState.deletedItem) {
+        history = history.filter(item => item.url !== window.historyUndoState.deletedItem.url);
+    }
 
     if (history.length === 0) {
-        historyList.innerHTML = `<div class="text-center text-gray-500 py-8">暂无观看记录</div>`;
+        historyList.innerHTML = `<div class="text-center text-gray-500 py-8" style="grid-column: 1 / -1;">暂无观看记录</div>`;
         return;
     }
 
+    const isMobile = window.innerWidth <= 640;
+
     // 渲染历史记录
-    historyList.innerHTML = history.map(item => {
-        // 防止XSS
-        const safeTitle = item.title
+    historyList.innerHTML = history.map((item, index) => {
+        // 防止XSS - 转义 HTML 特殊字符和单引号，并提供默认值
+        const safeTitle = (item.title || '未知视频')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
 
-        const safeSource = item.sourceName ?
-            item.sourceName.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') :
-            '未知来源';
+        const safeSource = (item.sourceName || '未知来源')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
 
         const episodeText = item.episodeIndex !== undefined ?
             `第${item.episodeIndex + 1}集` : '';
+
+        // 为防止XSS，使用encodeURIComponent编码URL
+        const safeURL = encodeURIComponent(item.url);
+
+        // 移动端使用新的卡片布局
+        if (isMobile) {
+            // 计算进度百分比
+            let progressPercent = 0;
+            if (item.playbackPosition && item.duration && item.playbackPosition > 10) {
+                progressPercent = Math.min(100, Math.round((item.playbackPosition / item.duration) * 100));
+            }
+
+            // 速度徽章 - 仅在 !== 1.0 时显示，带闪电图标
+            const speedBadgeHtml = (item.playbackRate && item.playbackRate !== 1.0)
+                ? `<span class="history-speed-badge">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                    ${item.playbackRate}x
+                   </span>`
+                : '';
+
+            // 封面URL处理
+            const coverUrl = item.vod_pic && isValidImageUrl(item.vod_pic)
+                ? item.vod_pic
+                : '';
+
+            // 封面图片 HTML
+            const coverImgHtml = coverUrl
+                ? `<img class="history-cover-img lazy-load" data-src="/proxy/${encodeURIComponent(coverUrl)}" data-needs-auth="true" alt="${safeTitle}" loading="lazy">`
+                : '';
+
+            // 安全的 URL 用于 onclick - 转义单引号防止注入
+            const safeURLForOnclick = safeURL.replace(/'/g, '%27');
+
+            return `
+                <div class="history-item" data-url="${safeURL}" data-index="${index}">
+                    <div class="history-item-content${coverUrl ? ' has-cover' : ''}" onclick="playFromHistoryByIndex(${index})">
+                        ${coverImgHtml}
+                        <button class="history-item-corner-delete" onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURLForOnclick}', ${index})" title="删除">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                        <div class="history-title">${safeTitle}</div>
+                        <div class="history-meta">${episodeText}${episodeText ? ' · ' : ''}${safeSource}</div>
+                        ${progressPercent > 0 ? `
+                        <div class="history-progress-bar">
+                            <div class="history-progress-fill" style="width:${progressPercent}%"></div>
+                        </div>` : ''}
+                        ${speedBadgeHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 桌面端保持原有布局，添加封面支持
+        // 封面URL处理
+        const coverUrl = item.vod_pic && isValidImageUrl(item.vod_pic)
+            ? item.vod_pic
+            : '';
+        const proxiedCoverUrl = coverUrl
+            ? `/proxy/${encodeURIComponent(coverUrl)}`
+            : '';
+
+        // 封面HTML
+        const coverHtml = proxiedCoverUrl
+            ? `<div class="history-cover">
+                   <img data-src="${proxiedCoverUrl}"
+                        data-needs-auth="true"
+                        alt="${safeTitle}"
+                        class="lazy-load"
+                        loading="lazy">
+               </div>`
+            : `<div class="history-cover history-cover-placeholder">
+               </div>`;
 
         // 格式化剧集信息
         let episodeInfoHtml = '';
@@ -469,22 +555,20 @@ function loadViewingHistory() {
             `;
         }
 
-        // 为防止XSS，使用encodeURIComponent编码URL
-        const safeURL = encodeURIComponent(item.url);
-
         // 构建历史记录项HTML，添加删除按钮，需要放在position:relative的容器中
         return `
-            <div class="history-item cursor-pointer relative group" onclick="playFromHistory('${item.url}', '${safeTitle}', ${item.episodeIndex || 0}, ${item.playbackPosition || 0})">
-                <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL}')"
-                        class="absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 md:p-1 rounded-full hover:bg-gray-800 bg-gray-900/50 md:bg-transparent z-10 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center"
-                        title="删除记录"
-                        aria-label="删除此观看记录">
-                    <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-                ${playbackRateHtml ? `<div class="absolute right-2 bottom-2 z-10">${playbackRateHtml}</div>` : ''}
+            <div class="history-item cursor-pointer relative group" data-url="${safeURL}" data-index="${index}" onclick="playFromHistoryByIndex(${index})">
+                ${coverHtml}
                 <div class="history-info">
+                    <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL}')"
+                            class="absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 md:p-1 rounded-full hover:bg-gray-800 bg-gray-900/50 md:bg-transparent z-10 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center delete-btn"
+                            title="删除记录"
+                            aria-label="删除此观看记录">
+                        <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                    ${playbackRateHtml ? `<div class="absolute right-2 bottom-2 z-10">${playbackRateHtml}</div>` : ''}
                     <div class="history-title">${safeTitle}</div>
                     <div class="history-meta">
                         <span class="history-episode">${episodeText}</span>
@@ -504,6 +588,12 @@ function loadViewingHistory() {
     if (history.length > 5) {
         historyList.classList.add('pb-4');
     }
+
+    // 初始化懒加载
+    if (window.lazyImageLoader) {
+        window.lazyImageLoader.observeAll('.history-cover img.lazy-load');
+        window.lazyImageLoader.observeAll('.history-item-content img.lazy-load');
+    }
 }
 
 // 格式化播放时间为 mm:ss 格式
@@ -516,29 +606,186 @@ function formatPlaybackTime(seconds) {
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-// 删除单个历史记录项
+// 删除单个历史记录项 - 统一使用撤销功能
 function deleteHistoryItem(encodedUrl) {
+    const isMobile = window.innerWidth <= 640;
+    const url = decodeURIComponent(encodedUrl);
+    const history = getViewingHistory();
+    const itemIndex = history.findIndex(item => item.url === url);
+
+    if (itemIndex === -1) {
+        showToast('记录不存在', 'error');
+        return;
+    }
+
+    deleteHistoryItemWithUndo(encodedUrl, itemIndex);
+}
+
+// 撤销系统状态 (window 作用域，面板关闭后持续)
+window.historyUndoState = {
+    deletedItem: null,
+    originalIndex: -1,
+    timerId: null
+};
+
+// 带撤销的删除历史记录项 (PC端和移动端统一)
+function deleteHistoryItemWithUndo(encodedUrl, itemIndex) {
+    const isMobile = window.innerWidth <= 640;
+
     try {
-        // 解码URL
         const url = decodeURIComponent(encodedUrl);
-
-        // 获取当前历史记录
         const history = getViewingHistory();
+        const item = history.find(h => h.url === url);
 
-        // 过滤掉要删除的项
-        const newHistory = history.filter(item => item.url !== url);
+        if (!item) {
+            showToast('记录不存在', 'error');
+            return;
+        }
 
-        // 保存回localStorage
-        localStorage.setItem('viewingHistory', JSON.stringify(newHistory));
+        // 清除之前的撤销状态（自动提交前一个删除）
+        if (window.historyUndoState && window.historyUndoState.timerId) {
+            clearTimeout(window.historyUndoState.timerId);
+            if (window.historyUndoState.deletedItem) {
+                commitHistoryDeletion(window.historyUndoState.deletedItem.url);
+            }
+        }
 
-        // 重新加载历史记录显示
-        loadViewingHistory();
+        // 保存到撤销缓冲区
+        window.historyUndoState = {
+            deletedItem: { ...item },
+            originalIndex: itemIndex,
+            timerId: setTimeout(() => {
+                commitHistoryDeletion(url);
+                hideHistoryUndoToast();
+                window.historyUndoState = { deletedItem: null, originalIndex: -1, timerId: null };
+            }, 3000)
+        };
 
-        // 显示成功提示
-        showToast('已删除该记录', 'success');
+        // UI 立即移除
+        removeHistoryItemFromDOM(encodedUrl);
+
+        // 显示响应式Toast（立即替换旧Toast）
+        showHistoryUndoToast(item.title, isMobile);
     } catch (e) {
         console.error('删除历史记录项失败:', e);
         showToast('删除记录失败', 'error');
+    }
+}
+
+// 从 DOM 移除历史记录项
+function removeHistoryItemFromDOM(encodedUrl) {
+    const item = document.querySelector(`.history-item[data-url="${encodedUrl}"]`);
+    if (item) {
+        item.style.transition = 'opacity 180ms ease-out, transform 180ms ease-out';
+        item.style.opacity = '0';
+        item.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            item.remove();
+
+            // 检查是否删除了最后一项（在动画完成后）
+            const remainingItems = document.querySelectorAll('#historyList .history-item');
+            if (remainingItems.length === 0) {
+                const historyList = document.getElementById('historyList');
+                if (historyList) {
+                    historyList.innerHTML = `<div class="text-center text-gray-500 py-8" style="grid-column: 1 / -1;">暂无观看记录</div>`;
+                }
+            }
+        }, 180);
+    }
+}
+
+// 真正执行删除 (更新 localStorage)
+function commitHistoryDeletion(url) {
+    try {
+        const history = getViewingHistory();
+        const newHistory = history.filter(item => item.url !== url);
+        localStorage.setItem('viewingHistory', JSON.stringify(newHistory));
+    } catch (e) {
+        console.error('提交删除失败:', e);
+    }
+}
+
+// 撤销历史记录删除
+function undoHistoryDeletion() {
+    const state = window.historyUndoState;
+    if (!state.deletedItem) return;
+
+    // 取消定时器
+    if (state.timerId) {
+        clearTimeout(state.timerId);
+    }
+
+    // 清理状态 (先清理，避免 loadViewingHistory 过滤掉恢复的项)
+    window.historyUndoState = { deletedItem: null, originalIndex: -1, timerId: null };
+
+    // 重新加载历史记录
+    loadViewingHistory();
+
+    hideHistoryUndoToast();
+    showToast('已恢复记录', 'success');
+}
+
+// 显示撤销 toast (使用 DOM API 防止 XSS)
+function showHistoryUndoToast(title, isMobile) {
+    hideHistoryUndoToast();
+
+    const truncatedTitle = title.length > 15 ? title.slice(0, 15) + '...' : title;
+    const toast = document.createElement('div');
+
+    // PC端和移动端使用不同的样式
+    if (isMobile) {
+        toast.className = 'history-undo-toast';
+        toast.id = 'history-undo-toast';
+    } else {
+        toast.className = 'history-undo-toast-pc';
+        toast.id = 'history-undo-toast-pc';
+    }
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = `已删除 "${truncatedTitle}"`;
+
+    const undoBtn = document.createElement('button');
+    undoBtn.className = isMobile ? 'history-undo-toast-btn' : 'undo-btn';
+    undoBtn.textContent = '撤销';
+    undoBtn.onclick = function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        undoHistoryDeletion();
+    };
+
+    // 阻止 toast 上的点击事件冒泡
+    toast.onclick = function(e) {
+        e.stopPropagation();
+    };
+
+    toast.appendChild(textSpan);
+    toast.appendChild(undoBtn);
+    document.body.appendChild(toast);
+}
+
+// 隐藏撤销 toast
+function hideHistoryUndoToast() {
+    // 移动端toast
+    const toastMobile = document.getElementById('history-undo-toast');
+    if (toastMobile) {
+        toastMobile.classList.add('hiding');
+        setTimeout(() => toastMobile.remove(), 180);
+    }
+
+    // PC端toast
+    const toastPC = document.getElementById('history-undo-toast-pc');
+    if (toastPC) {
+        toastPC.classList.add('hiding');
+        setTimeout(() => toastPC.remove(), 180);
+    }
+}
+
+// 通过索引从历史记录播放 (移动端使用，避免 XSS)
+function playFromHistoryByIndex(index) {
+    const history = getViewingHistory();
+    if (index >= 0 && index < history.length) {
+        const item = history[index];
+        playFromHistory(item.url, item.title, item.episodeIndex || 0, item.playbackPosition || 0);
     }
 }
 
@@ -799,6 +1046,11 @@ function addToViewingHistory(videoInfo) {
 
         // 保存到本地存储
         localStorage.setItem('viewingHistory', JSON.stringify(history));
+
+        // 主动预载封面图
+        if (videoInfo.vod_pic && window.imageCacheManager) {
+            window.imageCacheManager.preload(`/proxy/${encodeURIComponent(videoInfo.vod_pic)}`);
+        }
     } catch (e) {
         // console.error('保存观看历史失败:', e);
     }
@@ -1012,3 +1264,11 @@ function showImportBox(fun) {
         fun(fileInput.files[0]);
     });
 }
+
+// 页面刷新时静默提交待删除的历史记录
+window.addEventListener('beforeunload', () => {
+    if (window.historyUndoState && window.historyUndoState.deletedItem) {
+        clearTimeout(window.historyUndoState.timerId);
+        commitHistoryDeletion(window.historyUndoState.deletedItem.url);
+    }
+});
