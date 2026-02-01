@@ -365,6 +365,37 @@ function toggleHistory(e) {
 }
 
 // 格式化时间戳为友好的日期时间格式
+// 按时间线分组历史记录
+function groupHistoryByTimeline(history) {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const yesterdayStart = todayStart - 86400000; // 24小时前
+    const thisWeekStart = todayStart - 604800000; // 7天前
+
+    const groups = [
+        { label: '今天', items: [], minTime: todayStart },
+        { label: '昨天', items: [], minTime: yesterdayStart, maxTime: todayStart },
+        { label: '本周', items: [], minTime: thisWeekStart, maxTime: yesterdayStart },
+        { label: '更早', items: [], maxTime: thisWeekStart }
+    ];
+
+    history.forEach(item => {
+        const timestamp = item.timestamp;
+
+        if (timestamp >= todayStart) {
+            groups[0].items.push(item);
+        } else if (timestamp >= yesterdayStart) {
+            groups[1].items.push(item);
+        } else if (timestamp >= thisWeekStart) {
+            groups[2].items.push(item);
+        } else {
+            groups[3].items.push(item);
+        }
+    });
+
+    return groups;
+}
+
 function formatTimestamp(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
@@ -462,8 +493,22 @@ function loadViewingHistory() {
 
     const isMobile = window.innerWidth <= 640;
 
-    // 渲染历史记录
-    historyList.innerHTML = history.map((item, index) => {
+    // 按时间段分组历史记录
+    const groupedHistory = groupHistoryByTimeline(history);
+
+    // 渲染分组后的历史记录
+    let htmlContent = '';
+
+    for (const group of groupedHistory) {
+        if (group.items.length === 0) continue;
+
+        // 添加时间线标题
+        htmlContent += `<div class="timeline-header">${group.label}</div>`;
+
+        // 渲染该时间段的历史记录
+        htmlContent += group.items.map((item) => {
+        // 获取该项在原始历史记录数组中的索引
+        const index = history.findIndex(h => h.url === item.url && h.timestamp === item.timestamp);
         // 防止XSS - 转义 HTML 特殊字符和单引号，并提供默认值
         const safeTitle = (item.title || '未知视频')
             .replace(/</g, '&lt;')
@@ -601,7 +646,10 @@ function loadViewingHistory() {
                 </div>
             </div>
         `;
-    }).join('');
+        }).join('');
+    }
+
+    historyList.innerHTML = htmlContent;
 
     // 检查是否存在较多历史记录，添加底部边距确保底部按钮不会挡住内容
     if (history.length > 5) {

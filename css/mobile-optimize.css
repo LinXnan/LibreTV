@@ -1131,6 +1131,23 @@
         padding: 8px !important;
     }
 
+    /* 时间线标题样式 - 移动端全宽 */
+    #historyList .timeline-header {
+        grid-column: 1 / -1 !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        color: #888 !important;
+        padding: 12px 4px 8px 4px !important;
+        margin: 0 !important;
+        border-bottom: 1px solid #333 !important;
+        letter-spacing: 0.5px !important;
+        background: transparent !important;
+    }
+
+    #historyList .timeline-header:first-child {
+        padding-top: 4px !important;
+    }
+
     /* 历史卡片容器 - 使用 padding-bottom 实现 2:3 比例 */
     #historyList .history-item {
         position: relative !important;

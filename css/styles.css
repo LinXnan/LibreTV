@@ -679,6 +679,22 @@ body {
     padding-right: 6px; /* 为滚动条预留空间，确保内容不被挤压 */
 }
 
+/* 时间线标题样式 - 桌面端 */
+.timeline-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+    padding: 16px 8px 8px 8px;
+    margin-top: 8px;
+    border-bottom: 1px solid #333;
+    letter-spacing: 0.5px;
+}
+
+.timeline-header:first-child {
+    margin-top: 0;
+    padding-top: 8px;
+}
+
 /* 历史记录项样式优化 - PC端横向布局 */
 .history-item {
     display: flex;
