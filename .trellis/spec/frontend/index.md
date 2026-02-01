@@ -15,6 +15,7 @@ This directory contains guidelines for frontend development. Fill in each file w
 | Guide | Description | Status |
 |-------|-------------|--------|
 | [Mobile Modal Pattern](./mobile-modal-pattern.md) | Unified mobile bottom drawer modals | ✅ Documented |
+| [History Timeline Pattern](./history-timeline-pattern.md) | Timeline grouping for history records | ✅ Documented |
 | [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
 | [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | To fill |
 | [Hook Guidelines](./hook-guidelines.md) | Custom hooks, data fetching patterns | To fill |

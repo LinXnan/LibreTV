@@ -23,3 +23,9 @@ coverage
 *.sln
 *.sw?
 .env
+/.trellis/.developer
+/.trellis/workspace/
+/.trellis/tasks/
+/.claude/
+.ace-tool/
+/.cursor/
