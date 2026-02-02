@@ -1237,11 +1237,11 @@ body {
     padding: 1.25rem;
     background: linear-gradient(135deg, #0a0e1a 0%, #121829 100%);
     border-radius: 12px;
-    border: 1px solid rgba(0, 204, 255, 0.2);
+    border: 1px solid rgba(0, 159, 191, 0.2);
     box-shadow:
         0 4px 20px rgba(0, 0, 0, 0.5),
-        0 0 15px rgba(0, 204, 255, 0.1),
-        inset 0 1px 0 rgba(0, 204, 255, 0.1);
+        0 0 15px rgba(0, 159, 191, 0.1),
+        inset 0 1px 0 rgba(0, 159, 191, 0.1);
     overflow: hidden;
     transition: all 0.3s ease;
 }
@@ -1253,17 +1253,17 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 204, 255, 0.08), transparent);
+    background: linear-gradient(90deg, transparent, rgba(0, 159, 191, 0.08), transparent);
     transition: left 0.6s ease;
     pointer-events: none;
 }
 
 .datasource-section:hover {
-    border-color: rgba(0, 204, 255, 0.4);
+    border-color: rgba(0, 159, 191, 0.4);
     box-shadow:
         0 6px 25px rgba(0, 0, 0, 0.6),
-        0 0 25px rgba(0, 204, 255, 0.2),
-        inset 0 1px 0 rgba(0, 204, 255, 0.15);
+        0 0 25px rgba(0, 159, 191, 0.2),
+        inset 0 1px 0 rgba(0, 159, 191, 0.15);
 }
 
 .datasource-section:hover::before {
@@ -1277,19 +1277,19 @@ body {
     font-weight: 600;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid rgba(0, 204, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 159, 191, 0.2);
     letter-spacing: 0.5px;
-    text-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
+    text-shadow: 0 0 10px rgba(0, 159, 191, 0.3);
 }
 
 /* 批量操作按钮 */
 .datasource-action-btn {
     position: relative;
     padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, rgba(0, 204, 255, 0.1), rgba(0, 204, 255, 0.05));
-    border: 1px solid rgba(0, 204, 255, 0.3);
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.1), rgba(0, 159, 191, 0.05));
+    border: 1px solid rgba(0, 159, 191, 0.3);
     border-radius: 6px;
-    color: var(--primary-color);
+    color: #009fbf;
     font-size: 0.75rem;
     font-weight: 500;
     cursor: pointer;
@@ -1305,15 +1305,15 @@ body {
     width: 0;
     height: 0;
     border-radius: 50%;
-    background: rgba(0, 204, 255, 0.2);
+    background: rgba(0, 159, 191, 0.2);
     transform: translate(-50%, -50%);
     transition: width 0.4s ease, height 0.4s ease;
 }
 
 .datasource-action-btn:hover {
-    background: linear-gradient(135deg, rgba(0, 204, 255, 0.2), rgba(0, 204, 255, 0.1));
-    border-color: var(--primary-color);
-    box-shadow: 0 0 15px rgba(0, 204, 255, 0.3);
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.2), rgba(0, 159, 191, 0.1));
+    border-color: #009fbf;
+    box-shadow: 0 0 15px rgba(0, 159, 191, 0.3);
     transform: translateY(-2px);
 }
 
@@ -1331,7 +1331,7 @@ body {
     max-height: 10rem;
     overflow-y: auto;
     background: linear-gradient(135deg, rgba(10, 14, 26, 0.8), rgba(18, 24, 41, 0.8));
-    border: 1px solid rgba(0, 204, 255, 0.15);
+    border: 1px solid rgba(0, 159, 191, 0.15);
     border-radius: 8px;
     padding: 0.5rem;
     margin-bottom: 1rem;
@@ -1342,8 +1342,8 @@ body {
 .datasource-section .grid.grid-cols-2 > .flex.items-center {
     position: relative;
     padding: 0.5rem 0.75rem;
-    background: linear-gradient(135deg, rgba(0, 204, 255, 0.03), rgba(0, 204, 255, 0.01));
-    border: 1px solid rgba(0, 204, 255, 0.15);
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.03), rgba(0, 159, 191, 0.01));
+    border: 1px solid rgba(0, 159, 191, 0.15);
     border-radius: 6px;
     margin-bottom: 0.5rem;
     transition: all 0.3s ease;
@@ -1351,19 +1351,19 @@ body {
 }
 
 .datasource-section .grid.grid-cols-2 > .flex.items-center:hover {
-    background: linear-gradient(135deg, rgba(0, 204, 255, 0.08), rgba(0, 204, 255, 0.04));
-    border-color: rgba(0, 204, 255, 0.4);
-    box-shadow: 0 0 12px rgba(0, 204, 255, 0.2);
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.08), rgba(0, 159, 191, 0.04));
+    border-color: rgba(0, 159, 191, 0.4);
+    box-shadow: 0 0 12px rgba(0, 159, 191, 0.2);
     transform: translateX(3px);
 }
 
 /* 选中状态的发光效果 */
 .datasource-section .grid.grid-cols-2 > .flex.items-center:has(input:checked) {
-    background: linear-gradient(135deg, rgba(0, 204, 255, 0.15), rgba(0, 204, 255, 0.08));
-    border-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.15), rgba(0, 159, 191, 0.08));
+    border-color: #009fbf;
     box-shadow:
-        0 0 15px rgba(0, 204, 255, 0.3),
-        inset 0 0 10px rgba(0, 204, 255, 0.1);
+        0 0 15px rgba(0, 159, 191, 0.3),
+        inset 0 0 10px rgba(0, 159, 191, 0.1);
 }
 
 /* 成人内容 API 特殊样式 */
@@ -1389,15 +1389,15 @@ body {
 .datasource-section .form-checkbox {
     width: 16px;
     height: 16px;
-    border: 2px solid rgba(0, 204, 255, 0.4);
+    border: 2px solid rgba(0, 159, 191, 0.4);
     background: rgba(10, 14, 26, 0.8);
     transition: all 0.3s ease;
 }
 
 .datasource-section .form-checkbox:checked {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.5);
+    background: #009fbf;
+    border-color: #009fbf;
+    box-shadow: 0 0 10px rgba(0, 159, 191, 0.5);
 }
 
 .datasource-section .form-checkbox.api-adult {
@@ -1421,7 +1421,7 @@ body {
 }
 
 .datasource-section .flex.items-center:has(input:checked) label[for^="api_"] {
-    color: var(--primary-color);
+    color: #009fbf;
     font-weight: 500;
 }
 
@@ -1437,8 +1437,8 @@ body {
     font-size: 0.75rem;
     color: var(--text-muted);
     padding: 0.75rem;
-    background: rgba(0, 204, 255, 0.05);
-    border: 1px solid rgba(0, 204, 255, 0.15);
+    background: rgba(0, 159, 191, 0.05);
+    border: 1px solid rgba(0, 159, 191, 0.15);
     border-radius: 6px;
     margin-bottom: 1rem;
 }
@@ -1451,17 +1451,17 @@ body {
 
 /* API 组标题增强 */
 .datasource-section .api-group-title {
-    background: linear-gradient(90deg, rgba(0, 204, 255, 0.1), transparent);
-    border-left: 3px solid var(--primary-color);
+    background: linear-gradient(90deg, rgba(0, 159, 191, 0.1), transparent);
+    border-left: 3px solid #009fbf;
     padding: 0.5rem 0.75rem !important;
     margin: 0.75rem 0 0.5rem 0 !important;
-    color: var(--primary-color) !important;
+    color: #009fbf !important;
     font-weight: 600 !important;
     font-size: 0.8rem !important;
     text-transform: uppercase;
     letter-spacing: 1px;
     border-bottom: none !important;
-    box-shadow: 0 0 10px rgba(0, 204, 255, 0.1);
+    box-shadow: 0 0 10px rgba(0, 159, 191, 0.1);
 }
 
 .datasource-section .api-group-title.adult {
