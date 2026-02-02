@@ -26,6 +26,7 @@ This directory contains guidelines for frontend development in this **traditiona
 | [State Management](./state-management.md) | LocalStorage, global state, UI state | ✅ Completed |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | ✅ Completed |
 | [Type Safety](./type-safety.md) | Runtime validation, JSDoc patterns | ✅ Completed |
+| [Mobile Panel Pattern](./mobile-panel-pattern.md) | Mobile bottom sheet panel management | ✅ Completed |
 
 ---
 
