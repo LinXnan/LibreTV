@@ -1014,18 +1014,6 @@
         cursor: grabbing;
     }
 
-    /* 拖拽中状态 */
-    .history-panel.dragging,
-    .settings-panel.dragging,
-    #episodeModal.episode-panel.dragging {
-        transition: none !important;
-    }
-
-    .history-panel.dragging .panel-drag-indicator,
-    .settings-panel.dragging .panel-drag-indicator,
-    #episodeModal.episode-panel.dragging .panel-drag-indicator {
-        cursor: grabbing;
-    }
 }
 
 /* 桌面端隐藏拖拽指示器和遮罩 */
