@@ -1,0 +1,41 @@
+{
+  "id": "adjust-datasource-blue",
+  "name": "adjust-datasource-blue",
+  "title": "调整数据源设置蓝色亮度",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "ui",
+  "priority": "P2",
+  "creator": "seanan",
+  "assignee": "seanan",
+  "createdAt": "2026-02-02",
+  "completedAt": "2026-02-02",
+  "branch": "feature/adjust-datasource-blue",
+  "base_branch": "main",
+  "worktree_path": "D:/IdeaProjects/trellis-worktrees/feature/adjust-datasource-blue",
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": "a85fbcf",
+  "pr_url": null,
+  "subtasks": [],
+  "relatedFiles": [],
+  "notes": ""
+}
