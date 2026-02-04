@@ -1493,3 +1493,193 @@ body {
         margin-bottom: 0;
     }
 }
+
+/* ========================================
+   通用设置区域样式 - 统一赛博朋克风格
+   ======================================== */
+
+/* 通用设置区域基类 */
+.settings-section {
+    position: relative;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #0a0e1a 0%, #121829 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 159, 191, 0.2);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.5),
+        0 0 15px rgba(0, 159, 191, 0.1),
+        inset 0 1px 0 rgba(0, 159, 191, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* 扫光动画 */
+.settings-section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 159, 191, 0.08), transparent);
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+
+/* 悬停效果 */
+.settings-section:hover {
+    border-color: rgba(0, 159, 191, 0.4);
+    box-shadow:
+        0 6px 25px rgba(0, 0, 0, 0.6),
+        0 0 25px rgba(0, 159, 191, 0.2),
+        inset 0 1px 0 rgba(0, 159, 191, 0.15);
+}
+
+.settings-section:hover::before {
+    left: 100%;
+}
+
+/* 通用标题样式 */
+.settings-section-title {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0, 159, 191, 0.2);
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 10px rgba(0, 159, 191, 0.3);
+}
+
+/* 自定义API管理区域 */
+.custom-api-section {
+    position: relative;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #0a0e1a 0%, #121829 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 159, 191, 0.2);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.5),
+        0 0 15px rgba(0, 159, 191, 0.1),
+        inset 0 1px 0 rgba(0, 159, 191, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.custom-api-section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 159, 191, 0.08), transparent);
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+
+.custom-api-section:hover {
+    border-color: rgba(0, 159, 191, 0.4);
+    box-shadow:
+        0 6px 25px rgba(0, 0, 0, 0.6),
+        0 0 25px rgba(0, 159, 191, 0.2),
+        inset 0 1px 0 rgba(0, 159, 191, 0.15);
+}
+
+.custom-api-section:hover::before {
+    left: 100%;
+}
+
+/* 内容过滤设置区域 */
+.filter-settings-section {
+    position: relative;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #0a0e1a 0%, #121829 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 159, 191, 0.2);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.5),
+        0 0 15px rgba(0, 159, 191, 0.1),
+        inset 0 1px 0 rgba(0, 159, 191, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.filter-settings-section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 159, 191, 0.08), transparent);
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+
+.filter-settings-section:hover {
+    border-color: rgba(0, 159, 191, 0.4);
+    box-shadow:
+        0 6px 25px rgba(0, 0, 0, 0.6),
+        0 0 25px rgba(0, 159, 191, 0.2),
+        inset 0 1px 0 rgba(0, 159, 191, 0.15);
+}
+
+.filter-settings-section:hover::before {
+    left: 100%;
+}
+
+/* 一般功能区域 */
+.general-functions-section {
+    position: relative;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #0a0e1a 0%, #121829 100%);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 159, 191, 0.2);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.5),
+        0 0 15px rgba(0, 159, 191, 0.1),
+        inset 0 1px 0 rgba(0, 159, 191, 0.1);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.general-functions-section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0, 159, 191, 0.08), transparent);
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+
+.general-functions-section:hover {
+    border-color: rgba(0, 159, 191, 0.4);
+    box-shadow:
+        0 6px 25px rgba(0, 0, 0, 0.6),
+        0 0 25px rgba(0, 159, 191, 0.2),
+        inset 0 1px 0 rgba(0, 159, 191, 0.15);
+}
+
+.general-functions-section:hover::before {
+    left: 100%;
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+    .settings-section,
+    .custom-api-section,
+    .filter-settings-section,
+    .general-functions-section {
+        padding: 1rem;
+        border-radius: 10px;
+    }
+
+    .settings-section-title {
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+    }
+}

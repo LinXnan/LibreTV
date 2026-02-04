@@ -127,13 +127,13 @@ function initAPICheckboxes() {
             const item = document.createElement('label');
             item.className = 'mobile-api-item';
             item.innerHTML = `
+                <div class="mobile-api-content">
+                    <span class="mobile-api-name">${api.name}</span>
+                </div>
                 <input type="checkbox" id="api_${apiKey}"
                        class="mobile-api-checkbox"
                        ${checked ? 'checked' : ''}
                        data-api="${apiKey}">
-                <div class="mobile-api-content">
-                    <span class="mobile-api-name">${api.name}</span>
-                </div>
             `;
             normaldiv.appendChild(item);
 
@@ -199,14 +199,14 @@ function addAdultAPI() {
                 const item = document.createElement('label');
                 item.className = 'mobile-api-item adult';
                 item.innerHTML = `
+                    <div class="mobile-api-content">
+                        <span class="mobile-api-name">${api.name}</span>
+                        <span class="adult-badge">18+</span>
+                    </div>
                     <input type="checkbox" id="api_${apiKey}"
                            class="mobile-api-checkbox api-adult"
                            ${checked ? 'checked' : ''}
                            data-api="${apiKey}">
-                    <div class="mobile-api-content">
-                        <span class="mobile-api-name">${api.name}</span>
-                    </div>
-                    <span class="adult-badge">18+</span>
                 `;
                 adultdiv.appendChild(item);
 

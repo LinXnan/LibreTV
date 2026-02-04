@@ -1474,32 +1474,31 @@
    数据源设置项样式 - 两列网格布局
    ======================================== */
 @media (max-width: 640px) {
-    /* 移动端网格容器 */
+    /* 移动端单列容器 - 改为 flex 布局 */
     .mobile-api-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1px;
-        background: #222;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
     }
 
-    /* 组标题占满两列 - 赛博朋克增强 */
+    /* 组标题 - 赛博朋克增强 */
     .mobile-api-grid .api-group-title {
-        grid-column: 1 / -1;
-        background: linear-gradient(90deg, rgba(0, 204, 255, 0.15), rgba(0, 204, 255, 0.05));
+        background: linear-gradient(90deg, rgba(0, 159, 191, 0.15), rgba(0, 159, 191, 0.05));
         padding: 0.7rem 0.9rem !important;
-        margin: 0 !important;
+        margin: 0.5rem 0 !important;
         border-top: none !important;
         border-bottom: none !important;
-        border-left: 3px solid var(--primary-color);
+        border-left: 3px solid #009fbf;
+        border-radius: 6px;
         font-weight: 600 !important;
-        color: var(--primary-color) !important;
+        color: #009fbf !important;
         font-size: 0.75rem !important;
         text-transform: uppercase;
         letter-spacing: 0.8px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 0 15px rgba(0, 204, 255, 0.15);
+        box-shadow: 0 0 15px rgba(0, 159, 191, 0.15);
     }
 
     .mobile-api-grid .api-group-title.adult {
@@ -1509,15 +1508,17 @@
         box-shadow: 0 0 15px rgba(255, 60, 120, 0.15);
     }
 
-    /* 列表项容器 - 横向布局 - 赛博朋克增强 */
+    /* 列表项容器 - 单列卡片布局 - 更大的触摸目标 */
     .mobile-api-item {
         display: flex;
         flex-direction: row;
         align-items: center;
-        padding: 0.7rem 0.8rem;
-        min-height: 3.2rem;
-        background: linear-gradient(135deg, rgba(0, 204, 255, 0.03), rgba(0, 204, 255, 0.01));
-        border: 1px solid rgba(0, 204, 255, 0.1);
+        justify-content: space-between;
+        padding: 1rem;
+        min-height: 3.5rem; /* 增加最小高度，确保 44px+ 触摸目标 */
+        background: linear-gradient(135deg, rgba(0, 159, 191, 0.03), rgba(0, 159, 191, 0.01));
+        border: 1px solid rgba(0, 159, 191, 0.15);
+        border-radius: 8px;
         cursor: pointer;
         transition: all 0.25s ease;
         -webkit-tap-highlight-color: transparent;
@@ -1533,14 +1534,15 @@
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(0, 204, 255, 0.1), transparent);
+        background: linear-gradient(90deg, transparent, rgba(0, 159, 191, 0.1), transparent);
         transition: left 0.5s ease;
         pointer-events: none;
     }
 
     .mobile-api-item:active {
-        background: linear-gradient(135deg, rgba(0, 204, 255, 0.08), rgba(0, 204, 255, 0.04));
-        border-color: rgba(0, 204, 255, 0.3);
+        background: linear-gradient(135deg, rgba(0, 159, 191, 0.08), rgba(0, 159, 191, 0.04));
+        border-color: rgba(0, 159, 191, 0.3);
+        transform: scale(0.98); /* 轻微缩放反馈 */
     }
 
     .mobile-api-item:active::before {
@@ -1549,11 +1551,11 @@
 
     /* 选中状态 - 霓虹发光 */
     .mobile-api-item:has(input:checked) {
-        background: linear-gradient(135deg, rgba(0, 204, 255, 0.15), rgba(0, 204, 255, 0.08));
-        border-color: var(--primary-color);
+        background: linear-gradient(135deg, rgba(0, 159, 191, 0.15), rgba(0, 159, 191, 0.08));
+        border-color: #009fbf;
         box-shadow:
-            0 0 12px rgba(0, 204, 255, 0.3),
-            inset 0 0 8px rgba(0, 204, 255, 0.1);
+            0 0 15px rgba(0, 159, 191, 0.3),
+            inset 0 0 10px rgba(0, 159, 191, 0.1);
     }
 
     /* 成人内容特殊样式 */
@@ -1579,60 +1581,62 @@
             inset 0 0 8px rgba(255, 60, 120, 0.1);
     }
 
-    /* 自定义复选框 - 赛博朋克增强 */
+    /* 隐藏原生复选框，使用自定义指示器 */
     .mobile-api-checkbox {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 1.2rem;
-        height: 1.2rem;
-        border: 2px solid rgba(0, 204, 255, 0.4);
-        border-radius: 0.3rem;
-        background: rgba(10, 14, 26, 0.9);
-        margin-right: 0.7rem;
-        display: inline-grid;
-        place-content: center;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        flex-shrink: 0;
-        position: relative;
-        box-shadow: 0 0 5px rgba(0, 204, 255, 0.1);
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+        pointer-events: none;
     }
 
-    .mobile-api-checkbox:checked {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-        box-shadow:
-            0 0 15px rgba(0, 204, 255, 0.5),
-            inset 0 0 5px rgba(255, 255, 255, 0.3);
+    /* 自定义选中指示器 - 圆形 + 对勾 */
+    .mobile-api-item::after {
+        content: "";
+        width: 1.5rem;
+        height: 1.5rem;
+        border: 2px solid rgba(0, 159, 191, 0.4);
+        border-radius: 50%;
+        background: rgba(10, 14, 26, 0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 0 5px rgba(0, 159, 191, 0.1);
+    }
+
+    .mobile-api-item:has(input:checked)::after {
+        background: #009fbf;
+        border-color: #009fbf;
+        box-shadow: 0 0 15px rgba(0, 159, 191, 0.5);
         animation: checkboxPulse 0.4s ease;
+        /* 对勾图标通过背景图实现 */
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M4.5 12.75l6 6 9-13.5'/%3E%3C/svg%3E");
+        background-size: 70%;
+        background-position: center;
+        background-repeat: no-repeat;
     }
 
     @keyframes checkboxPulse {
         0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
+        50% { transform: scale(1.15); }
     }
 
-    .mobile-api-checkbox:checked::after {
-        content: "";
-        width: 0.5rem;
-        height: 0.3rem;
-        border-left: 2px solid white;
-        border-bottom: 2px solid white;
-        transform: rotate(-45deg) translate(1px, -1px);
-        filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
-    }
-
-    /* 成人 API 复选框颜色 */
-    .mobile-api-checkbox.api-adult {
+    /* 成人 API 指示器颜色 */
+    .mobile-api-item.adult::after {
         border-color: rgba(255, 60, 120, 0.4);
         box-shadow: 0 0 5px rgba(255, 60, 120, 0.1);
     }
 
-    .mobile-api-checkbox.api-adult:checked {
+    .mobile-api-item.adult:has(input:checked)::after {
         background: var(--accent-color);
         border-color: var(--accent-color);
-        box-shadow:
-            0 0 15px rgba(255, 60, 120, 0.5),
-            inset 0 0 5px rgba(255, 255, 255, 0.3);
+        box-shadow: 0 0 15px rgba(255, 60, 120, 0.5);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white' stroke-width='3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M4.5 12.75l6 6 9-13.5'/%3E%3C/svg%3E");
+        background-size: 70%;
+        background-position: center;
+        background-repeat: no-repeat;
     }
 
     /* 内容区域 */
@@ -1645,21 +1649,21 @@
     }
 
     .mobile-api-name {
-        font-size: 0.8rem;
+        font-size: 0.875rem; /* 稍微增大字体 */
         font-weight: 500;
         color: var(--text-muted);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        line-height: 1.3;
+        line-height: 1.4;
         transition: color 0.3s ease;
     }
 
     /* 选中状态文字颜色 */
     .mobile-api-item:has(input:checked) .mobile-api-name {
-        color: var(--primary-color);
+        color: #009fbf;
         font-weight: 600;
-        text-shadow: 0 0 8px rgba(0, 204, 255, 0.3);
+        text-shadow: 0 0 8px rgba(0, 159, 191, 0.3);
     }
 
     .mobile-api-item.adult:has(input:checked) .mobile-api-name {
