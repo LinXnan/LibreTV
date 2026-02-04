@@ -1,0 +1,41 @@
+{
+  "id": "unify-settings-panel-style",
+  "name": "unify-settings-panel-style",
+  "title": "统一设置面板样式风格\n\n## 背景\n数据源设置区域已完成赛博朋克风格改造（commit a85fbcf），将蓝色从 #00ccff 调整为 #009fbf（降低约25%亮度）。\n\n## 目标\n将设置面板的其他三个板块改成与数据源设置完全一致的样式风格。\n\n## 需要修改的板块\n1. 自定义API管理区域 (index.html line 198-229)\n   - 当前: p-3 bg-[#151515] rounded-lg shadow-inner\n   - 目标: 使用 .custom-api-section 类，继承数据源样式\n\n2. 内容过滤设置区域 (index.html line 232-289)\n   - 当前: p-3 bg-[#151515] rounded-lg shadow-inner\n   - 目标: 使用 .filter-settings-section 类，继承数据源样式\n\n3. 一般功能区域 (index.html line 292-297)\n   - 当前: p-3 bg-[#151515] rounded-lg shadow-inner\n   - 目标: 使用 .general-functions-section 类，继承数据源样式\n\n## 样式要求（参考 .datasource-section）\n- 渐变背景: linear-gradient(135deg, #0a0e1a 0%, #121829 100%)\n- 霓虹边框: border: 1px solid rgba(0, 159, 191, 0.2)\n- 多层阴影效果\n- 扫光动画（::before 伪元素）\n- 悬停效果（边框和阴影增强）\n- 标题使用 gradient-text 类和发光效果\n\n## 约束\n- 只改样式，不改功能逻辑\n- 保持所有现有功能（开关、按钮、表单等）正常工作\n- 适配移动端和PC端\n- 蓝色统一使用 #009fbf (rgba(0, 159, 191, x))\n\n## 参考文件\n- css/styles.css: .datasource-section 样式定义（line 1237-1475）\n- index.html: 设置面板HTML结构（line 152-299）",
+  "description": "",
+  "status": "completed",
+  "dev_type": "frontend",
+  "scope": "ui",
+  "priority": "P2",
+  "creator": "seanan",
+  "assignee": "seanan",
+  "createdAt": "2026-02-04",
+  "completedAt": "2026-02-04",
+  "branch": "feature/unify-settings-panel-style",
+  "base_branch": "main",
+  "worktree_path": "D:\\IdeaProjects\\trellis-worktrees\\feature\\unify-settings-panel-style",
+  "current_phase": 0,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "relatedFiles": [],
+  "notes": ""
+}

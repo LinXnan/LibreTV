@@ -35,7 +35,14 @@
       "Bash(fi)",
       "Bash(git show:*)",
       "Bash(git check-ignore:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(ls:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(TASK_DIR=\".trellis/tasks/02-02-adjust-datasource-blue\":*)",
+      "Bash(./.trellis/scripts/multi-agent/trellis:start.sh \".trellis/tasks/02-02-adjust-datasource-blue\")",
+      "Bash(git merge:*)",
+      "Bash(python3:*)"
     ]
   }
 }

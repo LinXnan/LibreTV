@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guidelines index"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Code quality standards to verify against"}
+{"file": "css/styles.css", "reason": "Verify new styles match .datasource-section pattern"}
+{"file": "index.html", "reason": "Verify HTML changes are correct"}
