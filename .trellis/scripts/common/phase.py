@@ -19,6 +19,13 @@ Provides:
 
 from __future__ import annotations
 
+import sys
+
+# IMPORTANT: Force stdout to use UTF-8 on Windows
+# This fixes UnicodeEncodeError when outputting non-ASCII characters
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 import json
 from pathlib import Path
 

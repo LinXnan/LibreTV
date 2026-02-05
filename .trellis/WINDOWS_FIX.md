@@ -70,7 +70,18 @@ if sys.platform == "win32":
 14. `.claude/hooks/inject-subagent-context.py`
 15. `.claude/hooks/ralph-loop.py`
 
-**总计：15 个文件已修复**
+### 第四批修复（v2.2 - 2026-02-05）
+
+**Common 模块工具脚本（补充修复）：**
+16. `.trellis/scripts/common/paths.py`
+17. `.trellis/scripts/common/phase.py`
+18. `.trellis/scripts/common/registry.py`
+19. `.trellis/scripts/common/task_queue.py`
+20. `.trellis/scripts/common/task_utils.py`
+21. `.trellis/scripts/common/worktree.py`
+22. `.trellis/scripts/get_context.py`
+
+**总计：22 个文件已修复**
 
 ## 使用说明
 
@@ -181,6 +192,12 @@ python .trellis/scripts/task.py list --mine
 ---
 
 ## 修复历史
+
+### v2.2 (2026-02-05)
+- 补充修复所有 common 模块工具脚本
+- 修复 get_context.py 包装脚本
+- 确保项目中所有可执行的 Python 脚本都能在 Windows 下正常运行
+- 总计新增 7 个文件修复
 
 ### v2.1 (2026-02-05)
 - 修复 `.claude/hooks/` 目录中的 3 个 hook 脚本
