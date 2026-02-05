@@ -987,3 +987,150 @@ if sys.platform == "win32":
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: 修复 Windows 平台 Multi-Agent Pipeline 执行错误
+
+**Date**: 2026-02-05
+**Task**: 修复 Windows 平台 Multi-Agent Pipeline 执行错误
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 会话概述
+
+修复了 Windows 平台上 Multi-Agent Pipeline 系统的多个执行错误，包括 Claude CLI 调用失败和 init-context 文件验证失败。
+
+## 问题背景
+
+在上一次会话（移动端数据源面板优化）中，尝试使用 Multi-Agent Pipeline 系统时遇到了多个 Python 执行错误：
+
+1. **plan.py 执行失败**：`FileNotFoundError: [WinError 2] 系统找不到指定的文件`
+2. **start.py 执行失败**：同样的 `FileNotFoundError`
+3. **init-context 验证失败**：多个 spec 文件不存在
+
+## 问题分析
+
+### 问题 1: Claude CLI 在 Windows 上无法执行
+
+**根本原因**：
+1. Windows 上 `subprocess.Popen` 无法直接执行 `.cmd` 文件
+2. Claude Code 在 Windows 上需要 Git Bash，但环境变量 `CLAUDE_CODE_GIT_BASH_PATH` 未设置
+3. 缺少 `shell=True` 参数
+
+**诊断过程**：
+```bash
+# 1. 确认 Claude CLI 存在
+where claude
+# 输出: C:\Users\linxunan\AppData\Roaming\npm\claude.cmd
+
+# 2. 测试 Python subprocess
+python3 -c "import subprocess; subprocess.run(['claude', '-p', '--agent', 'test', 'hello'])"
+# 错误: FileNotFoundError: [WinError 2]
+
+# 3. 测试 shell=True
+python3 -c "import subprocess; subprocess.run(['claude', '-p', '--agent', 'test', 'hello'], shell=True)"
+# 错误: Claude Code on Windows requires git-bash
+
+# 4. 确认 Git Bash 存在
+where bash.exe
+# 输出: D:\software\Git\usr\bin\bash.exe
+```
+
+### 问题 2: init-context 添加不存在的文件
+
+**根本原因**：
+1. `get_implement_base()` 硬编码了 `.trellis/spec/shared/index.md`，但该文件不存在
+2. `get_implement_frontend()` 硬编码了 `components.md`，但实际文件名是 `component-guidelines.md`
+3. 没有检查文件是否存在就添加到 jsonl
+
+## 解决方案
+
+### 方案 1: 新增 Windows 工具模块
+
+创建 `.trellis/scripts/common/windows_utils.py`，提供 Windows 特定的工具函数：
+- `find_git_bash()`: 查找 Git Bash 可执行文件
+- `setup_claude_env_windows()`: 设置 Windows 环境变量
+- `get_subprocess_kwargs_windows()`: 获取 Windows subprocess 参数
+- `check_claude_cli_available()`: 检查 Claude CLI 是否可用
+
+### 方案 2: 修复 plan.py 和 start.py
+
+- 导入 windows_utils 模块
+- 添加 CLI 可用性检查
+- 设置 Git Bash 环境变量
+- 使用 Windows 特定的 subprocess 参数
+- 实现优雅降级
+
+### 方案 3: 修复 task.py 的 init-context
+
+- 动态检查文件存在性
+- 支持多种文件命名约定
+- 将 shared/index.md 改为可选
+
+## 修改的文件
+
+### 新增文件
+- `.trellis/scripts/common/windows_utils.py` (113 行)
+
+### 修改文件
+- `.trellis/scripts/multi_agent/plan.py` (+28 行, -4 行)
+- `.trellis/scripts/multi_agent/start.py` (+32 行, -4 行)
+- `.trellis/scripts/task.py` (+54 行, -8 行)
+
+## 测试结果
+
+### Windows 平台测试 ✅
+- ✅ Claude CLI 检测正常
+- ✅ Git Bash 自动发现并配置
+- ✅ subprocess 执行成功（使用 shell=True）
+- ✅ init-context 只添加存在的文件
+- ✅ validate 命令通过验证
+
+### 优雅降级测试 ✅
+- ✅ 当 Git Bash 不存在时，显示友好错误提示
+- ✅ Worktree 创建成功，但不启动 agent
+- ✅ 提供手动启动 agent 的命令
+
+## 技术亮点
+
+1. **跨平台兼容性**: 保持 Linux/macOS 功能不变
+2. **优雅降级**: 即使 Claude CLI 不可用，也能创建 worktree
+3. **友好提示**: 清晰的错误信息和解决建议
+4. **动态适配**: 自动适配不同的项目结构
+
+## 影响范围
+
+### 受益的功能
+- ✅ Multi-Agent Pipeline 在 Windows 上可用
+- ✅ plan.py 可以正常启动 Plan Agent
+- ✅ start.py 可以正常启动 Dispatch Agent
+- ✅ init-context 不会添加不存在的文件
+- ✅ validate 命令可以通过验证
+
+### 不受影响的功能
+- ✅ Linux/macOS 平台功能保持不变
+- ✅ 单进程开发模式不受影响
+- ✅ 手动配置任务的方式仍然可用
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `845174f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
