@@ -46,7 +46,10 @@
       "Bash(dir:*)",
       "Bash(python:*)",
       "Bash(PYTHONIOENCODING=utf-8 python:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(done)",
+      "Bash(for file in .trellis/scripts/*.py)",
+      "Bash(do [ -f \"$file\" ])"
     ]
   }
 }
