@@ -140,10 +140,19 @@ def _resolve_task_dir(target_dir: str, repo_root: Path) -> Path:
 
 def get_implement_base() -> list[dict]:
     """Get base implement context entries."""
-    return [
-        {"file": f"{DIR_WORKFLOW}/workflow.md", "reason": "Project workflow and conventions"},
-        {"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md", "reason": "Shared coding standards"},
-    ]
+    entries = []
+
+    # Check workflow.md
+    workflow_path = Path(f"{DIR_WORKFLOW}/workflow.md")
+    if workflow_path.exists():
+        entries.append({"file": f"{DIR_WORKFLOW}/workflow.md", "reason": "Project workflow and conventions"})
+
+    # Check shared/index.md (optional, may not exist in all projects)
+    shared_index = Path(f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md")
+    if shared_index.exists():
+        entries.append({"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md", "reason": "Shared coding standards"})
+
+    return entries
 
 
 def get_implement_backend() -> list[dict]:
@@ -157,10 +166,24 @@ def get_implement_backend() -> list[dict]:
 
 def get_implement_frontend() -> list[dict]:
     """Get frontend implement context entries."""
-    return [
-        {"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/frontend/index.md", "reason": "Frontend development guide"},
-        {"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/frontend/components.md", "reason": "Component conventions"},
-    ]
+    entries = []
+
+    # Check frontend/index.md
+    frontend_index = Path(f"{DIR_WORKFLOW}/{DIR_SPEC}/frontend/index.md")
+    if frontend_index.exists():
+        entries.append({"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/frontend/index.md", "reason": "Frontend development guide"})
+
+    # Check component guidelines (try both naming conventions)
+    component_guide = Path(f"{DIR_WORKFLOW}/{DIR_SPEC}/frontend/component-guidelines.md")
+    if component_guide.exists():
+        entries.append({"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/frontend/component-guidelines.md", "reason": "Component conventions"})
+    else:
+        # Fallback to components.md if it exists
+        component_guide_alt = Path(f"{DIR_WORKFLOW}/{DIR_SPEC}/frontend/components.md")
+        if component_guide_alt.exists():
+            entries.append({"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/frontend/components.md", "reason": "Component conventions"})
+
+    return entries
 
 
 def get_check_context(dev_type: str, repo_root: Path) -> list[dict]:
@@ -169,8 +192,12 @@ def get_check_context(dev_type: str, repo_root: Path) -> list[dict]:
 
     entries = [
         {"file": adapter.get_trellis_command_path("finish-work"), "reason": "Finish work checklist"},
-        {"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md", "reason": "Shared coding standards"},
     ]
+
+    # Check shared/index.md (optional)
+    shared_index = Path(f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md")
+    if shared_index.exists():
+        entries.append({"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md", "reason": "Shared coding standards"})
 
     if dev_type in ("backend", "fullstack"):
         entries.append({"file": adapter.get_trellis_command_path("check-backend"), "reason": "Backend check spec"})
@@ -184,9 +211,12 @@ def get_debug_context(dev_type: str, repo_root: Path) -> list[dict]:
     """Get debug context entries."""
     adapter = get_cli_adapter_auto(repo_root)
 
-    entries = [
-        {"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md", "reason": "Shared coding standards"},
-    ]
+    entries = []
+
+    # Check shared/index.md (optional)
+    shared_index = Path(f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md")
+    if shared_index.exists():
+        entries.append({"file": f"{DIR_WORKFLOW}/{DIR_SPEC}/shared/index.md", "reason": "Shared coding standards"})
 
     if dev_type in ("backend", "fullstack"):
         entries.append({"file": adapter.get_trellis_command_path("check-backend"), "reason": "Backend check spec"})

@@ -52,6 +52,12 @@ from common.registry import (
 )
 from common.worktree import (
     get_worktree_base_dir,
+)
+from common.windows_utils import (
+    check_claude_cli_available,
+    setup_claude_env_windows,
+    get_subprocess_kwargs_windows,
+)
     get_worktree_config,
     get_worktree_copy_files,
     get_worktree_post_create_hooks,
@@ -338,6 +344,17 @@ def main() -> int:
     # =============================================================================
     log_info(f"Step 3: Starting {adapter.cli_name} agent...")
 
+    # Check if Claude CLI is available (Windows-specific checks)
+    is_available, error_msg = check_claude_cli_available()
+    if not is_available:
+        log_error(error_msg)
+        log_info("Worktree has been created successfully.")
+        log_info(f"You can manually work in the worktree at: {worktree_path}")
+        log_info("To start the agent manually, run:")
+        log_info(f"  cd {worktree_path}")
+        log_info(f"  claude -p --agent dispatch 'Start the pipeline'")
+        return 0  # Exit successfully, but without starting agent
+
     # Update task status
     task_data["status"] = "in_progress"
     _write_json_file(task_json_path, task_data)
@@ -371,6 +388,9 @@ def main() -> int:
     # Set non-interactive env var based on platform
     env.update(adapter.get_non_interactive_env())
 
+    # Setup Windows-specific environment (Git Bash path)
+    env.update(setup_claude_env_windows())
+
     # Build CLI command using adapter
     # Note: Use explicit prompt to avoid confusion with CI/CD pipelines
     # Also remind the model to follow its agent definition for better cross-model compatibility
@@ -384,17 +404,19 @@ def main() -> int:
     )
 
     with log_file.open("w") as log_f:
-        # Use shell=False for cross-platform compatibility
-        # creationflags for Windows, start_new_session for Unix
+        # Get Windows-specific subprocess kwargs
         popen_kwargs = {
             "stdout": log_f,
             "stderr": subprocess.STDOUT,
             "cwd": worktree_path,
             "env": env,
         }
-        if sys.platform == "win32":
-            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-        else:
+
+        # Add Windows-specific kwargs (shell=True, creationflags)
+        popen_kwargs.update(get_subprocess_kwargs_windows())
+
+        # On non-Windows, use start_new_session
+        if sys.platform != "win32":
             popen_kwargs["start_new_session"] = True
 
         process = subprocess.Popen(cli_cmd, **popen_kwargs)

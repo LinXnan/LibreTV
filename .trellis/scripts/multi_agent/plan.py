@@ -36,6 +36,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from common.cli_adapter import get_cli_adapter
 from common.paths import get_repo_root
 from common.developer import ensure_developer
+from common.windows_utils import (
+    check_claude_cli_available,
+    setup_claude_env_windows,
+    get_subprocess_kwargs_windows,
+)
 
 
 # =============================================================================
@@ -161,6 +166,14 @@ def main() -> int:
     # =============================================================================
     log_info("Step 2: Starting Plan Agent in background...")
 
+    # Check if Claude CLI is available (Windows-specific checks)
+    is_available, error_msg = check_claude_cli_available()
+    if not is_available:
+        log_error(error_msg)
+        log_info("Task directory has been created successfully.")
+        log_info(f"You can manually configure the task at: {task_dir}")
+        return 1
+
     log_file = task_dir_abs / ".plan-log"
     log_file.touch()
 
@@ -182,6 +195,9 @@ def main() -> int:
     # Set non-interactive env var based on platform
     env.update(adapter.get_non_interactive_env())
 
+    # Setup Windows-specific environment (Git Bash path)
+    env.update(setup_claude_env_windows())
+
     # Build CLI command using adapter
     cli_cmd = adapter.build_run_command(
         agent="plan",  # Will be mapped to "trellis-plan" for OpenCode
@@ -192,17 +208,19 @@ def main() -> int:
     )
 
     with log_file.open("w") as log_f:
-        # Use shell=False for cross-platform compatibility
-        # creationflags for Windows, start_new_session for Unix
+        # Get Windows-specific subprocess kwargs
         popen_kwargs = {
             "stdout": log_f,
             "stderr": subprocess.STDOUT,
             "cwd": str(project_root),
             "env": env,
         }
-        if sys.platform == "win32":
-            popen_kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-        else:
+
+        # Add Windows-specific kwargs (shell=True, creationflags)
+        popen_kwargs.update(get_subprocess_kwargs_windows())
+
+        # On non-Windows, use start_new_session
+        if sys.platform != "win32":
             popen_kwargs["start_new_session"] = True
 
         process = subprocess.Popen(cli_cmd, **popen_kwargs)
