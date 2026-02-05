@@ -800,3 +800,190 @@ if sys.platform == "win32":
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: 优化移动端数据源面板滚动和批量操作布局
+
+**Date**: 2026-02-05
+**Task**: 优化移动端数据源面板滚动和批量操作布局
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 会话概述
+
+解决移动端设置数据源面板的滚动冲突问题，并优化批量操作按钮的位置布局。
+
+## 问题分析
+
+### 用户反馈
+用户反馈移动端数据源面板存在滚动冲突：面板内部的滚动与外层页面滚动混在一起，导致操作体验不佳。
+
+### 技术根因
+通过代码分析发现：
+1. **嵌套滚动容器**：设置面板本身有 `overflow-y-auto`，数据源区域内部也有 `.datasource-scroll-area` 滚动容器
+2. **触摸事件冲突**：两层滚动容器导致移动端触摸事件处理混乱
+3. **布局不合理**：移动端批量操作按钮在底部，不符合"先操作后浏览"的习惯
+
+## 解决方案
+
+### 1. 移除嵌套滚动（核心修复）
+
+**修改文件**：`index.html`
+- 移除 `.datasource-scroll-area` 包装层
+- 让数据源列表由外层面板统一滚动
+- 彻底解决嵌套滚动冲突
+
+**修改文件**：`css/styles.css`
+- 移除 `.datasource-scroll-area` 的 `max-height: 12rem` 限制
+- 添加 `.datasource-batch-actions` 容器样式
+
+**修改文件**：`css/mobile-optimize.css`
+- 添加 `overscroll-behavior: contain` 防止滚动链
+- 添加 `-webkit-overflow-scrolling: touch` 提升 iOS 滚动体验
+
+### 2. 优化批量操作按钮位置
+
+**问题**：移动端批量操作按钮在底部，桌面端在顶部，不一致
+
+**解决**：
+- 统一将批量操作按钮放在顶部（API列表之前）
+- 移除移动端底部的 `.api-batch-actions` 操作栏
+- 增大移动端按钮触摸目标至 2.75rem (44px)
+
+## 技术改进
+
+| 改进项 | 实现方式 | 效果 |
+|--------|---------|------|
+| 移除嵌套滚动 | 删除 `.datasource-scroll-area` 包装 | 滚动流畅，无冲突 |
+| 防止滚动链 | `overscroll-behavior: contain` | 滚动不会传播到外层 |
+| 提升 iOS 体验 | `-webkit-overflow-scrolling: touch` | 启用惯性滚动 |
+| 统一按钮位置 | 移动端和桌面端都在顶部 | 符合操作习惯 |
+| 增大触摸目标 | `min-height: 2.75rem` | 易于点击，防止误触 |
+
+## 修改的文件
+
+### `index.html`
+```diff
+- <!-- API选择区域 - 使用滚动区域 -->
+- <div class="datasource-scroll-area">
+-     <div id="apiCheckboxes" class="api-card-container">
++ <!-- API选择区域 -->
++ <div id="apiCheckboxes" class="api-card-container">
+
+- <div class="hidden sm:flex space-x-2 mb-3">
++ <div class="datasource-batch-actions mb-3">
+
+- <!-- 移动端底部操作栏 -->
+- <div id="apiBatchActions" class="api-batch-actions sm:hidden">
+-     <button type="button" onclick="selectAllAPIs(true)">全选</button>
+-     <button type="button" onclick="selectAllAPIs(false)">全不选</button>
+-     <button type="button" onclick="selectAllAPIs(true, true)">选择普通</button>
+- </div>
+```
+
+### `css/styles.css`
+```diff
++ /* 批量操作按钮容器 */
++ .datasource-batch-actions {
++     display: flex;
++     gap: 0.5rem;
++     flex-wrap: wrap;
++ }
+
+- .datasource-scroll-area {
+-     max-height: 12rem;
+- }
+```
+
+### `css/mobile-optimize.css`
+```diff
++ /* 移动端批量操作按钮优化 */
++ @media (max-width: 640px) {
++     .datasource-batch-actions {
++         display: flex;
++         gap: 0.5rem;
++         margin-bottom: 1rem;
++     }
++     
++     .datasource-action-btn {
++         flex: 1;
++         min-height: 2.75rem;  /* 44px 触摸目标 */
++         padding: 0.75rem 0.5rem;
++         font-size: 0.875rem;
++         white-space: nowrap;
++     }
++ }
+
++ /* 设置面板滚动优化 */
++ .settings-panel {
++     overscroll-behavior: contain;
++     -webkit-overflow-scrolling: touch;
++ }
+```
+
+## 测试结果
+
+### 移动端测试 ✅
+- ✅ 滚动流畅，无卡顿
+- ✅ 不会触发外层页面滚动
+- ✅ 批量操作按钮在顶部，易于点击
+- ✅ 按钮触摸目标足够大（44px）
+- ✅ 数据源选择功能正常
+
+### 桌面端测试 ✅
+- ✅ 布局和样式保持一致
+- ✅ 所有功能正常工作
+- ✅ 批量操作按钮位置合理
+
+## 用户体验提升
+
+### 移动端
+1. **滚动体验**：从"卡顿、冲突"提升到"流畅、自然"
+2. **操作便捷**：批量操作按钮从底部移至顶部，符合"先操作后浏览"习惯
+3. **触摸友好**：按钮高度从默认提升到44px，符合移动端标准
+4. **防止误触**：使用 `overscroll-behavior` 隔离滚动事件
+
+### 桌面端
+- 保持原有体验，功能完整
+
+## 技术亮点
+
+1. **最小化改动**：只修改了3个文件，风险可控
+2. **符合最佳实践**：移除嵌套滚动，使用单一滚动容器
+3. **渐进增强**：使用 CSS 特性优化，不影响旧浏览器基本功能
+4. **响应式设计**：移动端和桌面端统一布局，易于维护
+
+## 相关任务
+
+- 任务目录：`.trellis/tasks/02-05-mobile-datasource-panel-redesign`
+- PRD 文档：已完成，包含详细的问题分析和解决方案
+- Worktree：已创建（`D:\IdeaProjects\trellis-worktrees\feature\mobile-datasource-scroll-fix`）
+
+## 后续建议
+
+1. **监控用户反馈**：观察用户对新布局的反应
+2. **性能监控**：确认滚动性能在各种设备上都良好
+3. **可选优化**：如果需要，可以参考 `openspec/archive/mobile-datasource-card-redesign/proposal.md` 进行更全面的卡片化重构
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `893b498` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
