@@ -42,7 +42,11 @@
       "Bash(TASK_DIR=\".trellis/tasks/02-02-adjust-datasource-blue\":*)",
       "Bash(./.trellis/scripts/multi-agent/trellis:start.sh \".trellis/tasks/02-02-adjust-datasource-blue\")",
       "Bash(git merge:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(dir:*)",
+      "Bash(python:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(cat:*)"
     ]
   }
 }
