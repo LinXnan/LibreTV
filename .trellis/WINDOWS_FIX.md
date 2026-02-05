@@ -38,11 +38,39 @@ if sys.platform == "win32":
 
 ## 修复的文件
 
-以下三个文件已被修复：
+### 第一批修复（v1.0）
 
 1. `.trellis/scripts/task.py`
 2. `.trellis/scripts/common/git_context.py`
 3. `.trellis/scripts/add_session.py`
+
+### 第二批修复（v2.0 - 2026-02-05）
+
+所有包含 `print()` 输出的脚本文件已全部修复：
+
+**主脚本文件：**
+4. `.trellis/scripts/create_bootstrap.py`
+5. `.trellis/scripts/get_developer.py`
+6. `.trellis/scripts/init_developer.py`
+
+**Multi-Agent Pipeline 脚本：**
+7. `.trellis/scripts/multi_agent/plan.py`
+8. `.trellis/scripts/multi_agent/create_pr.py`
+9. `.trellis/scripts/multi_agent/status.py`
+10. `.trellis/scripts/multi_agent/cleanup.py`
+11. `.trellis/scripts/multi_agent/start.py`
+
+**Common 模块：**
+12. `.trellis/scripts/common/developer.py`
+
+### 第三批修复（v2.1 - 2026-02-05）
+
+**Claude Code Hooks（从旧方法升级到 reconfigure）：**
+13. `.claude/hooks/session-start.py`
+14. `.claude/hooks/inject-subagent-context.py`
+15. `.claude/hooks/ralph-loop.py`
+
+**总计：15 个文件已修复**
 
 ## 使用说明
 
@@ -82,6 +110,11 @@ python .trellis/scripts/task.py list --mine
 # 查看帮助
 python .trellis/scripts/task.py --help
 python .trellis/scripts/add_session.py --help
+
+# Multi-Agent Pipeline 命令
+python .trellis/scripts/multi_agent/status.py --help
+python .trellis/scripts/multi_agent/plan.py --help
+python .trellis/scripts/multi_agent/cleanup.py --help
 ```
 
 ## 技术细节
@@ -147,6 +180,20 @@ python .trellis/scripts/task.py list --mine
 
 ---
 
-**修复日期**：2026-02-05
-**修复版本**：v1.0
+## 修复历史
+
+### v2.1 (2026-02-05)
+- 修复 `.claude/hooks/` 目录中的 3 个 hook 脚本
+- 从旧的 `io.TextIOWrapper` 方法升级到 `reconfigure()` 方法
+- 这些 hook 脚本之前使用的旧方法会导致 `ValueError: I/O operation on closed file`
+
+### v2.0 (2026-02-05)
+- 修复所有 Multi-Agent Pipeline 脚本
+- 修复所有主脚本文件
+- 修复 common 模块中的 developer.py
+- 总计新增 9 个文件修复
+
+### v1.0 (2026-02-05)
+- 初始修复：task.py, git_context.py, add_session.py
+
 **测试环境**：Windows 10/11 + Git Bash + Python 3.8.0

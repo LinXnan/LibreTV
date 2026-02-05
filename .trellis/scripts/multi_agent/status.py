@@ -19,6 +19,12 @@ import json
 import os
 import subprocess
 import sys
+
+# IMPORTANT: Force stdout to use UTF-8 on Windows
+# This fixes UnicodeEncodeError when outputting non-ASCII characters
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 import time
 from datetime import datetime
 from pathlib import Path

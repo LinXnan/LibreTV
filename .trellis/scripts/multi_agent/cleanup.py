@@ -25,6 +25,12 @@ import argparse
 import shutil
 import subprocess
 import sys
+
+# IMPORTANT: Force stdout to use UTF-8 on Windows
+# This fixes UnicodeEncodeError when outputting non-ASCII characters
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from pathlib import Path
 
 # Add parent directory to path for imports
