@@ -1454,19 +1454,20 @@
 }
 
 /* ========================================
-   移动端滚动冲突修复 - 固定高度布局
+   移动端滚动优化 - 防止滚动链和提升体验
    ======================================== */
 @media (max-width: 640px) {
-    /* 数据源设置区域固定高度 */
-    .settings-panel .max-h-40.overflow-y-auto {
-        max-height: 40vh !important;
-        overflow-y: auto !important;
+    /* 设置面板滚动优化 */
+    .settings-panel {
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
-    /* 自定义 API 列表固定高度 */
+    /* 自定义 API 列表固定高度（保持原有限制） */
     #customApisList.max-h-32.overflow-y-auto {
         max-height: 20vh !important;
         overflow-y: auto !important;
+        overscroll-behavior: contain;
     }
 }
 
@@ -1763,9 +1764,31 @@
 }
 
 /* ========================================
-   底部操作栏样式 - Task 1.3
+   移动端批量操作按钮优化 - 统一在顶部显示
    ======================================== */
 @media (max-width: 640px) {
+    /* 批量操作按钮容器 - 移动端优化 */
+    .datasource-batch-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    /* 批量操作按钮 - 移动端增大触摸目标 */
+    .datasource-action-btn {
+        flex: 1;
+        min-height: 2.75rem;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.875rem;
+        white-space: nowrap;
+    }
+}
+
+/* ========================================
+   底部操作栏样式 - 已废弃（批量操作已移至顶部）
+   ======================================== */
+@media (max-width: 640px) {
+    /* 注释：此样式已废弃，保留以防需要回退 */
     .api-batch-actions {
         position: sticky;
         bottom: 0;

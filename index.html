@@ -166,31 +166,22 @@
             <div class="datasource-section">
                 <label class="datasource-title gradient-text">数据源设置</label>
 
-                <!-- 批量操作按钮 -->
-                <div class="hidden sm:flex space-x-2 mb-3">
+                <!-- 批量操作按钮 - 移动端和桌面端统一在顶部 -->
+                <div class="datasource-batch-actions mb-3">
                     <button onclick="selectAllAPIs(true)" class="datasource-action-btn">全选</button>
                     <button onclick="selectAllAPIs(false)" class="datasource-action-btn">全不选</button>
                     <button onclick="selectAllAPIs(true, true)" class="datasource-action-btn">全选普通资源</button>
                 </div>
 
-                <!-- API选择区域 - 使用滚动区域 -->
-                <div class="datasource-scroll-area">
-                    <div id="apiCheckboxes" class="api-card-container">
-                        <!-- 内置 API 由 JavaScript 渲染 -->
-                    </div>
+                <!-- API选择区域 -->
+                <div id="apiCheckboxes" class="api-card-container">
+                    <!-- 内置 API 由 JavaScript 渲染 -->
                 </div>
 
                 <!-- API信息显示 -->
                 <div id="apiInfoDisplay" class="datasource-info">
                     <span>已选API数量：<span id="selectedApiCount" class="text-white font-semibold">0</span></span>
                     <span id="siteStatus" class="ml-2"></span>
-                </div>
-
-                <!-- 移动端底部操作栏 -->
-                <div id="apiBatchActions" class="api-batch-actions sm:hidden">
-                    <button type="button" onclick="selectAllAPIs(true)">全选</button>
-                    <button type="button" onclick="selectAllAPIs(false)">全不选</button>
-                    <button type="button" onclick="selectAllAPIs(true, true)">选择普通</button>
                 </div>
             </div>
 
