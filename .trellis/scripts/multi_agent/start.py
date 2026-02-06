@@ -52,15 +52,14 @@ from common.registry import (
 )
 from common.worktree import (
     get_worktree_base_dir,
+    get_worktree_config,
+    get_worktree_copy_files,
+    get_worktree_post_create_hooks,
 )
 from common.windows_utils import (
     check_claude_cli_available,
     setup_claude_env_windows,
     get_subprocess_kwargs_windows,
-)
-    get_worktree_config,
-    get_worktree_copy_files,
-    get_worktree_post_create_hooks,
 )
 
 # =============================================================================
