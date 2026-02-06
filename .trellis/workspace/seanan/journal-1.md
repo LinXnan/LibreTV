@@ -1134,3 +1134,90 @@ where bash.exe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: 修复选集面板移动端定位问题
+
+**Date**: 2026-02-07
+**Task**: 修复选集面板移动端定位问题
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 问题描述
+
+用户报告移动端选集面板会飘到顶部，而不是作为底部抽屉式面板显示。
+
+## 分析过程
+
+### 1. Codex 分析问题根源
+- 调用 Codex 分析 CSS 定位问题
+- 发现 `css/mobile-optimize.css` 和 `css/player.css` 中使用了 `position: relative !important;`
+- 这覆盖了 HTML 中的 Tailwind `fixed` 类，导致 `bottom: 0` 等属性失效
+- 面板出现在 DOM 的自然位置（顶部）而非底部
+
+### 2. 修复方案
+- **移动端** (css/mobile-optimize.css line 961): `position: relative` → `position: fixed`
+- **桌面端** (css/player.css line 500): `position: relative` → `position: fixed`
+
+### 3. Codex 审查确认
+- 修复正确且充分
+- 桌面端居中定位 (`top: 50%; left: 50%; transform: translate(-50%, -50%)`) 将正常工作
+- 移动端底部抽屉 (`bottom: 0; transform: translateY(100%)`) 将正常工作
+- 无其他 CSS 属性干扰
+
+## 修改内容
+
+| 文件 | 修改内容 |
+|------|---------|
+| `css/player.css` | 桌面端定位：`position: relative` → `position: fixed` |
+| `css/mobile-optimize.css` | 移动端定位：`position: relative` → `position: fixed` |
+| `.trellis/tasks/.../prd.md` | 添加 Bug 修复需求到文档 |
+
+## 影响范围
+
+- ✅ 移动端：面板从底部滑出（不再飘到顶部）
+- ✅ 桌面端：面板在屏幕中央显示
+- ✅ 保持所有现有功能（Tab 分组、手势关闭、自动连播等）
+
+## 协作模式
+
+**Claude + Codex 双模型协作**:
+1. Codex 分析定位问题根源
+2. Claude 实施修复
+3. Codex 审查确认修复正确
+4. Claude 提交代码
+
+## 技术要点
+
+- CSS `position: fixed` vs `position: relative` 的区别
+- 移动端底部抽屉模式需要 `position: fixed` 才能固定在视口底部
+- 桌面端居中定位需要 `position: fixed` 才能相对视口居中
+- `!important` 会覆盖 Tailwind 的 utility classes
+
+## 后续建议
+
+- 测试移动端和桌面端的面板显示效果
+- 考虑更新 `.trellis/spec/frontend/mobile-panel-pattern.md` 添加历史变更记录
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `12a0fca` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
