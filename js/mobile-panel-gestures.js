@@ -58,7 +58,7 @@ function closePanel(panel) {
 
     const triggerElement = focusMap.get(panel);
     if (triggerElement && typeof triggerElement.focus === 'function') {
-        triggerElement.focus();
+        triggerElement.focus({ preventScroll: true });
     }
 
     if (originalBodyOverflow) {
@@ -158,7 +158,7 @@ function openPanel(panel, triggerElement) {
 
     const closeButton = panel.querySelector('[aria-label="关闭面板"]') || panel.querySelector('.close-btn');
     if (closeButton) {
-        closeButton.focus();
+        closeButton.focus({ preventScroll: true });
     }
 
     const liveRegion = document.getElementById('panelLiveRegion');

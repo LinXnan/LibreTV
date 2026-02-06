@@ -1,0 +1,4 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Verify code quality and frontend standards compliance"}
+{"file": "player.html", "reason": "Verify all functionality preserved (tabs, gestures, autoplay, sorting)"}

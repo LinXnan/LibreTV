@@ -230,9 +230,15 @@ div.player-loading-text {
     color: #aaa;
 }
 
+/* 通用集数激活状态 - 赛博朋克风格 */
 .episode-active {
-    background-color: #3b82f6 !important;
-    border-color: #60a5fa !important;
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.3), rgba(0, 159, 191, 0.2)) !important;
+    border-color: #009fbf !important;
+    color: #009fbf !important;
+    font-weight: 600 !important;
+    box-shadow:
+        0 0 15px rgba(0, 159, 191, 0.4),
+        inset 0 0 10px rgba(0, 159, 191, 0.15) !important;
 }
 
 .episode-grid {
@@ -461,14 +467,14 @@ input:checked + .slider:before {
 }
 
 /* ========================================
-   选集弹框样式统一 - 与设置/历史弹框保持一致
+   选集弹框赛博朋克风格 - 统一视觉体验
    ======================================== */
 
-/* 桌面端：选集弹框样式 */
+/* 桌面端：选集弹框赛博朋克样式 */
 @media (min-width: 641px) {
     #episodeModal.episode-panel:not(.hidden) {
-        /* 使用渐变背景，与设置/历史弹框保持一致 */
-        background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start)) !important;
+        /* 赛博朋克渐变背景 */
+        background: linear-gradient(135deg, #0a0e1a 0%, #121829 100%) !important;
         /* 居中模态框布局 */
         display: flex !important;
         flex-direction: column !important;
@@ -481,13 +487,157 @@ input:checked + .slider:before {
         right: auto !important;
         bottom: auto !important;
         transform: translate(-50%, -50%) !important;
-        border-radius: 0.5rem !important;
-        /* 添加阴影效果 */
-        box-shadow: 0 0 20px rgba(0, 204, 255, 0.3);
+        border-radius: 12px !important;
+        /* 霓虹边框 */
+        border: 1px solid rgba(0, 159, 191, 0.2) !important;
+        /* 多层阴影：外阴影 + 霓虹光晕 + 内高光 */
+        box-shadow:
+            0 4px 20px rgba(0, 0, 0, 0.5),
+            0 0 15px rgba(0, 159, 191, 0.1),
+            inset 0 1px 0 rgba(0, 159, 191, 0.1) !important;
+        overflow: hidden !important;
+        transition: all 0.3s ease !important;
+        position: fixed !important;
+    }
+
+    /* 扫光动画 */
+    #episodeModal.episode-panel:not(.hidden)::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 159, 191, 0.08), transparent);
+        transition: left 0.6s ease;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    #episodeModal.episode-panel:not(.hidden):hover {
+        border-color: rgba(0, 159, 191, 0.4) !important;
+        box-shadow:
+            0 6px 25px rgba(0, 0, 0, 0.6),
+            0 0 25px rgba(0, 159, 191, 0.2),
+            inset 0 1px 0 rgba(0, 159, 191, 0.15) !important;
+    }
+
+    #episodeModal.episode-panel:not(.hidden):hover::before {
+        left: 100%;
+    }
+
+    /* 确保内容在扫光动画之上 */
+    #episodeModal .episode-modal-header,
+    #episodeModal #episodeTabBar,
+    #episodeModal #episodeModalContent {
+        position: relative;
+        z-index: 1;
     }
 
     /* 去掉头部边框 */
     #episodeModal .episode-modal-header {
         border-bottom: none !important;
     }
+}
+
+/* 集数列表容器赛博朋克样式 */
+.episode-list-group {
+    background: linear-gradient(135deg, rgba(10, 14, 26, 0.8), rgba(18, 24, 41, 0.8)) !important;
+    border: 1px solid rgba(0, 159, 191, 0.15) !important;
+    border-radius: 8px !important;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 集数按钮赛博朋克样式 */
+#episodeModalList button {
+    position: relative;
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.08), rgba(0, 159, 191, 0.03)) !important;
+    border: 1px solid rgba(0, 159, 191, 0.2) !important;
+    color: #e6f2ff !important;
+    transition: all 0.3s ease !important;
+    overflow: hidden;
+}
+
+#episodeModalList button::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(0, 159, 191, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+    pointer-events: none;
+}
+
+#episodeModalList button:hover {
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.15), rgba(0, 159, 191, 0.08)) !important;
+    border-color: rgba(0, 159, 191, 0.4) !important;
+    box-shadow: 0 0 12px rgba(0, 159, 191, 0.3) !important;
+    transform: translateY(-2px);
+}
+
+#episodeModalList button:hover::before {
+    width: 100px;
+    height: 100px;
+}
+
+/* 当前播放集数高亮 */
+#episodeModalList button.episode-active {
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.3), rgba(0, 159, 191, 0.2)) !important;
+    border-color: #009fbf !important;
+    color: #009fbf !important;
+    font-weight: 600 !important;
+    box-shadow:
+        0 0 15px rgba(0, 159, 191, 0.4),
+        inset 0 0 10px rgba(0, 159, 191, 0.15) !important;
+}
+
+/* Tab按钮赛博朋克样式 */
+.episode-tab {
+    position: relative;
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.08), rgba(0, 159, 191, 0.03)) !important;
+    border: 1px solid rgba(0, 159, 191, 0.2) !important;
+    color: #8599b2 !important;
+    transition: all 0.3s ease !important;
+    overflow: hidden;
+}
+
+.episode-tab::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(0, 159, 191, 0.15);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease;
+    pointer-events: none;
+}
+
+.episode-tab:hover {
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.15), rgba(0, 159, 191, 0.08)) !important;
+    border-color: rgba(0, 159, 191, 0.4) !important;
+    color: #e6f2ff !important;
+    box-shadow: 0 0 10px rgba(0, 159, 191, 0.2) !important;
+}
+
+.episode-tab:hover::before {
+    width: 80px;
+    height: 80px;
+}
+
+/* Tab激活状态赛博朋克样式 */
+.episode-tab-active {
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.25), rgba(0, 159, 191, 0.15)) !important;
+    border-color: #009fbf !important;
+    color: #009fbf !important;
+    font-weight: 600 !important;
+    box-shadow:
+        0 0 12px rgba(0, 159, 191, 0.3),
+        inset 0 0 8px rgba(0, 159, 191, 0.1) !important;
 }

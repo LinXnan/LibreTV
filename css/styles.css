@@ -289,16 +289,39 @@ body {
     border-radius: 8px;
 }
 
+/* 集数按钮赛博朋克样式 - 桌面端集数网格 */
 #episodesGrid button {
-    background: rgba(0, 204, 255, 0.08);
-    border: 1px solid rgba(0, 204, 255, 0.2);
-    transition: all 0.2s ease;
+    position: relative;
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.08), rgba(0, 159, 191, 0.03));
+    border: 1px solid rgba(0, 159, 191, 0.2);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+#episodesGrid button::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(0, 159, 191, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.4s ease, height 0.4s ease;
+    pointer-events: none;
 }
 
 #episodesGrid button:hover {
-    background: rgba(0, 204, 255, 0.15);
-    border-color: var(--primary-color);
-    box-shadow: 0 0 8px rgba(0, 204, 255, 0.3);
+    background: linear-gradient(135deg, rgba(0, 159, 191, 0.15), rgba(0, 159, 191, 0.08));
+    border-color: rgba(0, 159, 191, 0.4);
+    box-shadow: 0 0 12px rgba(0, 159, 191, 0.3);
+    transform: translateY(-2px);
+}
+
+#episodesGrid button:hover::before {
+    width: 100px;
+    height: 100px;
 }
 
 #yellowFilterToggle:checked + .toggle-bg {
