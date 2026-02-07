@@ -1309,7 +1309,7 @@ body {
 .datasource-batch-actions {
     display: flex;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 /* 批量操作按钮 */
@@ -1325,6 +1325,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     overflow: hidden;
+    white-space: nowrap;
 }
 
 .datasource-action-btn::before {

@@ -50,7 +50,21 @@
       "Bash(done)",
       "Bash(for file in .trellis/scripts/*.py)",
       "Bash(do [ -f \"$file\" ])",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run:*)",
+      "Bash(npm --version:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(node server.mjs:*)",
+      "Bash(while IFS= read -r line)",
+      "Bash(do echo \"$line\")",
+      "Bash(/tmp/commit-core.sh << 'EOF'\n#!/bin/bash\n# 提交核心功能修复\n\ngit add css/player.css css/mobile-optimize.css css/styles.css js/mobile-panel-gestures.js\n\ngit commit -m \"feat\\(ui\\): 统一选集面板赛博朋克风格并修复移动端问题\n\n## 新增功能\n- 选集面板应用赛博朋克渐变背景和霓虹边框\n- 添加扫光动画和多层阴影效果\n- 桌面端和移动端视觉风格统一\n\n## 问题修复\n- 修复移动端选集面板默认打开的问题\n- 修复打开弹框时页面自动滚动到顶部的问题\n- 修复 CSS 选择器优先级导致的显示冲突\n\n## 技术细节\n- CSS: 添加 :not\\(.hidden\\) 选择器避免覆盖 hidden 类\n- JS: focus\\(\\) 调用添加 preventScroll: true 防止页面跳转\n- 样式: 35 处赛博朋克颜色，19 处扫光动画，5 处多层阴影\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\"\n\necho \"✅ 核心功能已提交\"\nEOF)",
+      "Bash(chmod:*)",
+      "Bash(awk:*)",
+      "Bash(/tmp/test-checklist.md << 'EOF'\n# 移动端选集面板测试清单\n\n## 初始状态\n- [ ] 页面加载后，选集面板完全隐藏\n- [ ] 没有任何面板元素可见\n\n## 打开面板\n- [ ] 点击\"选集\"按钮\n- [ ] 面板从底部平滑滑出\n- [ ] 页面不会滚动到顶部\n- [ ] 面板停留在底部（不飘到顶部）\n- [ ] 赛博朋克样式正常显示（渐变背景、霓虹边框）\n\n## 面板交互\n- [ ] 可以滚动选集列表\n- [ ] 点击集数按钮正常工作\n- [ ] Tab 分组切换正常\n- [ ] 自动连播开关正常\n\n## 关闭面板\n- [ ] 点击关闭按钮，面板滑回底部\n- [ ] 点击遮罩层，面板关闭\n- [ ] 页面不会滚动\n- [ ] 焦点恢复正常\n\n## 视觉效果\n- [ ] 赛博朋克渐变背景显示正常\n- [ ] 霓虹蓝边框光晕可见\n- [ ] 扫光动画效果流畅\n- [ ] 面板高度为 60vh\n- [ ] 圆角仅在顶部（16px）\n\nEOF)",
+      "Bash(/tmp/commit-message.txt << 'EOF'\nfeat\\(ui\\): 统一选集面板赛博朋克风格并修复移动端问题\n\n## 新增功能\n- 选集面板应用赛博朋克渐变背景和霓虹边框\n- 添加扫光动画和多层阴影效果\n- 桌面端和移动端视觉风格统一\n\n## 问题修复\n1. 修复移动端选集面板默认打开的问题\n   - 添加 :not\\(.hidden\\) 选择器避免覆盖 hidden 类\n   \n2. 修复打开弹框时页面自动滚动到顶部的问题\n   - focus\\(\\) 调用添加 preventScroll: true 防止页面跳转\n   \n3. 修复移动端面板飘到顶部的问题\n   - 合并重复的 CSS 选择器，确保 transform 属性完整\n\n## 技术细节\n- CSS: 35 处赛博朋克颜色，19 处扫光动画，5 处多层阴影\n- CSS: 移除重复选择器，优化样式层级\n- JS: 2 处焦点管理优化\n\n## 测试验证\n- ✓ 面板初始状态正确隐藏\n- ✓ 打开面板不会滚动页面\n- ✓ 面板停留在底部不飘动\n- ✓ 赛博朋克样式正常显示\n- ✓ 所有交互功能正常\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF)",
+      "Bash(/tmp/final-commit-message.txt << 'EOF'\nfeat\\(ui\\): 统一选集面板赛博朋克风格并修复移动端问题\n\n## 新增功能\n- 选集面板应用赛博朋克渐变背景和霓虹边框\n- 添加扫光动画和多层阴影效果\n- 桌面端和移动端视觉风格统一\n\n## 问题修复\n\n### 1. 修复移动端选集面板默认打开的问题\n- 原因：CSS 选择器覆盖了 HTML 的 hidden 类\n- 修复：添加 :not\\(.hidden\\) 选择器避免样式冲突\n\n### 2. 修复打开弹框时页面自动滚动到顶部的问题\n- 原因：focus\\(\\) 触发浏览器默认滚动行为\n- 修复：添加 { preventScroll: true } 参数\n\n### 3. 修复移动端面板飘到顶部的问题（根本问题）\n- 原因：HTML 中 Tailwind 的 items-center justify-center 类\n  让 Flexbox 容器内容垂直居中，覆盖了 bottom 定位\n- 修复：在移动端 CSS 中显式覆盖 Flexbox 对齐属性\n  - align-items: stretch !important\n  - justify-content: flex-start !important\n\n## 技术细节\n- CSS: 35 处赛博朋克颜色，19 处扫光动画，5 处多层阴影\n- CSS: 移除重复选择器，优化样式层级\n- CSS: 覆盖 Tailwind 的 Flexbox 居中对齐\n- JS: 2 处焦点管理优化（preventScroll）\n\n## 测试验证\n- ✓ 面板初始状态正确隐藏\n- ✓ 打开面板不会滚动页面\n- ✓ 面板停留在底部不飘动\n- ✓ 赛博朋克样式正常显示\n- ✓ 所有交互功能正常\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF)"
     ]
   }
 }
