@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 12
+- **Total Sessions**: 13
 - **Last Active**: 2026-02-07
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1223 | Active |
+| `journal-1.md` | ~1255 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 13 | 2026-02-07 | 修复PC端数据源设置按钮换行问题 | `8edcee9` |
 | 12 | 2026-02-07 | 修复选集面板移动端定位问题 | `12a0fca` |
 | 11 | 2026-02-05 | 修复 Windows 平台 Multi-Agent Pipeline 执行错误 | `845174f` |
 | 10 | 2026-02-05 | 优化移动端数据源面板滚动和批量操作布局 | `893b498` |

@@ -1221,3 +1221,35 @@ where bash.exe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: 修复PC端数据源设置按钮换行问题
+
+**Date**: 2026-02-07
+**Task**: 修复PC端数据源设置按钮换行问题
+
+### Summary
+
+修复了数据源设置中三个批量操作按钮的换行问题，确保按钮在同一行显示
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8edcee9` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
