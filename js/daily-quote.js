@@ -390,9 +390,21 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     const elements = getDailyQuoteElements();
-    if (elements && elements.section) {
-        elements.section.addEventListener('click', handleClickRefresh);
-        elements.section.addEventListener('keydown', handleClickRefresh);
+    if (elements) {
+        const { section, text, fromText } = elements;
+
+        // 点击事件只绑定到文字元素上
+        if (text) {
+            text.addEventListener('click', handleClickRefresh);
+        }
+        if (fromText && fromText.parentElement) {
+            fromText.parentElement.addEventListener('click', handleClickRefresh);
+        }
+
+        // 键盘事件保持在 section 上，用于无障碍访问
+        if (section) {
+            section.addEventListener('keydown', handleClickRefresh);
+        }
     }
 
     updateDailyQuoteVisibility();

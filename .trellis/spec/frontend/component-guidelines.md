@@ -546,6 +546,35 @@ function cleanupFeature() {
 }
 ```
 
+### ❌ Don't: Make entire block-level elements clickable
+
+```javascript
+// Bad - Entire line is clickable (including whitespace)
+<div class="cursor-pointer" onclick="handleClick()">
+    <p>Click me</p>
+</div>
+```
+
+**Why**: Block-level elements (`<div>`, `<p>`) default to `width: 100%`, making the entire line clickable including empty space. This creates poor UX.
+
+### ✅ Do: Make only the content clickable
+
+```javascript
+// Good - Only text is clickable
+<div class="text-center">
+    <p class="cursor-pointer inline-block" onclick="handleClick()">
+        Click me
+    </p>
+</div>
+```
+
+**Key points**:
+- Use `inline-block` to make element width fit content
+- Add `cursor-pointer` only to clickable elements
+- Keep parent container for layout (centering, spacing)
+
+**Example**: `index.html:305-313` (daily quote click area)
+
 ---
 
 ## Summary
