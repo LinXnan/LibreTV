@@ -1285,3 +1285,35 @@ where bash.exe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: 历史记录显示影片封面图片
+
+**Date**: 2026-02-08
+**Task**: 历史记录显示影片封面图片
+
+### Summary
+
+实现历史记录封面显示功能，包括跨域处理、安全防护、移动端遮罩优化等
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5f503c8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

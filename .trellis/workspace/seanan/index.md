@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 14
-- **Last Active**: 2026-02-07
+- **Total Sessions**: 15
+- **Last Active**: 2026-02-08
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1287 | Active |
+| `journal-1.md` | ~1319 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 15 | 2026-02-08 | 历史记录显示影片封面图片 | `5f503c8` |
 | 14 | 2026-02-07 | 优化每日一言点击区域 | `202c7b00b0c4c0db78b315f0d6ef2a95c69f6c85` |
 | 13 | 2026-02-07 | 修复PC端数据源设置按钮换行问题 | `8edcee9` |
 | 12 | 2026-02-07 | 修复选集面板移动端定位问题 | `12a0fca` |
