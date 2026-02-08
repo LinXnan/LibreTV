@@ -1317,3 +1317,35 @@ where bash.exe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: 修复 Cloudflare 代理图片显示问题
+
+**Date**: 2026-02-08
+**Task**: 修复 Cloudflare 代理图片显示问题
+
+### Summary
+
+修复代理使用 text() 读取二进制数据导致图片损坏的问题，改用 arrayBuffer() 读取
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `65c0877` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
