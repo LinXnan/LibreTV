@@ -642,6 +642,9 @@ function setupEventListeners() {
 
     // 点击外部关闭设置面板和历史记录面板
     document.addEventListener('click', function (e) {
+        const panelOverlay = document.getElementById('panelOverlay');
+        let panelClosed = false;
+
         // 关闭设置面板
         const settingsPanel = document.querySelector('#settingsPanel.show');
         const settingsButton = document.querySelector('#settingsPanel .close-btn');
@@ -650,6 +653,7 @@ function setupEventListeners() {
             !settingsPanel.contains(e.target) &&
             !settingsButton.contains(e.target)) {
             settingsPanel.classList.remove('show');
+            panelClosed = true;
         }
 
         // 关闭历史记录面板
@@ -660,6 +664,12 @@ function setupEventListeners() {
             !historyPanel.contains(e.target) &&
             !historyButton.contains(e.target)) {
             historyPanel.classList.remove('show');
+            panelClosed = true;
+        }
+
+        // 同步隐藏遮罩层
+        if (panelClosed && panelOverlay) {
+            panelOverlay.classList.remove('show');
         }
     });
 
@@ -1282,12 +1292,14 @@ async function importConfigFromUrl() {
     document.body.appendChild(modal);
 
     // 关闭按钮事件
-    document.getElementById('closeUrlModal').addEventListener('click', () => {
+    document.getElementById('closeUrlModal').addEventListener('click', (e) => {
+        e.stopPropagation();
         document.body.removeChild(modal);
     });
 
     // 取消按钮事件
-    document.getElementById('cancelUrlImport').addEventListener('click', () => {
+    document.getElementById('cancelUrlImport').addEventListener('click', (e) => {
+        e.stopPropagation();
         document.body.removeChild(modal);
     });
 
@@ -1356,6 +1368,7 @@ async function importConfigFromUrl() {
 
     // 点击模态框外部关闭
     modal.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (e.target === modal) {
             document.body.removeChild(modal);
         }

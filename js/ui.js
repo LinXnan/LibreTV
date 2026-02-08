@@ -1253,7 +1253,8 @@ function clearLocalStorage() {
     document.body.appendChild(modal);
 
     // 添加事件监听器 - 关闭按钮
-    document.getElementById('closeBoxModal').addEventListener('click', function () {
+    document.getElementById('closeBoxModal').addEventListener('click', function (e) {
+        e.stopPropagation();
         document.body.removeChild(modal);
     });
 
@@ -1297,12 +1298,14 @@ function clearLocalStorage() {
     });
 
     // 添加事件监听器 - 取消按钮
-    document.getElementById('cancelBoxModal').addEventListener('click', function () {
+    document.getElementById('cancelBoxModal').addEventListener('click', function (e) {
+        e.stopPropagation();
         document.body.removeChild(modal);
     });
 
     // 添加事件监听器 - 点击模态框外部关闭
     modal.addEventListener('click', function (e) {
+        e.stopPropagation();
         if (e.target === modal) {
             document.body.removeChild(modal);
         }
@@ -1353,12 +1356,14 @@ function showImportBox(fun) {
     document.body.appendChild(modal);
 
     // 添加事件监听器 - 关闭按钮
-    document.getElementById('closeBoxModal').addEventListener('click', function () {
+    document.getElementById('closeBoxModal').addEventListener('click', function (e) {
+        e.stopPropagation();
         document.body.removeChild(modal);
     });
 
     // 添加事件监听器 - 点击模态框外部关闭
     modal.addEventListener('click', function (e) {
+        e.stopPropagation();
         if (e.target === modal) {
             document.body.removeChild(modal);
         }
