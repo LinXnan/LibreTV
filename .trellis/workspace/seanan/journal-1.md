@@ -1349,3 +1349,62 @@ where bash.exe
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: 移动端历史记录面板样式优化与遮罩层修复
+
+**Date**: 2026-02-08
+**Task**: 移动端历史记录面板样式优化与遮罩层修复
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 完成内容
+
+| 功能 | 说明 |
+|------|------|
+| 时间线样式 | 从复杂卡片改为简洁单线样式（iOS风格） |
+| 删除按钮 | 从圆形毛玻璃改为低调透明X图标 |
+| 清空历史按钮 | 与设置面板按钮样式统一（青色渐变） |
+| 遮罩层修复 | 修复设置面板弹窗关闭后遮罩残留问题 |
+
+## 技术细节
+
+**时间线样式改进**:
+- 使用 flexbox + `::after` 伪元素实现右侧渐变横线
+- 移除扫光动画、日历图标等复杂效果
+- 文字改为低调灰色 `rgba(255, 255, 255, 0.5)`
+
+**遮罩层修复**:
+- 根因：document click handler 关闭面板时未同步隐藏 `panelOverlay`
+- 修复：在 `app.js` 的 document click handler 中添加 `panelOverlay.classList.remove('show')`
+- 补充：为模态框关闭事件添加 `e.stopPropagation()` 防止事件冒泡
+
+## 修改文件
+
+- `css/mobile-optimize.css` - 删除按钮简化样式
+- `css/mobile-panels-modern.css` - 时间线、清空按钮、删除按钮样式
+- `js/app.js` - 遮罩层同步隐藏 + importConfigFromUrl 事件冒泡修复
+- `js/ui.js` - clearLocalStorage/showImportBox 事件冒泡修复
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4d61d62` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
