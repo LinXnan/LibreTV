@@ -509,14 +509,17 @@ function loadViewingHistory() {
         htmlContent += group.items.map((item) => {
         // 获取该项在原始历史记录数组中的索引
         const index = history.findIndex(h => h.url === item.url && h.timestamp === item.timestamp);
-        // 防止XSS - 转义 HTML 特殊字符和单引号，并提供默认值
-        const safeTitle = (item.title || '未知视频')
+
+        // 防止XSS - 转义 HTML 特殊字符（& 必须最先处理）
+        const safeTitle = String(item.title || '未知视频')
+            .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
 
-        const safeSource = (item.sourceName || '未知来源')
+        const safeSource = String(item.sourceName || '未知来源')
+            .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
@@ -527,6 +530,38 @@ function loadViewingHistory() {
 
         // 为防止XSS，使用encodeURIComponent编码URL
         const safeURL = encodeURIComponent(item.url);
+
+        // 处理封面图片URL - 使用代理避免跨域问题
+        const rawCoverUrl = String(item.vod_pic || '').trim();
+        let coverUrl = '';
+
+        if (rawCoverUrl) {
+            try {
+                // 验证URL协议，只允许 http/https 和 scheme-relative
+                if (rawCoverUrl.startsWith('http://') ||
+                    rawCoverUrl.startsWith('https://') ||
+                    rawCoverUrl.startsWith('//')) {
+                    // 处理 scheme-relative URL - 使用当前页面协议
+                    const normalizedUrl = rawCoverUrl.startsWith('//')
+                        ? `${window.location.protocol}${rawCoverUrl}`
+                        : rawCoverUrl;
+                    coverUrl = `/proxy/${encodeURIComponent(normalizedUrl).replace(/'/g, '%27')}`;
+                } else if (rawCoverUrl.startsWith('/')) {
+                    // 相对路径直接使用
+                    coverUrl = rawCoverUrl;
+                }
+                // 其他协议（data:, javascript: 等）被忽略，coverUrl 保持为空
+            } catch (e) {
+                // URL 处理失败，使用降级
+                coverUrl = '';
+            }
+        }
+
+        // 转义封面URL用于HTML属性
+        const safeCoverUrl = coverUrl
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
 
         // 移动端使用新的卡片布局
         if (isMobile) {
@@ -553,9 +588,19 @@ function loadViewingHistory() {
             // 安全的 URL 用于 onclick - 转义单引号防止注入
             const safeURLForOnclick = safeURL.replace(/'/g, '%27');
 
+            // 移动端封面图片HTML - 作为背景层
+            const mobileCoverHtml = coverUrl ? `
+                <img data-src="${safeCoverUrl}"
+                     alt="${safeTitle}"
+                     class="lazy-load history-cover-bg"
+                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); z-index: 1; pointer-events: none;"></div>
+            ` : '';
+
             return `
                 <div class="history-item" data-url="${safeURL}" data-index="${index}">
-                    <div class="history-item-content" style="background: ${gradientBg};" onclick="playFromHistoryByIndex(${index})">
+                    <div class="history-item-content" style="background: ${gradientBg}; position: relative; overflow: hidden;" onclick="playFromHistoryByIndex(${index})">
+                        ${mobileCoverHtml}
                         <div class="history-icon-mobile">${contentIcon}</div>
                         <button class="history-item-corner-delete" onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURLForOnclick}', ${index})" title="删除">
                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -579,10 +624,24 @@ function loadViewingHistory() {
         const gradientBg = generateGradientFromString(safeTitle);
         const contentIcon = getContentTypeIcon(item.title);
 
-        // 渐变色占位符HTML
-        const placeholderHtml = `
+        // PC端封面图片HTML - 占位符永远在底层，封面覆盖（失败时自动降级）
+        const coverImageHtml = coverUrl ? `
             <div class="history-icon-placeholder" style="background: ${gradientBg};">
                 <span class="history-icon">${contentIcon}</span>
+            </div>
+            <img data-src="${safeCoverUrl}"
+                 alt="${safeTitle}"
+                 class="lazy-load history-cover-img"
+                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block;">
+        ` : `
+            <div class="history-icon-placeholder" style="background: ${gradientBg};">
+                <span class="history-icon">${contentIcon}</span>
+            </div>
+        `;
+
+        const placeholderHtml = `
+            <div class="history-cover" style="position: relative; overflow: hidden;">
+                ${coverImageHtml}
             </div>
         `;
 
@@ -624,7 +683,7 @@ function loadViewingHistory() {
             <div class="history-item cursor-pointer relative group" data-url="${safeURL}" data-index="${index}" onclick="playFromHistoryByIndex(${index})">
                 ${placeholderHtml}
                 <div class="history-info">
-                    <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL}')"
+                    <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL.replace(/'/g, '%27')}')"
                             class="absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 md:p-1 rounded-full hover:bg-gray-800 bg-gray-900/50 md:bg-transparent z-10 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center delete-btn"
                             title="删除记录"
                             aria-label="删除此观看记录">
@@ -656,7 +715,10 @@ function loadViewingHistory() {
         historyList.classList.add('pb-4');
     }
 
-    // 注意：已移除图片懒加载代码，因为不再使用封面图片
+    // 初始化图片懒加载 - 使用 LazyImageLoader 处理封面图片的加载和鉴权
+    if (window.lazyImageLoader) {
+        window.lazyImageLoader.observeAll('img.lazy-load[data-src]');
+    }
 }
 
 // 格式化播放时间为 mm:ss 格式
