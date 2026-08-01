@@ -116,22 +116,31 @@ export async function onRequest(context) {
         return true;
     }
 
-    // 验证鉴权（主函数调用）
-    if (!validateAuth(request, env)) {
-        return new Response('Unauthorized', { 
-            status: 401,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
-                'Access-Control-Allow-Headers': '*'
-            }
-        });
-    }
-
     // 输出调试日志 (需要设置 DEBUG: true 环境变量)
     function logDebug(message) {
         if (DEBUG_ENABLED) {
             console.log(`[Proxy Func] ${message}`);
+        }
+    }
+
+    /**
+     * 验证目标 URL 是否允许代理访问（SSRF 防护）。
+     * 移植自 server.mjs isValidUrl。CF 环境用 env.* 而非 process.env。
+     */
+    function isValidUrl(urlString) {
+        try {
+            const parsed = new URL(urlString);
+            const allowedProtocols = ['http:', 'https:'];
+            const blockedHostnames = (env.BLOCKED_HOSTS || 'localhost,127.0.0.1,0.0.0.0,::1').split(',');
+            const blockedPrefixes = (env.BLOCKED_IP_PREFIXES || '192.168.,10.,172.').split(',');
+            if (!allowedProtocols.includes(parsed.protocol)) return false;
+            if (blockedHostnames.includes(parsed.hostname)) return false;
+            for (const prefix of blockedPrefixes) {
+                if (parsed.hostname.startsWith(prefix)) return false;
+            }
+            return true;
+        } catch {
+            return false;
         }
     }
 
@@ -526,6 +535,11 @@ export async function onRequest(context) {
         }
 
         logDebug(`收到代理请求: ${targetUrl}`);
+
+        // --- SSRF 防护：验证目标 URL ---
+        if (!isValidUrl(targetUrl)) {
+            return createResponse("无效的 URL 或目标地址被阻止", 400);
+        }
 
         // --- 缓存检查 (KV) ---
         const cacheKey = `proxy_raw:${targetUrl}`; // 使用原始内容的缓存键
