@@ -1017,6 +1017,42 @@ body {
     transform: translateX(-50%) translateY(-100%);
 }
 
+/* ===== 搜索结果卡片 v2：横版海报纵向布局 ===== */
+.result-card {
+    border: 1px solid rgba(255,255,255,0.04);
+}
+.result-card:hover {
+    border-color: rgba(0, 204, 255, 0.25);
+}
+
+/* 横版卡片 → 桌面 3 列 */
+@media (min-width: 1025px) {
+    #results {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+}
+
+/* 结果区骨架→内容淡入 */
+#results:not(.hidden) .result-card,
+#results:not(.hidden) .col-span-full {
+    animation: cardFadeIn 0.4s ease-out;
+}
+@keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 骨架屏淡出（配合结果区出现） */
+#searchSkeleton.hidden {
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
+}
+
+/* 空状态容器 */
+.empty-state {
+    min-height: 300px;
+}
+
 /* 详情模态框样式优化 */
 #modal .modal-detail-info {
     background: linear-gradient(135deg, #0a0a0a, #111);
