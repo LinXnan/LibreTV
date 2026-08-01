@@ -714,6 +714,65 @@
     }
 }
 
+/* 桌面端 API 网格 — 2列布局 */
+@media (min-width: 641px) {
+    .mobile-api-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+    .mobile-api-item {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        min-height: 2.5rem;
+        background: linear-gradient(135deg, rgba(0, 159, 191, 0.03), rgba(0, 159, 191, 0.01));
+        border: 1px solid rgba(0, 159, 191, 0.15);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+    }
+    .mobile-api-item:hover {
+        background: linear-gradient(135deg, rgba(0, 159, 191, 0.08), rgba(0, 159, 191, 0.04));
+        border-color: rgba(0, 159, 191, 0.4);
+    }
+    .mobile-api-item:has(input:checked) {
+        background: linear-gradient(135deg, rgba(0, 159, 191, 0.15), rgba(0, 159, 191, 0.08));
+        border-color: #009fbf;
+    }
+    .mobile-api-item.adult {
+        border-color: rgba(255, 60, 120, 0.15);
+    }
+    .mobile-api-item.adult:has(input:checked) {
+        border-color: var(--accent-color);
+        background: linear-gradient(135deg, rgba(255, 60, 120, 0.15), rgba(255, 60, 120, 0.08));
+    }
+    .mobile-api-content {
+        flex: 1;
+        min-width: 0;
+    }
+    .mobile-api-name {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .mobile-api-item:has(input:checked) .mobile-api-name {
+        color: #009fbf;
+    }
+    .mobile-api-item.adult:has(input:checked) .mobile-api-name {
+        color: var(--accent-color);
+    }
+    .mobile-api-checkbox {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+}
+
 /* ========================================
    滑动操作样式 - Task 1.2
    ======================================== */

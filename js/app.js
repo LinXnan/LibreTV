@@ -104,59 +104,38 @@ function initAPICheckboxes() {
     const container = document.getElementById('apiCheckboxes');
     container.innerHTML = '';
 
-    const isMobile = window.innerWidth <= 640;
-
     // 添加普通API组标题
     const normaldiv = document.createElement('div');
     normaldiv.id = 'normaldiv';
-    normaldiv.className = isMobile ? 'mobile-api-grid' : 'grid grid-cols-2 gap-2';
+    normaldiv.className = 'mobile-api-grid';
     const normalTitle = document.createElement('div');
     normalTitle.className = 'api-group-title';
     normalTitle.textContent = '普通资源';
     normaldiv.appendChild(normalTitle);
 
-    // 创建普通API源的复选框
+    // 创建普通API源的复选框 — 统一使用 mobile-api-item 结构，CSS 响应式处理布局
     Object.keys(API_SITES).forEach(apiKey => {
         const api = API_SITES[apiKey];
         if (api.adult) return;
 
         const checked = selectedAPIs.includes(apiKey);
+        const item = document.createElement('label');
+        item.className = 'mobile-api-item';
+        item.innerHTML = `
+            <div class="mobile-api-content">
+                <span class="mobile-api-name">${api.name}</span>
+            </div>
+            <input type="checkbox" id="api_${apiKey}"
+                   class="mobile-api-checkbox"
+                   ${checked ? 'checked' : ''}
+                   data-api="${apiKey}">
+        `;
+        normaldiv.appendChild(item);
 
-        if (isMobile) {
-            const item = document.createElement('label');
-            item.className = 'mobile-api-item';
-            item.innerHTML = `
-                <div class="mobile-api-content">
-                    <span class="mobile-api-name">${api.name}</span>
-                </div>
-                <input type="checkbox" id="api_${apiKey}"
-                       class="mobile-api-checkbox"
-                       ${checked ? 'checked' : ''}
-                       data-api="${apiKey}">
-            `;
-            normaldiv.appendChild(item);
-
-            item.querySelector('input').addEventListener('change', function () {
-                updateSelectedAPIs();
-                checkAdultAPIsSelected();
-            });
-        } else {
-            const checkbox = document.createElement('div');
-            checkbox.className = 'flex items-center';
-            checkbox.innerHTML = `
-                <input type="checkbox" id="api_${apiKey}"
-                       class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333]"
-                       ${checked ? 'checked' : ''}
-                       data-api="${apiKey}">
-                <label for="api_${apiKey}" class="ml-1 text-xs text-gray-400 truncate">${api.name}</label>
-            `;
-            normaldiv.appendChild(checkbox);
-
-            checkbox.querySelector('input').addEventListener('change', function () {
-                updateSelectedAPIs();
-                checkAdultAPIsSelected();
-            });
-        }
+        item.querySelector('input').addEventListener('change', function () {
+            updateSelectedAPIs();
+            checkAdultAPIsSelected();
+        });
     });
     container.appendChild(normaldiv);
 
@@ -172,12 +151,11 @@ function addAdultAPI() {
     // 仅在隐藏设置为false时添加成人API组
     if (!HIDE_BUILTIN_ADULT_APIS && (localStorage.getItem('yellowFilterEnabled') === 'false')) {
         const container = document.getElementById('apiCheckboxes');
-        const isMobile = window.innerWidth <= 640;
 
         // 添加成人API组标题
         const adultdiv = document.createElement('div');
         adultdiv.id = 'adultdiv';
-        adultdiv.className = isMobile ? 'mobile-api-grid' : 'grid grid-cols-2 gap-2';
+        adultdiv.className = 'mobile-api-grid';
         const adultTitle = document.createElement('div');
         adultTitle.className = 'api-group-title adult';
         adultTitle.innerHTML = `黄色资源采集站 <span class="adult-warning">
@@ -187,49 +165,30 @@ function addAdultAPI() {
         </span>`;
         adultdiv.appendChild(adultTitle);
 
-        // 创建成人API源的复选框
+        // 创建成人API源的复选框 — 统一结构，CSS 响应式处理布局
         Object.keys(API_SITES).forEach(apiKey => {
             const api = API_SITES[apiKey];
             if (!api.adult) return;
 
             const checked = selectedAPIs.includes(apiKey);
+            const item = document.createElement('label');
+            item.className = 'mobile-api-item adult';
+            item.innerHTML = `
+                <div class="mobile-api-content">
+                    <span class="mobile-api-name">${api.name}</span>
+                    <span class="adult-badge">18+</span>
+                </div>
+                <input type="checkbox" id="api_${apiKey}"
+                       class="mobile-api-checkbox api-adult"
+                       ${checked ? 'checked' : ''}
+                       data-api="${apiKey}">
+            `;
+            adultdiv.appendChild(item);
 
-            if (isMobile) {
-                const item = document.createElement('label');
-                item.className = 'mobile-api-item adult';
-                item.innerHTML = `
-                    <div class="mobile-api-content">
-                        <span class="mobile-api-name">${api.name}</span>
-                        <span class="adult-badge">18+</span>
-                    </div>
-                    <input type="checkbox" id="api_${apiKey}"
-                           class="mobile-api-checkbox api-adult"
-                           ${checked ? 'checked' : ''}
-                           data-api="${apiKey}">
-                `;
-                adultdiv.appendChild(item);
-
-                item.querySelector('input').addEventListener('change', function () {
-                    updateSelectedAPIs();
-                    checkAdultAPIsSelected();
-                });
-            } else {
-                const checkbox = document.createElement('div');
-                checkbox.className = 'flex items-center';
-                checkbox.innerHTML = `
-                    <input type="checkbox" id="api_${apiKey}"
-                           class="form-checkbox h-3 w-3 text-blue-600 bg-[#222] border border-[#333] api-adult"
-                           ${checked ? 'checked' : ''}
-                           data-api="${apiKey}">
-                    <label for="api_${apiKey}" class="ml-1 text-xs text-pink-400 truncate">${api.name}</label>
-                `;
-                adultdiv.appendChild(checkbox);
-
-                checkbox.querySelector('input').addEventListener('change', function () {
-                    updateSelectedAPIs();
-                    checkAdultAPIsSelected();
-                });
-            }
+            item.querySelector('input').addEventListener('change', function () {
+                updateSelectedAPIs();
+                checkAdultAPIsSelected();
+            });
         });
         container.appendChild(adultdiv);
     }
@@ -296,77 +255,45 @@ function renderCustomAPIsList() {
         return;
     }
 
-    const isMobile = window.innerWidth <= 640;
     container.innerHTML = '';
 
     customAPIs.forEach((api, index) => {
-        const textColorClass = api.isAdult ? 'text-pink-400' : 'text-white';
-        const adultTag = api.isAdult ? '<span class="text-xs text-pink-400 mr-1">(18+)</span>' : '';
         const escapedName = escapeHtml(api.name || '');
         const escapedUrl = escapeHtml(api.url || '');
-        const detailLine = api.detail ? `<div class="text-xs text-gray-400 truncate">detail: ${escapeHtml(api.detail)}</div>` : '';
 
-        if (isMobile) {
-            const swipeContainer = document.createElement('div');
-            swipeContainer.className = 'swipe-container mb-1';
-            swipeContainer.innerHTML = `
-                <div class="swipe-content">
-                    <label class="mobile-api-item ${api.isAdult ? 'adult' : ''}">
-                        <input type="checkbox" id="custom_api_${index}"
-                               class="mobile-api-checkbox ${api.isAdult ? 'api-adult' : ''}"
-                               ${selectedAPIs.includes('custom_' + index) ? 'checked' : ''}
-                               data-custom-index="${index}">
-                        <div class="mobile-api-content">
-                            <div class="mobile-api-name">${escapedName}</div>
-                            <div class="mobile-api-url">${escapedUrl}</div>
-                            ${api.detail ? `<div class="text-[10px] text-gray-500 truncate">detail: ${escapeHtml(api.detail)}</div>` : ''}
-                        </div>
-                        ${api.isAdult ? '<span class="adult-badge">18+</span>' : ''}
-                    </label>
-                </div>
-                <div class="swipe-actions">
-                    <button class="edit-btn" onclick="editCustomApi(${index})" aria-label="编辑">✎</button>
-                    <button class="delete-btn" onclick="removeCustomApi(${index})" aria-label="删除">✕</button>
-                </div>
-            `;
-            container.appendChild(swipeContainer);
-
-            swipeContainer.querySelector('input').addEventListener('change', function () {
-                updateSelectedAPIs();
-                checkAdultAPIsSelected();
-            });
-        } else {
-            const apiItem = document.createElement('div');
-            apiItem.className = 'flex items-center justify-between p-1 mb-1 bg-[#222] rounded';
-            apiItem.innerHTML = `
-                <div class="flex items-center flex-1 min-w-0">
+        // 统一使用 swipe 结构，桌面端 CSS 隐藏 swipe-actions，SwipeActions 仅在移动端激活
+        const swipeContainer = document.createElement('div');
+        swipeContainer.className = 'swipe-container mb-1';
+        swipeContainer.innerHTML = `
+            <div class="swipe-content">
+                <label class="mobile-api-item ${api.isAdult ? 'adult' : ''}">
                     <input type="checkbox" id="custom_api_${index}"
-                           class="form-checkbox h-3 w-3 text-blue-600 mr-1 ${api.isAdult ? 'api-adult' : ''}"
+                           class="mobile-api-checkbox ${api.isAdult ? 'api-adult' : ''}"
                            ${selectedAPIs.includes('custom_' + index) ? 'checked' : ''}
                            data-custom-index="${index}">
-                    <div class="flex-1 min-w-0">
-                        <div class="text-xs font-medium ${textColorClass} truncate">
-                            ${adultTag}${escapedName}
-                        </div>
-                        <div class="text-xs text-gray-500 truncate">${escapedUrl}</div>
-                        ${detailLine}
+                    <div class="mobile-api-content">
+                        <div class="mobile-api-name">${escapedName}</div>
+                        <div class="mobile-api-url">${escapedUrl}</div>
+                        ${api.detail ? `<div class="text-[10px] text-gray-500 truncate">detail: ${escapeHtml(api.detail)}</div>` : ''}
                     </div>
-                </div>
-                <div class="flex items-center">
-                    <button class="text-blue-500 hover:text-blue-700 text-xs px-1" onclick="editCustomApi(${index})">✎</button>
-                    <button class="text-red-500 hover:text-red-700 text-xs px-1" onclick="removeCustomApi(${index})">✕</button>
-                </div>
-            `;
-            container.appendChild(apiItem);
+                    ${api.isAdult ? '<span class="adult-badge">18+</span>' : ''}
+                </label>
+            </div>
+            <div class="swipe-actions">
+                <button class="edit-btn" onclick="editCustomApi(${index})" aria-label="编辑">✎</button>
+                <button class="delete-btn" onclick="removeCustomApi(${index})" aria-label="删除">✕</button>
+            </div>
+        `;
+        container.appendChild(swipeContainer);
 
-            apiItem.querySelector('input').addEventListener('change', function () {
-                updateSelectedAPIs();
-                checkAdultAPIsSelected();
-            });
-        }
+        swipeContainer.querySelector('input').addEventListener('change', function () {
+            updateSelectedAPIs();
+            checkAdultAPIsSelected();
+        });
     });
 
-    if (isMobile && typeof SwipeActions !== 'undefined') {
+    // 移动端激活滑动手势，桌面端 SwipeActions 自检跳过
+    if (typeof SwipeActions !== 'undefined') {
         SwipeActions.init(container);
     }
 }

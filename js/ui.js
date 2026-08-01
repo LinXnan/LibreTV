@@ -733,7 +733,6 @@ function formatPlaybackTime(seconds) {
 
 // 删除单个历史记录项 - 统一使用撤销功能
 function deleteHistoryItem(encodedUrl) {
-    const isMobile = window.innerWidth <= 640;
     const url = decodeURIComponent(encodedUrl);
     const history = getViewingHistory();
     const itemIndex = history.findIndex(item => item.url === url);
@@ -755,8 +754,6 @@ window.historyUndoState = {
 
 // 带撤销的删除历史记录项 (PC端和移动端统一)
 function deleteHistoryItemWithUndo(encodedUrl, itemIndex) {
-    const isMobile = window.innerWidth <= 640;
-
     try {
         const url = decodeURIComponent(encodedUrl);
         const history = getViewingHistory();
@@ -790,7 +787,7 @@ function deleteHistoryItemWithUndo(encodedUrl, itemIndex) {
         removeHistoryItemFromDOM(encodedUrl);
 
         // 显示响应式Toast（立即替换旧Toast）
-        showHistoryUndoToast(item.title, isMobile);
+        showHistoryUndoToast(item.title);
     } catch (e) {
         console.error('删除历史记录项失败:', e);
         showToast('删除记录失败', 'error');
@@ -850,27 +847,20 @@ function undoHistoryDeletion() {
     showToast('已恢复记录', 'success');
 }
 
-// 显示撤销 toast (使用 DOM API 防止 XSS)
-function showHistoryUndoToast(title, isMobile) {
+// 显示撤销 toast — CSS 媒体查询已统一，JS 不再区分移动/PC端
+function showHistoryUndoToast(title) {
     hideHistoryUndoToast();
 
     const truncatedTitle = title.length > 15 ? title.slice(0, 15) + '...' : title;
     const toast = document.createElement('div');
-
-    // PC端和移动端使用不同的样式
-    if (isMobile) {
-        toast.className = 'history-undo-toast';
-        toast.id = 'history-undo-toast';
-    } else {
-        toast.className = 'history-undo-toast-pc';
-        toast.id = 'history-undo-toast-pc';
-    }
+    toast.className = 'history-undo-toast';
+    toast.id = 'history-undo-toast';
 
     const textSpan = document.createElement('span');
     textSpan.textContent = `已删除 "${truncatedTitle}"`;
 
     const undoBtn = document.createElement('button');
-    undoBtn.className = isMobile ? 'history-undo-toast-btn' : 'undo-btn';
+    undoBtn.className = 'history-undo-toast-btn';
     undoBtn.textContent = '撤销';
     undoBtn.onclick = function(e) {
         e.stopPropagation();
@@ -888,20 +878,12 @@ function showHistoryUndoToast(title, isMobile) {
     document.body.appendChild(toast);
 }
 
-// 隐藏撤销 toast
+// 隐藏撤销 toast — 统一类名 .history-undo-toast
 function hideHistoryUndoToast() {
-    // 移动端toast
-    const toastMobile = document.getElementById('history-undo-toast');
-    if (toastMobile) {
-        toastMobile.classList.add('hiding');
-        setTimeout(() => toastMobile.remove(), 180);
-    }
-
-    // PC端toast
-    const toastPC = document.getElementById('history-undo-toast-pc');
-    if (toastPC) {
-        toastPC.classList.add('hiding');
-        setTimeout(() => toastPC.remove(), 180);
+    const toast = document.getElementById('history-undo-toast');
+    if (toast) {
+        toast.classList.add('hiding');
+        setTimeout(() => toast.remove(), 180);
     }
 }
 
