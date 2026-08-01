@@ -100,8 +100,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // 先检查用户是否已通过密码验证
     if (window.isPasswordProtected && window.isPasswordProtected()) {
         if (!window.isPasswordVerified || !window.isPasswordVerified()) {
-            // 隐藏加载提示
-            document.getElementById('player-loading').style.display = 'none';
             // 显示密码模态框
             if (window.showPasswordModal) {
                 window.showPasswordModal();
@@ -115,8 +113,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // 监听密码验证成功事件
 document.addEventListener('passwordVerified', () => {
-    document.getElementById('player-loading').style.display = 'block';
-
     initializePageContent();
 });
 
@@ -433,20 +429,6 @@ function initPlayer(videoUrl) {
         return
     }
 
-    // 重置加载进度条
-    const progressBar = document.getElementById('loading-progress-bar');
-    const progressText = document.getElementById('loading-progress-text');
-    if (progressBar && progressText) {
-        progressBar.style.width = '0%';
-        progressText.textContent = '0%';
-    }
-
-    // 显示加载界面
-    const loadingDiv = document.getElementById('player-loading');
-    if (loadingDiv) {
-        loadingDiv.style.display = 'flex';
-    }
-
     // 销毁旧实例
     if (art) {
         art.destroy();
@@ -586,10 +568,10 @@ function initPlayer(videoUrl) {
                 let mediaRecoverCount = 0;
                 const MAX_RECOVER_ATTEMPTS = 3;
 
-                // 监听视频播放事件
+                // 监听视频播放事件 — 标记已播放 / 隐藏错误
+                // loading 的隐藏由下方的 onPlaying 统一调度（进度条→100%→延迟300ms隐藏）
                 video.addEventListener('playing', function () {
                     playbackStarted = true;
-                    document.getElementById('player-loading').style.display = 'none';
                     document.getElementById('error').style.display = 'none';
                 });
 
@@ -603,56 +585,6 @@ function initPlayer(videoUrl) {
 
                 hls.loadSource(url);
                 hls.attachMedia(video);
-
-                // 添加加载进度跟踪
-                let totalFragments = 0;
-                let loadedFragments = 0;
-                const progressBar = document.getElementById('loading-progress-bar');
-                const progressText = document.getElementById('loading-progress-text');
-
-                // 监听manifest解析，获取总片段数
-                hls.on(Hls.Events.LEVEL_LOADED, function(event, data) {
-                    if (data.details && data.details.fragments) {
-                        totalFragments = Math.max(totalFragments, data.details.fragments.length);
-                    }
-                });
-
-                // 监听片段加载开始
-                hls.on(Hls.Events.FRAG_LOADING, function(event, data) {
-                    // 片段开始加载时更新UI
-                    if (progressBar && progressText) {
-                        const progress = totalFragments > 0 ? Math.min((loadedFragments / Math.min(totalFragments, 3)) * 100, 95) : 0;
-                        progressBar.style.width = progress + '%';
-                        progressText.textContent = Math.floor(progress) + '%';
-                    }
-                });
-
-                // 监听片段加载完成
-                hls.on(Hls.Events.FRAG_LOADED, function(event, data) {
-                    loadedFragments++;
-                    if (progressBar && progressText) {
-                        // 只计算前3个片段的进度，避免进度条停滞
-                        const progress = totalFragments > 0 ? Math.min((loadedFragments / Math.min(totalFragments, 3)) * 100, 95) : 0;
-                        progressBar.style.width = progress + '%';
-                        progressText.textContent = Math.floor(progress) + '%';
-                    }
-                });
-
-                // 监听视频开始播放，设置进度为100%
-                video.addEventListener('playing', function onPlaying() {
-                    if (progressBar && progressText) {
-                        progressBar.style.width = '100%';
-                        progressText.textContent = '100%';
-
-                        // 延迟隐藏进度条，让用户看到100%
-                        setTimeout(() => {
-                            const loadingDiv = document.getElementById('player-loading');
-                            if (loadingDiv) {
-                                loadingDiv.style.display = 'none';
-                            }
-                        }, 300);
-                    }
-                }, { once: true });
 
                 // enable airplay, from https://github.com/video-dev/hls.js/issues/5989
                 // 检查是否已存在source元素，如果存在则更新，不存在则创建
@@ -736,15 +668,8 @@ function initPlayer(videoUrl) {
                     }
                 });
 
-                // 监听分段加载事件
-                hls.on(Hls.Events.FRAG_LOADED, function () {
-                    document.getElementById('player-loading').style.display = 'none';
-                });
-
-                // 监听级别加载事件
-                hls.on(Hls.Events.LEVEL_LOADED, function () {
-                    document.getElementById('player-loading').style.display = 'none';
-                });
+                // 监听分段加载事件 — 仅进度更新在 FRAG_LOADING/FRAG_LOADED 进度条处处理
+                // 不在此隐藏 loading；隐藏由 playing 事件统一调度
 
                 // 优化11: 智能画质调整 - 根据缓冲情况自动调整画质
                 let bufferStallCount = 0;
@@ -869,7 +794,6 @@ function initPlayer(videoUrl) {
     });
 
     art.on('video:loadedmetadata', function() {
-        document.getElementById('player-loading').style.display = 'none';
         videoHasEnded = false; // 视频加载时重置结束标志
         // 优先使用URL传递的position参数
         const urlParams = new URLSearchParams(window.location.search);
@@ -970,10 +894,6 @@ function initPlayer(videoUrl) {
         }
 
         // 隐藏所有加载指示器
-        const loadingElements = document.querySelectorAll('#player-loading, .player-loading-container');
-        loadingElements.forEach(el => {
-            if (el) el.style.display = 'none';
-        });
 
         showError('视频播放失败: ' + (error.message || '未知错误'));
     });
@@ -1066,15 +986,6 @@ function initPlayer(videoUrl) {
         // 如果视频已经播放开始，则不显示错误
         if (art && art.video && art.video.currentTime > 0) {
             return;
-        }
-
-        const loadingElement = document.getElementById('player-loading');
-        if (loadingElement && loadingElement.style.display !== 'none') {
-            loadingElement.innerHTML = `
-                <div class="loading-spinner"></div>
-                <div>视频加载时间较长，请耐心等待...</div>
-                <div style="font-size: 12px; color: #aaa; margin-top: 10px;">如长时间无响应，请尝试其他视频源</div>
-            `;
         }
     }, 10000);
 }
@@ -1236,8 +1147,6 @@ function showError(message) {
     if (art && art.video && art.video.currentTime > 1) {
         return;
     }
-    const loadingEl = document.getElementById('player-loading');
-    if (loadingEl) loadingEl.style.display = 'none';
     const errorEl = document.getElementById('error');
     if (errorEl) errorEl.style.display = 'flex';
     const errorMsgEl = document.getElementById('error-message');
@@ -1335,12 +1244,6 @@ function playEpisode(index) {
 
     // 首先隐藏之前可能显示的错误
     document.getElementById('error').style.display = 'none';
-    // 显示加载指示器
-    document.getElementById('player-loading').style.display = 'flex';
-    document.getElementById('player-loading').innerHTML = `
-        <div class="loading-spinner"></div>
-        <div>正在加载视频...</div>
-    `;
 
     // 获取 sourceCode
     const urlParams2 = new URLSearchParams(window.location.search);

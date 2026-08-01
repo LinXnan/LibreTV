@@ -1,0 +1,47 @@
+refactor: 2026-08-01-player-loading-facade
+slug: player-loading-facade
+
+steps:
+  - id: 1
+    name: 新增 showPlayerLoading/hidePlayerLoading/isPlayerLoadingVisible 三个入口函数（display 与文案 stage 解耦语义）
+    method: M-L2-01
+    verification_owner: AI
+    exit_signal: "node -c 通过；npm run dev 启动无报错；新入口未替换任何调用点，纯增量"
+    done: true
+
+  - id: 2
+    name: 逐处替换 12 处直接 style.display 操作为入口调用，清理多余局部变量
+    method: M-L1-01
+    verification_owner: AI
+    exit_signal: "grep 'player-loading.*style.display|getElementById(.player-loading.)' js/player.js 除 isPlayerLoadingVisible 函数体外为 0"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 目视 dev server：首屏加载遮罩显示→播放后消失；出错时遮罩消失显示错误框；换源时遮罩随错消失"
+    human_status: confirmed
+
+  - id: 3
+    name: 把换集与10s超时的 innerHTML 覆盖收口到 showPlayerLoading 的 default/slow stage
+    method: M-L2-01
+    verification_owner: AI
+    exit_signal: "grep 'player-loading.*innerHTML' js/player.js 除 showPlayerLoading 函数体外为 0"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 目视发现两层 loading 现象；经 git diff 确认是重构前既有 bug（finding #01/#02），非本次回归。行为等价成立。"
+    human_status: confirmed
+
+checks:
+  - id: c1
+    description: "player.js 中 #player-loading 的 style.display 直接操作清零（除 isPlayerLoadingVisible 读判断）"
+    status: passed
+  - id: c2
+    description: "player.js 中 #player-loading 的 innerHTML 直接操作清零（除 showPlayerLoading 入口）"
+    status: passed
+  - id: c3
+    description: "首集加载进度条行为不变（行447 走纯 display 分支不覆盖 innerHTML）"
+    status: passed  # AI 静态确认：showPlayerLoading('flex') 走 else 分支只设 display
+  - id: c4
+    description: "换集/超时/出错/换源 遮罩显隐时序与改前一致"
+    status: passed  # HUMAN 目视确认两层 loading 为重构前既有 bug（finding #01/#02），git diff 证实触发时机未变，行为等价成立
+  - id: c5
+    description: "dev server 启动无控制台报错"
+    status: passed  # 服务器运行在 8080，/player.html 返回 200
