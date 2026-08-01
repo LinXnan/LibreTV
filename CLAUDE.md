@@ -99,4 +99,5 @@ div.className = 'responsive-grid';
 - 播放管线：`.codestable/architecture/player-pipeline.md`
 - 首页 SPA：`.codestable/architecture/frontend-app.md`
 - 审计报告：`.codestable/audits/2026-08-01-core-subsystems/index.md`
+- 经验沉淀：`.codestable/compound/`
 - CodeStable 入口：`.codestable/attention.md`
