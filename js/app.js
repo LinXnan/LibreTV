@@ -59,9 +59,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // 默认关闭豆瓣功能
         localStorage.setItem('doubanEnabled', 'false');
 
-        // 默认开启每日一言
-        localStorage.setItem('dailyQuoteEnabled', 'true');
-
         // 标记已初始化默认值
         localStorage.setItem('hasInitializedDefaults', 'true');
     }
@@ -1484,7 +1481,6 @@ async function exportConfig() {
         'yellowFilterEnabled',
         'adFilteringEnabled',
         'doubanEnabled',
-        'dailyQuoteEnabled',
         'hasInitializedDefaults'
     ];
 
