@@ -902,15 +902,13 @@ async function search() {
         // 如果没有结果
         if (!allResults || allResults.length === 0) {
             resultsDiv.innerHTML = `
-                <div class="col-span-full flex flex-col items-center justify-center py-20">
-                    <svg class="w-24 h-24 text-gray-700 mb-4" fill="none" viewBox="0 0 120 120" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="50" cy="50" r="30" stroke-dasharray="4 4" class="opacity-30"/>
-                        <circle cx="50" cy="50" r="40" stroke-dasharray="2 6" class="opacity-20"/>
-                        <path stroke-linecap="round" d="M 50 35 v 20 M 50 60 v 5 M 70 25 l -3 10 M 85 35 l -8 5 M 35 60 l -8 5 M 25 45 l 3 8"/>
-                        <circle cx="50" cy="50" r="8" class="opacity-50"/>
+                <div class="col-span-full text-center py-16">
+                    <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <h3 class="text-lg font-medium text-gray-400 mb-1">没有找到匹配的结果</h3>
-                    <p class="text-sm text-gray-600">请尝试其他关键词或更换数据源</p>
+                    <h3 class="mt-2 text-lg font-medium text-gray-400">没有找到匹配的结果</h3>
+                    <p class="mt-1 text-sm text-gray-500">请尝试其他关键词或更换数据源</p>
                 </div>
             `;
             hideLoading();
@@ -1775,15 +1773,13 @@ function renderSearchResults(results) {
 
     if (!results || results.length === 0) {
         resultsDiv.innerHTML = `
-            <div class="col-span-full flex flex-col items-center justify-center py-20">
-                <svg class="w-24 h-24 text-gray-700 mb-4" fill="none" viewBox="0 0 120 120" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="50" cy="50" r="30" stroke-dasharray="4 4" class="opacity-30"/>
-                    <circle cx="50" cy="50" r="40" stroke-dasharray="2 6" class="opacity-20"/>
-                    <path stroke-linecap="round" d="M 50 35 v 20 M 50 60 v 5 M 70 25 l -3 10 M 85 35 l -8 5 M 35 60 l -8 5 M 25 45 l 3 8"/>
-                    <circle cx="50" cy="50" r="8" class="opacity-50"/>
+            <div class="col-span-full text-center py-16">
+                <svg class="mx-auto h-12 w-12 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <h3 class="text-lg font-medium text-gray-400 mb-1">没有符合条件的结果</h3>
-                <p class="text-sm text-gray-600">请调整筛选条件或重新搜索</p>
+                <h3 class="mt-2 text-lg font-medium text-gray-400">没有符合条件的结果</h3>
+                <p class="mt-1 text-sm text-gray-500">请调整筛选条件或重新搜索</p>
             </div>
         `;
         // 隐藏分页控件
@@ -1817,50 +1813,57 @@ function renderSearchResults(results) {
         const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
 
         return `
-            <div class="result-card group bg-[#111] rounded-xl overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-lg hover:shadow-cyan-500/10"
+            <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md"
                  onclick="showDetails('${safeId}','${safeName}','${sourceCode}','${item.vod_pic || ''}')" ${apiUrlAttr}>
-                ${hasCover ? `
-                <div class="relative overflow-hidden aspect-video bg-[#191919]">
-                    <img src="${item.vod_pic}" alt="${safeName}"
-                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                         onerror="this.onerror=null; this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 160 90%22><rect fill=%22%23191919%22 width=%22160%22 height=%2290%22/><text fill=%22%23333%22 x=%2280%22 y=%2248%22 text-anchor=%22middle%22 font-size=%2210%22>无封面</text></svg>';"
-                         loading="lazy">
-                    ${vodVersion ? `<span class="absolute top-2 right-2 bg-black/70 text-xs px-1.5 py-0.5 rounded text-green-300 backdrop-blur-sm">${vodVersion}</span>` : ''}
-                </div>` : `
-                <div class="aspect-video bg-gradient-to-br from-[#1a1a2e] to-[#16213e] flex items-center justify-center">
-                    <svg class="w-10 h-10 text-gray-600 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                </div>`}
+                <div class="flex h-full">
+                    ${hasCover ? `
+                    <div class="relative flex-shrink-0 search-card-img-container">
+                        <img src="${item.vod_pic}" alt="${safeName}"
+                             class="h-full w-full object-cover transition-transform hover:scale-110"
+                             onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');"
+                             loading="lazy">
+                        <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
+                    </div>` : ''}
 
-                <div class="p-3">
-                    <h3 class="font-semibold text-sm leading-snug mb-1.5 line-clamp-2" title="${safeName}">${safeName}</h3>
+                    <div class="p-2 flex flex-col flex-grow">
+                        <div class="flex-grow">
+                            <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
 
-                    <div class="flex flex-wrap gap-1.5 mb-1.5 text-[11px]">
-                        ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
-                `<span class="text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded-full">${(item.type_name || '').toString().replace(/</g, '&lt;')}</span>` : ''}
-                        ${(item.vod_year || '') ?
-                `<span class="text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-full">${item.vod_year}</span>` : ''}
-                    </div>
-
-                    <p class="text-gray-500 text-xs line-clamp-1 mb-2">
-                        ${(item.vod_remarks || '').toString().replace(/</g, '&lt;') || '暂无介绍'}
-                    </p>
-
-                    <div class="flex items-center justify-between pt-2 border-t border-gray-800/60 text-[11px]">
-                        <div class="flex items-center gap-2">
-                            ${sourceInfo || ''}
-                            ${item.latency && item.latency > 0 ?
-                                `<span class="${
-                                    item.latency < 1000 ? 'text-green-400' :
-                                    item.latency < 3000 ? 'text-yellow-400' :
-                                    'text-red-400'
-                                }">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                    ${item.latency}ms
-                                </span>` : ''}
+                            <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
+                                ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
+                `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-blue-500 text-blue-300">
+                                      ${(item.type_name || '').toString().replace(/</g, '&lt;')}
+                                  </span>` : ''}
+                                ${(item.vod_year || '') ?
+                `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
+                                      ${item.vod_year}
+                                  </span>` : ''}
+                                ${vodVersion ?
+                `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-green-500 text-green-300">
+                                      ${vodVersion}
+                                  </span>` : ''}
+                            </div>
+                            <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
+                                ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')}
+                            </p>
                         </div>
-                        ${(item.vod_score || '') ? `<span class="text-amber-400">★ ${item.vod_score}</span>` : ''}
+
+                        <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-800">
+                            <div class="flex items-center gap-2">
+                                ${sourceInfo ? `${sourceInfo}` : ''}
+                                ${item.latency && item.latency > 0 ?
+                                    `<span class="text-xs px-1.5 py-0.5 rounded ${
+                                        item.latency < 1000 ? 'bg-green-900/30 text-green-400' :
+                                        item.latency < 3000 ? 'bg-yellow-900/30 text-yellow-400' :
+                                        'bg-red-900/30 text-red-400'
+                                    }">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        ${item.latency}ms
+                                    </span>` : ''}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
