@@ -1,0 +1,56 @@
+steps:
+  - id: "1"
+    action: "删除全局滚动条冗余声明（~120行）"
+    method: M-L2-02
+    verification: AI
+    status: pending
+  - id: "2"
+    action: "迁移安全区域样式到 styles.css"
+    method: M-L2-04
+    verification: AI
+    status: pending
+  - id: "3"
+    action: "合并分页控件移动端样式"
+    method: M-L2-02
+    verification: AI
+    status: pending
+  - id: "4"
+    action: "消除按钮触摸尺寸冗余"
+    method: M-L2-02
+    verification: AI
+    status: pending
+  - id: "5"
+    action: "迁移面板移动端布局到 styles.css"
+    method: M-L2-04
+    verification: AI
+    status: pending
+  - id: "6"
+    action: "迁移设置区域 Bento Grid 到 styles.css"
+    method: M-L2-04
+    verification: AI
+    status: pending
+  - id: "7"
+    action: "迁移选集弹框样式到 player.css"
+    method: M-L2-04
+    verification: HUMAN
+    status: pending
+  - id: "8"
+    action: "统一 Toast 撤销提示样式"
+    method: M-L2-06
+    verification: HUMAN
+    status: pending
+  - id: "9"
+    action: "迁移历史记录卡片移动端样式到 styles.css（移动优先重构）"
+    method: M-L1-01
+    verification: HUMAN
+    status: pending
+  - id: "10"
+    action: "评估并限定 body 滚动 hack 页面范围"
+    method: M-L2-05
+    verification: HUMAN
+    status: pending
+  - id: "11"
+    action: "删除 3 个空 CSS 文件 + 移除 HTML 引用"
+    method: null
+    verification: AI
+    status: pending
