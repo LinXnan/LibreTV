@@ -2101,10 +2101,9 @@ body {
     }
 }
 /* ========================================
-   移动端历史记录卡片网格
+   移动端历史记录卡片网格 — 复用桌面端 DOM，CSS 转换为 3 列卡片
    ======================================== */
 
-/* 历史网格容器 - 3列布局 */
 @media (max-width: 640px) {
     #historyList {
         display: grid !important;
@@ -2113,240 +2112,168 @@ body {
         padding: 8px !important;
     }
 
-    /* 时间线标题样式 - 移动端全宽（基础布局） */
     #historyList .timeline-header {
         grid-column: 1 / -1 !important;
-        /* 移动端历史卡片网格布局 */
     }
 
-    /* 历史卡片容器 - 使用 padding-bottom 实现 2:3 比例 */
+    /* 卡片容器 — 2:3 比例 */
     #historyList .history-item {
-        position: relative !important;
+        display: block !important;
+        flex-direction: unset !important;
+        gap: 0 !important;
         padding: 0 !important;
-        padding-bottom: 140% !important;
         margin: 0 !important;
         border-radius: 12px !important;
         overflow: hidden !important;
         background: #1a1a1a !important;
-        display: block !important;
-        height: 0 !important;
         border: 1px solid #333 !important;
-        contain: none !important;
+        position: relative !important;
+        height: 0 !important;
+        padding-bottom: 140% !important;
+        cursor: pointer;
     }
 
-    /* 隐藏PC端封面容器 */
-    .history-cover,
-    .history-icon-placeholder {
-        display: none !important;
-    }
-
-    /* 卡片内容层 - 绝对定位填满父容器 */
-    #historyList .history-item .history-item-content {
+    /* 封面区域 — 绝对定位填满卡片 */
+    .history-cover {
         position: absolute !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        height: auto !important;
+        top: 0; left: 0; right: 0; bottom: 0;
         overflow: hidden;
-        padding: 12px;
-        width: 100%;
-        box-sizing: border-box;
+    }
+
+    .history-cover-img {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        object-fit: cover;
+    }
+
+    /* 渐变色占位符 — 半透明巨型图标 */
+    .history-icon-placeholder {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        background: transparent !important;
+    }
+
+    .history-icon {
+        font-size: 64px !important;
+        opacity: 0.15;
+        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+        animation: none;
+    }
+
+    /* 信息区域 — 底部渐变叠加 */
+    .history-info {
+        position: absolute !important;
+        bottom: 0; left: 0; right: 0;
+        padding: 24px 10px 10px 10px;
+        background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.7) 40%, rgba(0,0,0,0.95) 100%);
+        z-index: 2;
+        min-height: auto;
+        flex: unset;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
-        /* background 将由 JS 动态设置 */
     }
 
-    /* 底部渐变遮罩 - 增强文字可读性 */
-    #historyList .history-item .history-item-content::before {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 60%;
-        background: linear-gradient(
-            to bottom,
-            transparent 0%,
-            rgba(0, 0, 0, 0.3) 20%,
-            rgba(0, 0, 0, 0.7) 60%,
-            rgba(0, 0, 0, 0.95) 100%
-        );
-        z-index: 1;
-        pointer-events: none;
-    }
-
-    /* 移动端内容图标 */
-    .history-icon-mobile {
-        position: absolute;
-        top: 45%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 64px;
-        opacity: 0.12;
-        z-index: 0;
-        pointer-events: none;
-        filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
-    }
-
-    /* 底部信息区域 - 增强文字可读性 */
-    .history-item-content .history-title,
-    .history-item-content .history-meta,
-    .history-item-content .history-timestamp {
-        text-shadow:
-            0 1px 3px rgba(0,0,0,1),
-            0 2px 6px rgba(0,0,0,0.8),
-            0 0 12px rgba(0,0,0,0.6);
-        position: relative;
-        z-index: 2;
-        padding: 0 8px;
-        color: #fff !important;
-    }
-
-    .history-item-content .history-title {
-        font-size: 13px !important;
+    .history-title {
+        font-size: 12px !important;
         font-weight: 600 !important;
         line-height: 1.3 !important;
-        margin-bottom: 4px !important;
-        padding-right: 8px !important;
+        color: #fff !important;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        margin-bottom: 4px;
     }
 
-    .history-item-content .history-meta {
+    .history-meta {
         font-size: 10px !important;
-        margin-bottom: 6px !important;
-        opacity: 0.9;
+        color: #bbb !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
-    .history-item-content .history-timestamp {
-        font-size: 10px !important;
-        padding-bottom: 8px !important;
-    }
-
-    /* 删除按钮 - 简洁样式，44x44px 触摸区域 */
-    .history-item-corner-delete {
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        width: 44px;
-        height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        z-index: 10;
-        padding: 0;
-        margin: 0;
-        -webkit-tap-highlight-color: transparent;
-        opacity: 0.6;
-        transition: opacity 0.15s ease;
-    }
-
-    /* 移除旧的圆形背景 */
-    .history-item-corner-delete::after {
+    .history-time {
         display: none;
     }
 
-    .history-item-corner-delete svg {
-        width: 18px;
-        height: 18px;
-        color: rgba(255, 255, 255, 0.9);
-        stroke-width: 2;
-        transition: all 0.15s ease;
-        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
-    }
-
-    .history-item-corner-delete:active {
-        opacity: 1;
-    }
-
-    .history-item-corner-delete:active svg {
-        transform: scale(0.9);
-        color: #ef4444;
-    }
-
-    /* 卡片标题 - 2行截断 */
-    .history-item-content .history-title {
-        display: -webkit-box !important;
-        -webkit-line-clamp: 2 !important;
-        -webkit-box-orient: vertical !important;
-        overflow: hidden !important;
-        font-size: 12px !important;
-        line-height: 1.2 !important;
-        margin-bottom: 2px !important;
-        padding-right: 32px !important;
-    }
-
-    /* 元信息 - 集数+来源 */
-    .history-item-content .history-meta {
-        font-size: 12px !important;
-        color: #9ca3af !important;
-        white-space: nowrap !important;
-        text-overflow: ellipsis !important;
-        overflow: hidden !important;
-        margin-bottom: 6px !important;
-    }
-
-    /* 进度条 - 固定在卡片底部 */
-    .history-item-content .history-progress-bar {
+    /* 进度条 — 卡片底部细线 */
+    .history-progress {
         position: absolute !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        height: 3px !important;
-        border-radius: 0 !important;
-        background: rgba(51, 51, 51, 0.6) !important;
+        bottom: 0; left: 0; right: 0;
         margin: 0 !important;
-        overflow: hidden !important;
         z-index: 3;
     }
 
-    .history-item-content .history-progress-fill {
-        height: 100% !important;
-        background: linear-gradient(90deg, #3b82f6, #60a5fa) !important;
-        border-radius: 0 !important;
+    .progress-bar {
+        height: 3px;
+        border-radius: 0;
+        background: rgba(51,51,51,0.6);
     }
 
-    /* 时间戳 - 隐藏，空间有限 */
-    .history-item-content .history-timestamp {
-        display: none !important;
+    .progress-filled {
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        border-radius: 0;
     }
 
-    /* 速度徽章 - 左上角药丸毛玻璃风格 */
-    .history-item-content .history-speed-badge {
+    .progress-text {
+        display: none;
+    }
+
+    /* 速度徽章 — 左上角毛玻璃药丸 */
+    .playback-rate-badge {
         position: absolute !important;
         top: 8px !important;
         left: 8px !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 3px !important;
-        height: 20px !important;
-        padding: 0 7px !important;
-        font-size: 10px !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-        background: rgba(0, 0, 0, 0.45) !important;
-        backdrop-filter: blur(8px) !important;
-        -webkit-backdrop-filter: blur(8px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.15) !important;
-        border-radius: 20px !important;
-        z-index: 5 !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+        z-index: 5;
+        display: inline-flex !important;
+        align-items: center;
+        gap: 3px;
+        height: 20px;
+        padding: 0 7px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #fff;
+        background: rgba(0,0,0,0.45);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         pointer-events: none;
-        margin: 0;
     }
 
-    .history-speed-badge svg {
-        width: 10px;
-        height: 10px;
-        stroke-width: 2.5;
-        opacity: 0.9;
+    /* 删除按钮 — 右上角始终可见 */
+    .history-item .delete-btn {
+        position: absolute !important;
+        top: 4px !important;
+        right: 4px !important;
+        opacity: 0.7 !important;
+        z-index: 10;
+        width: 44px;
+        height: 44px;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent !important;
+        border: none;
+    }
+
+    .history-item .delete-btn:active {
+        opacity: 1;
     }
 }
 
-/* 极窄屏幕 - 单列布局 */
+/* 极窄屏幕 — 单列 */
 @media (max-width: 359px) {
     #historyList {
         grid-template-columns: 1fr !important;

@@ -491,12 +491,10 @@ function loadViewingHistory() {
         return;
     }
 
-    const isMobile = window.innerWidth <= 640;
-
     // 按时间段分组历史记录
     const groupedHistory = groupHistoryByTimeline(history);
 
-    // 渲染分组后的历史记录
+    // 渲染分组后的历史记录 — 统一 DOM 结构，CSS 处理响应式
     let htmlContent = '';
 
     for (const group of groupedHistory) {
@@ -537,22 +535,17 @@ function loadViewingHistory() {
 
         if (rawCoverUrl) {
             try {
-                // 验证URL协议，只允许 http/https 和 scheme-relative
                 if (rawCoverUrl.startsWith('http://') ||
                     rawCoverUrl.startsWith('https://') ||
                     rawCoverUrl.startsWith('//')) {
-                    // 处理 scheme-relative URL - 使用当前页面协议
                     const normalizedUrl = rawCoverUrl.startsWith('//')
                         ? `${window.location.protocol}${rawCoverUrl}`
                         : rawCoverUrl;
                     coverUrl = `/proxy/${encodeURIComponent(normalizedUrl).replace(/'/g, '%27')}`;
                 } else if (rawCoverUrl.startsWith('/')) {
-                    // 相对路径直接使用
                     coverUrl = rawCoverUrl;
                 }
-                // 其他协议（data:, javascript: 等）被忽略，coverUrl 保持为空
             } catch (e) {
-                // URL 处理失败，使用降级
                 coverUrl = '';
             }
         }
@@ -563,68 +556,11 @@ function loadViewingHistory() {
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
 
-        // 移动端使用新的卡片布局
-        if (isMobile) {
-            // 计算进度百分比
-            let progressPercent = 0;
-            if (item.playbackPosition && item.duration && item.playbackPosition > 10) {
-                progressPercent = Math.min(100, Math.round((item.playbackPosition / item.duration) * 100));
-            }
-
-            // 速度徽章 - 仅在 !== 1.0 时显示，带闪电图标
-            const speedBadgeHtml = (item.playbackRate && item.playbackRate !== 1.0)
-                ? `<span class="history-speed-badge">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                    </svg>
-                    ${item.playbackRate}x
-                   </span>`
-                : '';
-
-            // 生成渐变色背景和图标
-            const gradientBg = generateGradientFromString(safeTitle);
-            const contentIcon = getContentTypeIcon(item.title);
-
-            // 安全的 URL 用于 onclick - 转义单引号防止注入
-            const safeURLForOnclick = safeURL.replace(/'/g, '%27');
-
-            // 移动端封面图片HTML - 作为背景层
-            const mobileCoverHtml = coverUrl ? `
-                <img data-src="${safeCoverUrl}"
-                     alt="${safeTitle}"
-                     class="lazy-load history-cover-bg"
-                     style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;">
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); z-index: 1; pointer-events: none;"></div>
-            ` : '';
-
-            return `
-                <div class="history-item" data-url="${safeURL}" data-index="${index}">
-                    <div class="history-item-content" style="background: ${gradientBg}; position: relative; overflow: hidden;" onclick="playFromHistoryByIndex(${index})">
-                        ${mobileCoverHtml}
-                        <div class="history-icon-mobile">${contentIcon}</div>
-                        <button class="history-item-corner-delete" onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURLForOnclick}', ${index})" title="删除">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                        <div class="history-title">${safeTitle}</div>
-                        <div class="history-meta">${episodeText}${episodeText ? ' · ' : ''}${safeSource}</div>
-                        ${progressPercent > 0 ? `
-                        <div class="history-progress-bar">
-                            <div class="history-progress-fill" style="width:${progressPercent}%"></div>
-                        </div>` : ''}
-                        ${speedBadgeHtml}
-                    </div>
-                </div>
-            `;
-        }
-
-        // 桌面端使用渐变色占位符
-        // 生成渐变色背景和图标
+        // 渐变色背景和图标
         const gradientBg = generateGradientFromString(safeTitle);
         const contentIcon = getContentTypeIcon(item.title);
 
-        // PC端封面图片HTML - 占位符永远在底层，封面覆盖（失败时自动降级）
+        // 封面图片HTML - 占位符在底层，封面覆盖（失败时自动降级）
         const coverImageHtml = coverUrl ? `
             <div class="history-icon-placeholder" style="background: ${gradientBg};">
                 <span class="history-icon">${contentIcon}</span>
@@ -678,16 +614,16 @@ function loadViewingHistory() {
             `;
         }
 
-        // 构建历史记录项HTML，添加删除按钮，需要放在position:relative的容器中
+        // 构建历史记录项HTML — 统一结构，CSS 媒体查询处理 PC 横向 / 移动端 3列卡片
         return `
             <div class="history-item cursor-pointer relative group" data-url="${safeURL}" data-index="${index}" onclick="playFromHistoryByIndex(${index})">
                 ${placeholderHtml}
                 <div class="history-info">
-                    <button onclick="event.stopPropagation(); deleteHistoryItem('${safeURL.replace(/'/g, '%27')}')"
-                            class="absolute right-2 top-2 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 md:p-1 rounded-full hover:bg-gray-800 bg-gray-900/50 md:bg-transparent z-10 min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0 flex items-center justify-center delete-btn"
+                    <button onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURL.replace(/'/g, '%27')}', ${index})"
+                            class="absolute right-2 top-2 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 rounded-full bg-gray-900/50 z-10 min-w-[44px] min-h-[44px] flex items-center justify-center delete-btn"
                             title="删除记录"
                             aria-label="删除此观看记录">
-                        <svg class="w-5 h-5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
