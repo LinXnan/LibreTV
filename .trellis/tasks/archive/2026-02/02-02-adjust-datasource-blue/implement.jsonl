@@ -1,4 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": "css/styles.css", "reason": "数据源设置区域的样式定义，需要调整蓝色亮度"}
-{"file": "index.html", "reason": "查看数据源设置区域的HTML结构"}

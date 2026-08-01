@@ -1,6 +1,0 @@
-{"path": ".trellis/tasks/01-30-refactor-episode-modal-mobile-ux/prd.md", "reason": "Task requirements and acceptance criteria"}
-{"path": "player.html", "reason": "Episode modal HTML structure to modify"}
-{"path": "js/player.js", "reason": "Episode modal rendering logic to refactor"}
-{"path": "js/mobile-panel-gestures.js", "reason": "Mobile gesture handling reference"}
-{"path": "css/mobile-optimize.css", "reason": "Mobile styles to add Tab styles"}
-{"path": "css/player.css", "reason": "Desktop player styles reference"}

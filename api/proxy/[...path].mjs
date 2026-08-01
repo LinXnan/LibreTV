@@ -38,12 +38,42 @@ try {
 // 广告过滤在代理中禁用，由播放器处理
 const FILTER_DISCONTINUITY = false;
 
+// --- 常量：二进制文件扩展名与 MIME 类型（移植自 CF [[path]].js）---
+const MEDIA_FILE_EXTENSIONS = [
+    '.mp4', '.webm', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.f4v', '.m4v', '.3gp', '.3g2', '.ts', '.mts', '.m2ts',
+    '.mp3', '.wav', '.ogg', '.aac', '.m4a', '.flac', '.wma', '.alac', '.aiff', '.opus',
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.svg', '.avif', '.heic'
+];
+const MEDIA_CONTENT_TYPES = ['video/', 'audio/', 'image/'];
+// --- 常量结束 ---
+
 
 // --- 辅助函数 ---
 
 function logDebug(message) {
     if (DEBUG_ENABLED) {
         console.log(`[代理日志] ${message}`);
+    }
+}
+
+/**
+ * 验证目标 URL 是否允许代理访问（SSRF 防护）。
+ * 移植自 server.mjs isValidUrl，允许通过环境变量配置黑名单。
+ */
+function isValidUrl(urlString) {
+    try {
+        const parsed = new URL(urlString);
+        const allowedProtocols = ['http:', 'https:'];
+        const blockedHostnames = (process.env.BLOCKED_HOSTS || 'localhost,127.0.0.1,0.0.0.0,::1').split(',');
+        const blockedPrefixes = (process.env.BLOCKED_IP_PREFIXES || '192.168.,10.,172.').split(',');
+        if (!allowedProtocols.includes(parsed.protocol)) return false;
+        if (blockedHostnames.includes(parsed.hostname)) return false;
+        for (const prefix of blockedPrefixes) {
+            if (parsed.hostname.startsWith(prefix)) return false;
+        }
+        return true;
+    } catch {
+        return false;
     }
 }
 
@@ -132,6 +162,25 @@ function rewriteUrlToProxy(targetUrl) {
     return `/proxy/${encodeURIComponent(targetUrl)}`;
 }
 
+/**
+ * 判断是否是二进制内容（图片、视频、音频等）
+ */
+function isBinaryContent(contentType, url) {
+    if (!contentType) {
+        // 如果没有 Content-Type，根据 URL 扩展名判断
+        const urlLower = url.toLowerCase();
+        for (const ext of MEDIA_FILE_EXTENSIONS) {
+            if (urlLower.endsWith(ext) || urlLower.includes(`${ext}?`)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    const contentTypeLower = contentType.toLowerCase();
+    return MEDIA_CONTENT_TYPES.some(type => contentTypeLower.startsWith(type)) ||
+           contentTypeLower.startsWith('application/octet-stream');
+}
+
 function getRandomUserAgent() {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
@@ -165,11 +214,19 @@ async function fetchContentWithType(targetUrl, requestHeaders) {
         }
 
         // 读取响应内容
-        const content = await response.text();
         const contentType = response.headers.get('content-type') || '';
-        logDebug(`请求成功: ${targetUrl}, Content-Type: ${contentType}, 内容长度: ${content.length}`);
+
+        // 判断是否是二进制内容
+        if (isBinaryContent(contentType, targetUrl)) {
+            const content = await response.arrayBuffer();
+            logDebug(`请求成功 (二进制): ${targetUrl}, Content-Type: ${contentType}, 内容长度: ${content.byteLength} bytes`);
+            return { content, contentType, responseHeaders: response.headers, isBinary: true };
+        }
+
+        const content = await response.text();
+        logDebug(`请求成功 (文本): ${targetUrl}, Content-Type: ${contentType}, 内容长度: ${content.length}`);
         // 返回结果
-        return { content, contentType, responseHeaders: response.headers };
+        return { content, contentType, responseHeaders: response.headers, isBinary: false };
 
     } catch (error) {
         // 捕获 fetch 本身的错误（网络、超时等）或上面抛出的 HTTP 错误
@@ -410,10 +467,28 @@ export default async function handler(req, res) {
             throw new Error(`无效的代理请求路径。无法从组合路径 "${encodedUrlPath}" 中提取有效的目标 URL。`);
         }
 
+        // --- SSRF 防护：验证目标 URL ---
+        if (!isValidUrl(targetUrl)) {
+            res.status(400).json({ success: false, error: '无效的 URL 或目标地址被阻止' });
+            return;
+        }
+
         console.info(`开始处理目标 URL 的代理请求: ${targetUrl}`);
 
         // --- 获取并处理目标内容 ---
-        const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl, req.headers);
+        const { content, contentType, responseHeaders, isBinary } = await fetchContentWithType(targetUrl, req.headers);
+
+        // --- 如果是二进制内容，直接返回 ---
+        if (isBinary) {
+            const buf = Buffer.from(content); // content is ArrayBuffer
+            res.status(200)
+                .setHeader('Content-Type', contentType)
+                .setHeader('Content-Length', buf.length)
+                .setHeader('Cache-Control', `public, max-age=${CACHE_TTL}`)
+                .removeHeader('content-encoding')
+                .send(buf);
+            return;
+        }
 
         // --- 如果是 M3U8，处理并返回 ---
         if (isM3u8Content(content, contentType)) {

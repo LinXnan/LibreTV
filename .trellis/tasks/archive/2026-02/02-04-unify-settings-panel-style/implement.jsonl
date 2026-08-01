@@ -1,7 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guidelines index"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component patterns and best practices"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Code quality standards and forbidden patterns"}
-{"file": "css/styles.css", "reason": "Contains .datasource-section styles to replicate (line 1237-1475)"}
-{"file": "index.html", "reason": "Settings panel HTML structure to modify (line 152-299)"}
-{"file": "css/mobile-optimize.css", "reason": "Mobile responsive styles to ensure compatibility"}

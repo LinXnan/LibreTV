@@ -32,11 +32,40 @@ try {
 }
 const FILTER_DISCONTINUITY = false; // Ad filtering disabled
 
+// --- 常量：二进制文件扩展名与 MIME 类型（移植自 CF [[path]].js）---
+const MEDIA_FILE_EXTENSIONS = [
+    '.mp4', '.webm', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.f4v', '.m4v', '.3gp', '.3g2', '.ts', '.mts', '.m2ts',
+    '.mp3', '.wav', '.ogg', '.aac', '.m4a', '.flac', '.wma', '.alac', '.aiff', '.opus',
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.svg', '.avif', '.heic'
+];
+const MEDIA_CONTENT_TYPES = ['video/', 'audio/', 'image/'];
+// --- 常量结束 ---
+
 // --- Helper Functions (Same as Vercel version, except rewriteUrlToProxy) ---
 
 function logDebug(message) {
     if (DEBUG_ENABLED) {
         console.log(`[Proxy Log Netlify] ${message}`);
+    }
+}
+
+/**
+ * 验证目标 URL 是否允许代理访问（SSRF 防护）。
+ */
+function isValidUrl(urlString) {
+    try {
+        const parsed = new URL(urlString);
+        const allowedProtocols = ['http:', 'https:'];
+        const blockedHostnames = (process.env.BLOCKED_HOSTS || 'localhost,127.0.0.1,0.0.0.0,::1').split(',');
+        const blockedPrefixes = (process.env.BLOCKED_IP_PREFIXES || '192.168.,10.,172.').split(',');
+        if (!allowedProtocols.includes(parsed.protocol)) return false;
+        if (blockedHostnames.includes(parsed.hostname)) return false;
+        for (const prefix of blockedPrefixes) {
+            if (parsed.hostname.startsWith(prefix)) return false;
+        }
+        return true;
+    } catch {
+        return false;
     }
 }
 
@@ -83,6 +112,24 @@ function rewriteUrlToProxy(targetUrl) {
     if (!targetUrl || typeof targetUrl !== 'string') return '';
     // Use the path defined in netlify.toml 'from' field
     return `/proxy/${encodeURIComponent(targetUrl)}`;
+}
+
+/**
+ * 判断是否是二进制内容（图片、视频、音频等）
+ */
+function isBinaryContent(contentType, url) {
+    if (!contentType) {
+        const urlLower = url.toLowerCase();
+        for (const ext of MEDIA_FILE_EXTENSIONS) {
+            if (urlLower.endsWith(ext) || urlLower.includes(`${ext}?`)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    const contentTypeLower = contentType.toLowerCase();
+    return MEDIA_CONTENT_TYPES.some(type => contentTypeLower.startsWith(type)) ||
+           contentTypeLower.startsWith('application/octet-stream');
 }
 
 function getRandomUserAgent() { return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)]; }
@@ -140,10 +187,18 @@ async function fetchContentWithType(targetUrl, requestHeaders) {
             const err = new Error(`HTTP error ${response.status}: ${response.statusText}. URL: ${targetUrl}. Body: ${errorBody.substring(0, 200)}`);
             err.status = response.status; throw err;
         }
-        const content = await response.text();
         const contentType = response.headers.get('content-type') || '';
+
+        // 判断是否是二进制内容
+        if (isBinaryContent(contentType, targetUrl)) {
+            const content = await response.arrayBuffer();
+            logDebug(`Fetch success (binary): ${targetUrl}, Content-Type: ${contentType}, Size: ${content.byteLength} bytes`);
+            return { content, contentType, responseHeaders: response.headers, isBinary: true };
+        }
+
+        const content = await response.text();
         logDebug(`Fetch success: ${targetUrl}, Content-Type: ${contentType}, Length: ${content.length}`);
-        return { content, contentType, responseHeaders: response.headers };
+        return { content, contentType, responseHeaders: response.headers, isBinary: false };
     } catch (error) {
         logDebug(`Fetch exception for ${targetUrl}: ${error.message}`);
         throw new Error(`Failed to fetch target URL ${targetUrl}: ${error.message}`);
@@ -257,13 +312,38 @@ export const handler = async (event, context) => {
         };
     }
 
+    // --- SSRF 防护：验证目标 URL ---
+    if (!isValidUrl(targetUrl)) {
+        return {
+            statusCode: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ success: false, error: '无效的 URL 或目标地址被阻止' }),
+        };
+    }
+
     logDebug(`Processing proxy request for target: ${targetUrl}`);
 
     try {
-        // 鉴权已在前面验证过（第 219 行），这里不需要重复验证
+        // 鉴权已在前面验证过，这里不需要重复验证
 
         // Fetch Original Content (Pass Netlify event headers)
-        const { content, contentType, responseHeaders } = await fetchContentWithType(targetUrl, event.headers);
+        const { content, contentType, responseHeaders, isBinary } = await fetchContentWithType(targetUrl, event.headers);
+
+        // --- Binary content: return base64-encoded ---
+        if (isBinary) {
+            const buf = Buffer.from(content); // content is ArrayBuffer
+            return {
+                statusCode: 200,
+                headers: {
+                    ...corsHeaders,
+                    'Content-Type': contentType,
+                    'Content-Length': String(buf.length),
+                    'Cache-Control': `public, max-age=${CACHE_TTL}`,
+                },
+                body: buf.toString('base64'),
+                isBase64Encoded: true,
+            };
+        }
 
         // --- Process if M3U8 ---
         if (isM3u8Content(content, contentType)) {

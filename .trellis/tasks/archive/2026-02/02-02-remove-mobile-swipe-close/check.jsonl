@@ -1,7 +1,0 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": "js/ui.js", "reason": "历史记录和设置面板逻辑，检查是否有依赖手势的代码"}
-{"file": "js/player.js", "reason": "选集面板逻辑，检查是否有依赖手势的代码"}
-{"file": "index.html", "reason": "历史记录和设置面板HTML结构"}
-{"file": "player.html", "reason": "选集面板HTML结构"}

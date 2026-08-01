@@ -1,5 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component conventions"}
-{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "LazyImageLoader usage pattern"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Security and error handling requirements"}

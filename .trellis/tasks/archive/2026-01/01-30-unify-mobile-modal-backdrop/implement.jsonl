@@ -1,6 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": "css/mobile-optimize.css", "reason": "Mobile-specific styling including backdrop overlay"}
-{"file": "js/mobile-panel-gestures.js", "reason": "Mobile gesture handling for panels"}
-{"file": "index.html", "reason": "History and Settings panels implementation"}
-{"file": "player.html", "reason": "Episode modal implementation"}

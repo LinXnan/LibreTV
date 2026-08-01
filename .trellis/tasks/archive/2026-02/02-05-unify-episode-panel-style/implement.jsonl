@@ -1,9 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component conventions"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality standards and best practices"}
-{"file": ".trellis/spec/frontend/mobile-panel-pattern.md", "reason": "Mobile panel interaction patterns and gestures"}
-{"file": "index.html", "reason": "Reference cyberpunk style implementation in .datasource-section"}
-{"file": "player.html", "reason": "Target #episodeModal structure and current implementation"}
-{"file": "css/styles.css", "reason": "Cyberpunk style definitions and .datasource-section styles"}
-{"file": "css/mobile-optimize.css", "reason": "Mobile-specific styles for episode modal and responsive design"}

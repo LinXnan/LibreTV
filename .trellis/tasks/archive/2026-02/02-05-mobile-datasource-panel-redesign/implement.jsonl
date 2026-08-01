@@ -1,6 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component conventions"}
-{"file": ".trellis/spec/frontend/mobile-panel-pattern.md", "reason": "移动端面板模式规范 - 必须遵循的面板管理模式"}
-{"file": "openspec/archive/mobile-datasource-card-redesign/proposal.md", "reason": "已有的数据源卡片重构提案 - 作为设计参考"}
-{"file": "js/mobile-panel-gestures.js", "reason": "移动端面板手势系统实现 - 了解现有的面板管理机制"}

@@ -1,5 +1,0 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend coding standards"}
-{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": "css/mobile-optimize.css", "reason": "Verify backdrop styling consistency"}
-{"file": "js/mobile-panel-gestures.js", "reason": "Verify overlay management logic"}

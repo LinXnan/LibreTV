@@ -32,6 +32,8 @@ let currentEpisodes = [];
 let currentVideoTitle = '';
 // 全局变量用于倒序状态
 let episodesReversed = false;
+let searchInProgress = false; // 防抖锁，防止重复搜索
+const searchCache = new Map(); // 搜索结果缓存 { key: {results, timestamp} }
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', function () {
@@ -753,6 +755,38 @@ function getCustomApiInfo(customApiIndex) {
     return customAPIs[index];
 }
 
+// 从缓存渲染搜索结果（跳过 API 请求）
+function renderCachedResults(allResults) {
+    const resultsDiv = document.getElementById('results');
+    const resultsArea = document.getElementById('resultsArea');
+
+    // 黄色内容过滤
+    const yellowFilterEnabled = localStorage.getItem('yellowFilterEnabled') === 'true';
+    if (yellowFilterEnabled) {
+        const banned = ['伦理片', '福利', '里番动漫', '门事件', '萝莉少女', '制服诱惑', '国产传媒', 'cosplay', '黑丝诱惑', '无码', '日本无码', '有码', '日本有码', 'SWAG', '网红主播', '色情片', '同性片', '福利视频', '福利片'];
+        allResults = allResults.filter(item => {
+            const typeName = item.type_name || '';
+            return !banned.some(keyword => typeName.includes(keyword));
+        });
+    }
+
+    window.searchResults = allResults;
+    filteredResults = allResults;
+    currentPage = 1;
+
+    document.getElementById('searchArea').classList.remove('flex-1');
+    document.getElementById('searchArea').classList.add('mb-2');
+    resultsArea.classList.remove('hidden');
+
+    const doubanArea = document.getElementById('doubanArea');
+    if (doubanArea) doubanArea.classList.add('hidden');
+
+    updateSearchStatistics(allResults);
+    generateSearchFilters(allResults);
+    renderSearchResults(allResults);
+    renderPagination(allResults.length);
+}
+
 // 搜索功能 - 修改为支持多选API和多页结果
 async function search() {
     // 强化的密码保护校验 - 防止绕过
@@ -772,15 +806,32 @@ async function search() {
         console.warn('Password protection check failed:', error.message);
         return;
     }
+
+    // 防抖：搜索正在进行中则跳过本次调用
+    if (searchInProgress) return;
+    searchInProgress = true;
+
     const query = document.getElementById('searchInput').value.trim();
 
     if (!query) {
+        searchInProgress = false;
         showToast('请输入搜索内容', 'info');
         return;
     }
 
     if (selectedAPIs.length === 0) {
+        searchInProgress = false;
         showToast('请至少选择一个API源', 'warning');
+        return;
+    }
+
+    // 缓存检查：相同 query + 相同源列表命中直接返回
+    const CACHE_TTL = 5 * 60 * 1000; // 5 分钟
+    const cacheKey = `${query}:${[...selectedAPIs].sort().join(',')}`;
+    const cached = searchCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        searchInProgress = false;
+        renderCachedResults(cached.results);
         return;
     }
 
@@ -910,6 +961,9 @@ async function search() {
         // 渲染分页控件
         renderPagination(allResults.length);
 
+        // 缓存本次搜索结果
+        searchCache.set(cacheKey, { results: allResults, timestamp: Date.now() });
+
         // 优化2: 隐藏骨架屏，显示实际结果
         skeletonDiv.classList.add('hidden');
         resultsDiv.classList.remove('hidden');
@@ -921,6 +975,7 @@ async function search() {
             showToast('搜索请求失败，请稍后重试', 'error');
         }
     } finally {
+        searchInProgress = false;
         hideLoading();
     }
 }

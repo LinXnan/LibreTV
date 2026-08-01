@@ -1,4 +1,0 @@
-{"path": ".trellis/tasks/01-30-refactor-episode-modal-mobile-ux/prd.md", "reason": "Verify against acceptance criteria"}
-{"path": "player.html", "reason": "Check HTML structure changes"}
-{"path": "js/player.js", "reason": "Check JS logic changes"}
-{"path": "css/mobile-optimize.css", "reason": "Check mobile styles"}

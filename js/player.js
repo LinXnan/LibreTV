@@ -164,6 +164,7 @@ function initializePageContent() {
                 showError('历史记录链接无效，请返回首页重新访问');
             }
         } catch (e) {
+            console.error('解析视频URL失败:', e);
         }
     }
 
@@ -222,6 +223,7 @@ function initializePageContent() {
 
         episodesReversed = localStorage.getItem('episodesReversed') === 'true';
     } catch (e) {
+        console.error('解析剧集数据失败:', e);
         currentEpisodes = [];
         currentEpisodeIndex = 0;
         episodesReversed = false;
@@ -563,6 +565,7 @@ function initPlayer(videoUrl) {
                     try {
                         currentHls.destroy();
                     } catch (e) {
+                        console.error('销毁HLS实例失败:', e);
                     }
                 }
 
@@ -894,6 +897,7 @@ function initPlayer(videoUrl) {
                     }
                 }
             } catch (e) {
+                console.error('恢复播放进度失败:', e);
             }
         }
 
@@ -1862,6 +1866,7 @@ function clearVideoProgress() {
     try {
         localStorage.removeItem(progressKey);
     } catch (e) {
+        console.error('清除播放进度失败:', e);
     }
 }
 

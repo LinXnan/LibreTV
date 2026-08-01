@@ -135,7 +135,7 @@ function validateProxyAuth(req) {
   
   if (!authHash || authHash !== serverPasswordHash) {
     console.warn('代理请求鉴权失败：密码哈希不匹配');
-    console.warn(`期望: ${serverPasswordHash}, 收到: ${authHash}`);
+    console.warn(`哈希末4位不匹配: 期望=${serverPasswordHash.slice(-4)}, 收到=${authHash.slice(-4)}`);
     return false;
   }
   
