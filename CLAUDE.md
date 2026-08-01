@@ -25,7 +25,18 @@ js/
 ├── douban.js          # 豆瓣推荐
 ├── utils.js           # debounce, ConcurrentPool, StorageManager
 └── optimize-apply.js  # ArtPlayer 插件
+
+css/
+├── styles.css         # 全局基础样式 + 所有组件（含移动端 @media 块）
+├── index.css          # 首页特定：搜索框/豆瓣/筛选/骨架屏/每日一言
+├── player.css         # 播放器：播放器布局/选集弹框/Tab栏/加载动画
+├── watch.css          # 重定向页面
+├── modals.css         # 模态框和提示框
+├── mobile-optimize.css # 跨页面移动端微调（字体/间距/网格/触摸/手势）
+└── performance-optimize.css # 性能优化
 ```
+
+> **注意**：`mobile-optimize.css` 已于 2026-08 重构精简（1975→929行），仅保留跨页面移动端工具样式。**新增组件样式禁止追加到此文件**——应放在对应页面 CSS 的 `@media` 块内。
 
 ## 命令
 
@@ -44,6 +55,7 @@ npm install     # 安装依赖（仅 express + node-fetch）
 - **禁止向 git 提交 `.env`**，`PASSWORD` 是敏感环境变量
 - **player.js 和 app.js 不再追加新功能**到文件末尾，新功能应拆到独立模块（审计 #6/#7 延后执行）
 - **修改代理逻辑必须同步所有平台**：Vercel (`api/proxy/`)、Netlify (`netlify/functions/`)、CF (`functions/proxy/`)、Express (`server.mjs`) 四个实现路径
+- **禁止创建独立的移动端 CSS 文件**：移动端样式通过 `@media (max-width: 640px)` 写在组件所在的主 CSS 文件中，不要新增 `mobile-*.css`
 
 ## 代码约定
 
@@ -52,6 +64,33 @@ npm install     # 安装依赖（仅 express + node-fetch）
 - CSS 用 Tailwind utility class，避免自定义 CSS
 - 增删 API 源通过设置面板或 `js/customer_site.js`
 - 所有持久化状态在 `localStorage`，无服务端数据库
+
+### 响应式设计（2026-08 重构沉淀）
+
+**核心原则：单一 DOM + CSS 媒体查询，禁止 JS 层的 DOM 分岔。**
+
+```javascript
+// ❌ 禁止 — JS 根据屏幕宽度生成不同的 HTML 结构
+const isMobile = window.innerWidth <= 640;
+div.className = isMobile ? 'mobile-grid' : 'desktop-grid';
+if (isMobile) { /* 完全不同的 DOM */ } else { /* 另一套 DOM */ }
+
+// ✅ 正确 — JS 始终生成同一套 DOM，CSS 处理差异
+div.className = 'responsive-grid';
+```
+
+```css
+/* ✅ 移动优先的媒体查询 */
+.responsive-grid { display: flex; flex-direction: column; }
+@media (min-width: 641px) { .responsive-grid { display: grid; grid-template-columns: repeat(2, 1fr); } }
+```
+
+**细则**：
+- `window.innerWidth` **只能用于行为逻辑**（面板动画方式、分页条数、手势激活），**不得用于 DOM 结构选择**
+- 每个组件的移动端/桌面端样式放在**同一个 CSS 文件的相邻位置**，用 `@media` 分隔，不要拆到独立文件
+- 媒体查询断点：`640px`（手机/桌面分界）、`768px`（平板/宽屏分界）
+- 避免 `!important`——如果出现则说明选择器优先级或组织结构有问题
+- `navigator.userAgent` 检测仅用于**交互模式**判断（触摸 vs 鼠标），不用于布局
 
 ## 文档索引
 
