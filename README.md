@@ -158,7 +158,7 @@ LibreTV 支持标准的苹果 CMS V10 API 格式。添加自定义 API 时需遵
 - HTML5 + CSS3 + JavaScript (ES6+)
 - Tailwind CSS
 - HLS.js 用于 HLS 流处理
-- DPlayer 视频播放器核心
+- ArtPlayer 视频播放器核心
 - Cloudflare/Vercel/Netlify Serverless Functions
 - 服务端 HLS 代理和处理技术
 - localStorage 本地存储
