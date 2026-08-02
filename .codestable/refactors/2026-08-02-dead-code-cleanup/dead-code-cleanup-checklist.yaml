@@ -1,0 +1,68 @@
+refactor: 2026-08-02-dead-code-cleanup
+slug: dead-code-cleanup
+
+steps:
+  - id: 1
+    name: 删除 js/swipe-actions.js 并移除 app.js 的 SwipeActions 守卫调用
+    method: M-L2-02
+    verification_owner: AI
+    exit_signal: "grep 'SwipeActions' 全项目 0 引用（js/ 下除已删文件）"
+    done: true
+
+  - id: 2
+    name: 删除 js/undo-toast.js，清理 app.js 分支（保留 showToast 兜底）与 index.html #undoToast 容器
+    method: M-L2-02
+    verification_owner: AI
+    exit_signal: "grep 'UndoToast' 全项目 0 引用；app.js 删除分支后仅剩 showToast 调用"
+    done: true
+
+  - id: 3
+    name: 删除 js/daily-quote.js，清理 app.js / douban.js 的 updateDailyQuoteVisibility 守卫调用
+    method: M-L2-02
+    verification_owner: AI
+    exit_signal: "grep 'daily-quote' / 'updateDailyQuoteVisibility' 全项目 0 引用"
+    done: true
+
+  - id: 4
+    name: 删除无引用的 css/modals.css
+    method: M-L2-02
+    verification_owner: AI
+    exit_signal: "grep 'modals.css' 全项目 0 引用"
+    done: true
+
+  - id: 5
+    name: 删除根目录杂项 nul / browser_check.html / image/nomedia.psd
+    method: M-L2-02
+    verification_owner: AI
+    exit_signal: "grep 'browser_check' 全项目 0 引用；三文件已从磁盘移除"
+    done: true
+
+  - id: 6
+    name: 清理死 CSS（.undo-toast / #dailyQuoteSection / .daily-quote-* / #dailyQuoteToggle）与注释残留（styles.css 头注 / app.js 注释 / CLAUDE.md 文件树）
+    method: M-L2-02
+    verification_owner: AI
+    exit_signal: "grep '\.undo-toast|#dailyQuoteSection|\.daily-quote|#dailyQuoteToggle|modals\.css' 仅剩 ui.js history-undo-toast（独立功能）；三 CSS lint 0 错误"
+    done: true
+
+checks:
+  - id: c1
+    description: "js/ 下无 swipe-actions.js / undo-toast.js / daily-quote.js"
+    status: passed
+  - id: c2
+    description: "app.js 无 SwipeActions / UndoToast / updateDailyQuoteVisibility 引用"
+    status: passed
+  - id: c3
+    description: "index.html 无 #undoToast 容器与 UndoToast 内联引用"
+    status: passed
+  - id: c4
+    description: "douban.js 无 updateDailyQuoteVisibility 引用"
+    status: passed
+  - id: c5
+    description: "css/modals.css 已删除且无引用"
+    status: passed
+  - id: c6
+    description: "根目录无 nul / browser_check.html；image/ 无 nomedia.psd"
+    status: passed
+  - id: c7
+    description: "死 CSS 与注释残留清理（.undo-toast / #dailyQuoteSection / .daily-quote-* / #dailyQuoteToggle / modals.css 提及）"
+    status: passed
