@@ -16,47 +16,6 @@
     border-color: white;
 }
 
-/* 搜索区域样式 */
-.search-box {
-    height: 3.5rem;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-    border-radius: 0.5rem;
-    overflow: hidden;
-    display: flex;
-    align-items: stretch;
-}
-
-.search-button {
-    width: 5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: white;
-    color: black;
-    font-weight: 500;
-    transition: background-color 0.2s;
-}
-
-.search-button:hover {
-    background: #f0f0f0;
-}
-
-.search-input {
-    flex: 1;
-    background: #111;
-    border-top: 1px solid #333;
-    border-bottom: 1px solid #333;
-    color: white;
-    padding: 0 1.5rem;
-    font-size: 1rem;
-    outline: none;
-    transition: background-color 0.2s;
-}
-
-.search-input:focus {
-    background: #191919;
-}
-
 /* 最近搜索记录样式 */
 .recent-search-tag {
     display: inline-block;

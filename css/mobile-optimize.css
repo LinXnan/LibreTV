@@ -198,7 +198,6 @@
     }
 
     /* 搜索框高度 */
-    .search-box,
     #searchArea .h-14 {
         height: 3rem !important;
     }
@@ -329,21 +328,6 @@
     #toast {
         top: env(safe-area-inset-top, 1rem) !important;
         top: max(1rem, env(safe-area-inset-top)) !important;
-    }
-}
-
-/* ========================================
-   额外优化：搜索框按钮文字
-   ======================================== */
-
-@media (max-width: 375px) {
-    /* 极小屏幕隐藏按钮文字，只显示图标 */
-    .search-button .sm\\:inline {
-        display: none !important;
-    }
-
-    .search-button {
-        width: 3rem !important;
     }
 }
 

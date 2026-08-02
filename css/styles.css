@@ -145,14 +145,6 @@ button, .card-hover {
 }
 
 
-.search-button {
-    background: var(--primary-color);
-    color: var(--text-color);
-}
-
-.search-button:hover {
-    background: var(--primary-light);
-}
 
 ::-webkit-scrollbar {
     display: none;
