@@ -505,12 +505,15 @@ function initPlayer(videoUrl) {
             maxMaxBufferLength: networkConfig.maxMaxBufferLength,
             maxBufferSize: 60 * 1000 * 1000,
 
-            maxBufferHole: 0.3,
+            // seek 性能优化：放宽片段对齐精度 + 快重试间隔
+            maxBufferHole: 1.0,
+            maxFragLookUpTolerance: 0.5,
+            nudgeMaxRetry: 5,
             fragLoadingMaxRetry: 6,
             fragLoadingMaxRetryTimeout: 64000,
-            fragLoadingRetryDelay: 500,
+            fragLoadingRetryDelay: 300,
             manifestLoadingMaxRetry: 3,
-            manifestLoadingRetryDelay: 500,
+            manifestLoadingRetryDelay: 300,
             levelLoadingMaxRetry: 4,
             levelLoadingRetryDelay: 500,
 
