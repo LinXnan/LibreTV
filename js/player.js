@@ -497,7 +497,7 @@ function initPlayer(videoUrl) {
             debug: false,
             loader: adFilteringEnabled ? CustomHlsJsLoader : Hls.DefaultConfig.loader,
             enableWorker: true,
-            lowLatencyMode: true,
+            lowLatencyMode: false,
 
             // 动态缓冲参数
             backBufferLength: networkConfig.backBufferLength,
@@ -1090,9 +1090,6 @@ function filterAdsFromM3U8(m3u8Content, strictMode = false) {
             }
         }
 
-        console.log('[广告统计] 提取到的TS文件序号:', tsFiles.length, '个');
-        console.log('[广告统计] DISCONTINUITY标记位置:', Array.from(discontinuityPositions));
-
         // 统计广告区间数量(需要同时满足: DISCONTINUITY标记 + 序号不连续)
         let discontinuityCount = 0;
         let inAdSegment = false; // 标记是否在广告区间内
@@ -1110,21 +1107,16 @@ function filterAdsFromM3U8(m3u8Content, strictMode = false) {
             if (diff > 1 && hasDiscontinuity && !inAdSegment) {
                 discontinuityCount++;
                 inAdSegment = true;
-                console.log(`[广告统计] 检测到广告区间 #${discontinuityCount}: ${prevSeq} → ${currSeq} (有DISCONTINUITY标记 + 序号跳跃)`);
             }
             // 如果序号向后跳跃 且 有DISCONTINUITY标记 (退出广告区间)
             else if (diff < 0 && hasDiscontinuity && inAdSegment) {
                 inAdSegment = false;
-                console.log(`[广告统计] 广告区间结束: ${prevSeq} → ${currSeq} (有DISCONTINUITY标记 + 序号回跳)`);
             }
         }
-
-        console.log('[广告统计] 本次检测到的广告片段数:', discontinuityCount);
 
         // 更新广告过滤计数
         if (discontinuityCount > 0) {
             totalAdsFiltered += discontinuityCount;
-            console.log('[广告统计] 累计广告片段数:', totalAdsFiltered);
             updateAdFilterDisplay();
         }
     }
