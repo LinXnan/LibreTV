@@ -1,8 +1,7 @@
-import { sha256 } from './js/sha256.js'; // 需新建或引入SHA-256实现
+import { injectPassword } from './js/password-inject.js';
 
-// Vercel Middleware to inject environment variables
+// Vercel Middleware to inject environment variables into HTML
 export default async function middleware(request) {
-  // Get the URL from the request
   const url = new URL(request.url);
   
   // Only process HTML pages
@@ -17,27 +16,13 @@ export default async function middleware(request) {
   // Check if it's an HTML response
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('text/html')) {
-    return response; // Return the original response if not HTML
+    return response;
   }
 
-  // Get the HTML content
   const originalHtml = await response.text();
-  
-  // Replace the placeholder with actual environment variable
-  // If PASSWORD is not set, replace with empty string
   const password = process.env.PASSWORD || '';
-  let passwordHash = '';
-  if (password) {
-    passwordHash = await sha256(password);
-  }
-  
-  // 替换密码占位符
-  let modifiedHtml = originalHtml.replace(
-    'window.__ENV__.PASSWORD = "{{PASSWORD}}";',
-    `window.__ENV__.PASSWORD = "${passwordHash}"; // SHA-256 hash`
-  );
+  const modifiedHtml = await injectPassword(originalHtml, password);
 
-  // 修复Response构造
   return new Response(modifiedHtml, {
     status: response.status,
     statusText: response.statusText,

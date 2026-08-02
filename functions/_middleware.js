@@ -1,4 +1,4 @@
-import { sha256 } from '../js/sha256.js';
+import { injectPassword } from '../js/password-inject.js';
 
 export async function onRequest(context) {
   const { request, env, next } = context;
@@ -7,15 +7,8 @@ export async function onRequest(context) {
   
   if (contentType.includes("text/html")) {
     let html = await response.text();
-    
-    // 处理普通密码
     const password = env.PASSWORD || "";
-    let passwordHash = "";
-    if (password) {
-      passwordHash = await sha256(password);
-    }
-    html = html.replace('window.__ENV__.PASSWORD = "{{PASSWORD}}";', 
-      `window.__ENV__.PASSWORD = "${passwordHash}";`);
+    html = await injectPassword(html, password);
     
     return new Response(html, {
       headers: response.headers,
