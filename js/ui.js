@@ -618,16 +618,16 @@ function loadViewingHistory() {
         return `
             <div class="history-item cursor-pointer relative group" data-url="${safeURL}" data-index="${index}" onclick="playFromHistoryByIndex(${index})">
                 ${placeholderHtml}
+                <button onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURL.replace(/'/g, '%27')}', ${index})"
+                        class="absolute right-2 top-2 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 rounded-full bg-gray-900/50 z-10 min-w-[44px] min-h-[44px] flex items-center justify-center delete-btn"
+                        title="删除记录"
+                        aria-label="删除此观看记录">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+                ${playbackRateHtml ? `<div class="absolute right-2 bottom-2 z-10">${playbackRateHtml}</div>` : ''}
                 <div class="history-info">
-                    <button onclick="event.stopPropagation(); deleteHistoryItemWithUndo('${safeURL.replace(/'/g, '%27')}', ${index})"
-                            class="absolute right-2 top-2 transition-opacity duration-200 text-gray-400 hover:text-red-400 p-2 rounded-full bg-gray-900/50 z-10 min-w-[44px] min-h-[44px] flex items-center justify-center delete-btn"
-                            title="删除记录"
-                            aria-label="删除此观看记录">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                    ${playbackRateHtml ? `<div class="absolute right-2 bottom-2 z-10">${playbackRateHtml}</div>` : ''}
                     <div class="history-title">${safeTitle}</div>
                     <div class="history-meta">
                         <span class="history-episode">${episodeText}</span>
