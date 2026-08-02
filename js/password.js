@@ -37,6 +37,33 @@ function ensurePasswordProtection() {
     return true;
 }
 
+/**
+ * 若已设密码但当前未验证，按需弹出密码框并返回 false（调用方应立即 return）。
+ * 与 ensurePasswordProtection 不同：不 throw，调用方无需 try/catch；
+ * 且不覆盖「未设密码」场景（未设密码时直接返回 true），行为等价于
+ * 历史上散落在 ui.js/app.js 的 inline 守卫模板（默认弹框）。
+ *
+ * 选项：
+ * - silent (默认 false)：true 时未验证只返回 false 不弹框，用于后台请求
+ *   （如 api.js fetch 拦截），避免未验证态连弹多个密码框。
+ *
+ * 若 password.js 的依赖函数尚未定义（理论上不会发生，因所有调用点都在事件期
+ * 执行且 password.js 经 defer 先加载），按原 inline 模板的 fallback 语义放行。
+ */
+function requirePasswordOrPrompt(options) {
+    var silent = options && options.silent;
+    if (typeof isPasswordProtected !== 'function' || typeof isPasswordVerified !== 'function') {
+        return true;
+    }
+    if (isPasswordProtected() && !isPasswordVerified()) {
+        if (!silent) {
+            showPasswordModal();
+        }
+        return false;
+    }
+    return true;
+}
+
 window.isPasswordProtected = isPasswordProtected;
 window.isPasswordRequired = isPasswordRequired;
 
@@ -90,6 +117,7 @@ window.isPasswordRequired = isPasswordRequired;
 window.isPasswordVerified = isPasswordVerified;
 window.verifyPassword = verifyPassword;
 window.ensurePasswordProtection = ensurePasswordProtection;
+window.requirePasswordOrPrompt = requirePasswordOrPrompt;
 
 // SHA-256实现，可用Web Crypto API
 async function sha256(message) {

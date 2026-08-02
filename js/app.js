@@ -951,12 +951,7 @@ document.addEventListener('DOMContentLoaded', hookInput);
 // 显示详情 - 修改为支持自定义API
 async function showDetails(id, vod_name, sourceCode, vod_pic = '') {
     // 密码保护校验
-    if (window.isPasswordProtected && window.isPasswordVerified) {
-        if (window.isPasswordProtected() && !window.isPasswordVerified()) {
-            showPasswordModal && showPasswordModal();
-            return;
-        }
-    }
+    if (!window.requirePasswordOrPrompt()) return;
     if (!id) {
         showToast('视频ID无效', 'error');
         return;
@@ -1086,12 +1081,7 @@ async function showDetails(id, vod_name, sourceCode, vod_pic = '') {
 // 更新播放视频函数，修改为使用/watch路径而不是直接打开player.html
 function playVideo(url, vod_name, sourceCode, episodeIndex = 0, vodId = '') {
     // 密码保护校验
-    if (window.isPasswordProtected && window.isPasswordVerified) {
-        if (window.isPasswordProtected() && !window.isPasswordVerified()) {
-            showPasswordModal && showPasswordModal();
-            return;
-        }
-    }
+    if (!window.requirePasswordOrPrompt()) return;
 
     // 获取当前路径作为返回页面
     let currentPath = window.location.href;
