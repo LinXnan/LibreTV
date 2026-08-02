@@ -1,7 +1,7 @@
 ---
 doc_type: refactor-scan
 refactor: 2026-08-01-css-unification
-status: user-reviewed
+status: cancelled
 scope: 6 个 CSS 文件（styles.css / index.css / player.css / mobile-optimize.css / mobile-panels-modern.css / mobile-settings-modern.css），共 ~3500 行
 summary: 发现 10 条优化点：结构 7 / 可读性 2 / 性能 1。按风险：低 7 / 中 3 / 高 0
 ---

@@ -943,43 +943,8 @@
     }
 }
 
-/* 撤销提示样式 */
-.undo-toast {
-    position: fixed;
-    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    z-index: 100;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 200ms ease;
-}
-
-.undo-toast.visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.undo-toast button {
-    background: #3b82f6;
-    border: none;
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
-    font-size: 0.875rem;
-    cursor: pointer;
-}
-
 @media (prefers-reduced-motion: reduce) {
-    .swipe-content,
-    .undo-toast {
+    .swipe-content {
         transition: none !important;
     }
 }

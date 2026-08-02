@@ -4,7 +4,7 @@ date: 2026-08-02
 slug: redundancy-core-files
 scope: js/player.js, js/app.js, js/ui.js, js/utils.js
 dimensions: [maintainability]
-status: active
+status: cancelled
 ---
 
 # 冗余审计 — 核心前端文件（player / app / ui / utils）

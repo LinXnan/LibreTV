@@ -2,7 +2,7 @@
 doc_type: fix-note
 issue: proxy-full-buffer
 slug: proxy-full-buffer
-status: partial-fix
+status: cancelled
 severity: P1
 nature: performance
 fix_date: 2026-08-01

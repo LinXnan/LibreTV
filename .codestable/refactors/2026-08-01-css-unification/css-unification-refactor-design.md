@@ -1,7 +1,7 @@
 ---
 doc_type: refactor-design
 refactor: 2026-08-01-css-unification
-status: approved
+status: cancelled
 scope: 6 个 CSS 文件合并 + 3 个移动端 CSS 文件删除
 summary: 将 mobile-optimize.css / mobile-panels-modern.css / mobile-settings-modern.css 按组件归并到 styles.css 和 player.css，消除重复规则，最终删除 3 个空文件
 ---

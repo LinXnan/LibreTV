@@ -4,7 +4,7 @@ review_date: 2026-08-02
 source: issue
 issue: 2026-08-02-history-delete-btn-offset
 path: fast-track
-status: blocked
+status: cancelled
 round: 1
 reviewer: pending
 ---

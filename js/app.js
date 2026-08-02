@@ -261,7 +261,7 @@ function renderCustomAPIsList() {
         const escapedName = escapeHtml(api.name || '');
         const escapedUrl = escapeHtml(api.url || '');
 
-        // 统一使用 swipe 结构，桌面端 CSS 隐藏 swipe-actions，SwipeActions 仅在移动端激活
+        // 统一使用 swipe 结构，桌面端 CSS 隐藏 swipe-actions
         const swipeContainer = document.createElement('div');
         swipeContainer.className = 'swipe-container mb-1';
         swipeContainer.innerHTML = `
@@ -291,11 +291,6 @@ function renderCustomAPIsList() {
             checkAdultAPIsSelected();
         });
     });
-
-    // 移动端激活滑动手势，桌面端 SwipeActions 自检跳过
-    if (typeof SwipeActions !== 'undefined') {
-        SwipeActions.init(container);
-    }
 }
 
 // 编辑自定义API
@@ -511,11 +506,7 @@ function removeCustomApi(index) {
     checkAdultAPIsSelected();
 
     // 显示撤销提示
-    if (typeof UndoToast !== 'undefined') {
-        UndoToast.show(deletedItem, index, wasSelected);
-    } else {
-        showToast('已移除自定义API: ' + deletedItem.name, 'info');
-    }
+    showToast('已移除自定义API: ' + deletedItem.name, 'info');
 }
 
 function toggleSettings(e) {
@@ -634,11 +625,6 @@ function resetSearchArea() {
     // 如果有豆瓣功能，检查是否需要显示豆瓣推荐区域
     if (typeof updateDoubanVisibility === 'function') {
         updateDoubanVisibility();
-    }
-
-    // 如果有每日一言功能，更新可见性
-    if (typeof updateDailyQuoteVisibility === 'function') {
-        updateDailyQuoteVisibility();
     }
 
     // 重置URL为主页

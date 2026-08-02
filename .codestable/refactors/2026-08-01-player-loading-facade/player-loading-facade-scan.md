@@ -1,7 +1,7 @@
 ---
 doc_type: refactor-scan
 refactor: 2026-08-01-player-loading-facade
-status: user-reviewed
+status: cancelled
 scope: js/player.js + player.html 中 #player-loading 元素的所有显隐/文案操作点
 summary: 发现 2 条结构收敛点，全部围绕 #player-loading 的散落直接 DOM 操作。本轮严格行为等价，不修审计 finding 中的 bug（提前隐藏/进度条被删/三重监听竞态），那些留 cs-issue。
 ---

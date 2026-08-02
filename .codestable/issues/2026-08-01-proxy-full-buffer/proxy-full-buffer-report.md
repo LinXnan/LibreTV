@@ -2,7 +2,7 @@
 doc_type: issue-report
 issue: proxy-full-buffer
 slug: proxy-full-buffer
-status: confirmed
+status: cancelled
 severity: P1
 nature: performance
 source: audit-2026-08-01-core-subsystems-finding-10

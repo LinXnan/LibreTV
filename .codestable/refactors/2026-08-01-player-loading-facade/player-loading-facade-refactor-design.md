@@ -1,7 +1,7 @@
 ---
 doc_type: refactor-design
 refactor: 2026-08-01-player-loading-facade
-status: approved
+status: cancelled
 scope: js/player.js 中 #player-loading 的 12 处直接 DOM 操作收口到 showPlayerLoading/hidePlayerLoading 入口
 summary: 抽统一显隐入口（含 stage 文案 API），逐处替换直接赋值，行为严格等价（保留现有提前隐藏/进度条被覆盖等 bug 现状，留 cs-issue）
 ---

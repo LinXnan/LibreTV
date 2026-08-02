@@ -19,7 +19,7 @@ js/
 ├── api.js             # apiCache, /api/search, /api/detail
 ├── app.js             # 首页 SPA：搜索编排/详情/筛选分页/设置面板/导入导出
 ├── player.js          # 播放器：HLS 管理/广告过滤/连播/快捷键/资源切换（~3000行）
-├── ui.js              # UI 辅助：历史面板/每日一言/设置面板样式
+├── ui.js              # UI 辅助：历史面板/设置面板样式
 ├── index-page.js      # 首页初始化
 ├── watch.js           # 到 player 的 query 桥接
 ├── douban.js          # 豆瓣推荐
@@ -28,10 +28,9 @@ js/
 
 css/
 ├── styles.css         # 全局基础样式 + 所有组件（含移动端 @media 块）
-├── index.css          # 首页特定：搜索框/豆瓣/筛选/骨架屏/每日一言
+├── index.css          # 首页特定：搜索框/豆瓣/筛选/骨架屏
 ├── player.css         # 播放器：播放器布局/选集弹框/Tab栏/加载动画
 ├── watch.css          # 重定向页面
-├── modals.css         # 模态框和提示框
 ├── mobile-optimize.css # 跨页面移动端微调（字体/间距/网格/触摸/手势）
 └── performance-optimize.css # 性能优化
 ```

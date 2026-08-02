@@ -3,7 +3,7 @@ doc_type: audit-index
 audit: 2026-08-01-core-subsystems
 scope: proxy 网关层 + player 播放管道 + frontend-app 首页 SPA + server.mjs（~8000 行可执行代码）
 created: 2026-08-01
-status: active
+status: cancelled
 total_findings: 11
 ---
 
