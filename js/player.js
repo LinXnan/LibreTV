@@ -1046,93 +1046,64 @@ class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
     }
 }
 
-// 过滤可疑的广告内容
+// 过滤可疑的广告内容（单轮遍历：同时做过滤 + 统计，避免二次 O(n) 开销）
 function filterAdsFromM3U8(m3u8Content, strictMode = false) {
     if (!m3u8Content) return '';
 
-    // 按行分割M3U8内容
     const lines = m3u8Content.split('\n');
     const filteredLines = [];
+    const tsFiles = [];
+    const discontinuityPositions = new Set();
+    let nextIsAfterDiscontinuity = false;
 
-    // 只在广告过滤开启时才进行统计
-    if (adFilteringEnabled) {
-        // 提取所有TS文件名及其序号,以及DISCONTINUITY标记的位置
-        const tsFiles = [];
-        const discontinuityPositions = new Set(); // 记录DISCONTINUITY标记后的TS文件索引
-        let tsIndex = 0;
-        let nextIsAfterDiscontinuity = false;
+    for (let i = 0; i < lines.length; i++) {
+        const rawLine = lines[i];
+        const line = rawLine.trim();
 
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
+        // 过滤 #EXT-X-DISCONTINUITY 行
+        if (line.includes('#EXT-X-DISCONTINUITY')) {
+            nextIsAfterDiscontinuity = true;
+            continue; // 不加入 filteredLines
+        }
 
-            // 检测DISCONTINUITY标记
-            if (line.includes('#EXT-X-DISCONTINUITY')) {
-                nextIsAfterDiscontinuity = true;
-                continue;
-            }
+        // 保留原始行
+        filteredLines.push(rawLine);
 
-            // 匹配.ts文件
-            if (line.endsWith('.ts')) {
-                // 提取文件名中的数字序号(取最后的连续数字部分)
-                const match = line.match(/(\d+)\.ts$/);
-                if (match) {
-                    const sequence = parseInt(match[1], 10);
-                    tsFiles.push({ sequence, index: tsIndex });
-
-                    // 如果这个TS文件前面有DISCONTINUITY标记,记录下来
-                    if (nextIsAfterDiscontinuity) {
-                        discontinuityPositions.add(tsIndex);
-                        nextIsAfterDiscontinuity = false;
-                    }
-
-                    tsIndex++;
+        // 广告过滤开启时同步做统计：匹配 .ts 文件序号和 DISCONTINUITY 位置
+        if (adFilteringEnabled && line.endsWith('.ts')) {
+            const match = line.match(/(\d+)\.ts$/);
+            if (match) {
+                const idx = tsFiles.length;
+                tsFiles.push({ sequence: parseInt(match[1], 10) });
+                if (nextIsAfterDiscontinuity) {
+                    discontinuityPositions.add(idx);
+                    nextIsAfterDiscontinuity = false;
                 }
             }
         }
+    }
 
-        // 统计广告区间数量(需要同时满足: DISCONTINUITY标记 + 序号不连续)
+    // 统计广告区间数（不在主循环中阻塞）
+    if (adFilteringEnabled && tsFiles.length > 1) {
         let discontinuityCount = 0;
-        let inAdSegment = false; // 标记是否在广告区间内
+        let inAdSegment = false;
 
         for (let i = 1; i < tsFiles.length; i++) {
-            const prevSeq = tsFiles[i - 1].sequence;
-            const currSeq = tsFiles[i].sequence;
-            const currIndex = tsFiles[i].index;
-            const diff = currSeq - prevSeq;
+            const diff = tsFiles[i].sequence - tsFiles[i - 1].sequence;
+            const hasDiscontinuity = discontinuityPositions.has(i);
 
-            // 检查当前位置是否有DISCONTINUITY标记
-            const hasDiscontinuity = discontinuityPositions.has(currIndex);
-
-            // 如果序号向前跳跃 且 有DISCONTINUITY标记 (进入广告区间)
             if (diff > 1 && hasDiscontinuity && !inAdSegment) {
                 discontinuityCount++;
                 inAdSegment = true;
-            }
-            // 如果序号向后跳跃 且 有DISCONTINUITY标记 (退出广告区间)
-            else if (diff < 0 && hasDiscontinuity && inAdSegment) {
+            } else if (diff < 0 && hasDiscontinuity && inAdSegment) {
                 inAdSegment = false;
             }
         }
 
-        // 更新广告过滤计数
         if (discontinuityCount > 0) {
             totalAdsFiltered += discontinuityCount;
             updateAdFilterDisplay();
         }
-    }
-
-    // 过滤#EXT-X-DISCONTINUITY标识(保留原有的广告过滤功能)
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // 只过滤#EXT-X-DISCONTINUITY标识
-        if (line.includes('#EXT-X-DISCONTINUITY')) {
-            // 不添加到filteredLines，即过滤掉
-            continue;
-        }
-
-        // 保留其他所有行
-        filteredLines.push(line);
     }
 
     return filteredLines.join('\n');
