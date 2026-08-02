@@ -4,7 +4,7 @@ date: 2026-08-02
 slug: lightweight-resources
 scope: 前端资源体积 + 死文件 + 多平台重复实现
 dimensions: [performance, maintainability]
-status: active
+status: done
 total_findings: 5
 ---
 
