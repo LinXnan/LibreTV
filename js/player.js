@@ -90,8 +90,51 @@ let userClickedPosition = null; // 记录用户点击的位置
 let shortcutHintTimeout = null; // 用于控制快捷键提示显示时间
 let adFilteringEnabled = true; // 默认开启广告过滤
 let totalAdsFiltered = 0; // 广告过滤计数器
-let progressSaveInterval = null; // 定期保存进度的计时器
 let currentVideoUrl = ''; // 记录当前实际的视频URL
+
+// 获取当前节目的标识符：优先 sourceName_id，回退 firstEpisode / videoUrl
+
+/**
+ * 获取本次 show 的唯一标识字符串。
+ * 优先使用 sourceName 与 id_from_params 拼接；回退到 currentEpisodes 的首条，
+ * 或在无 available eps 时使用 URL 作为唯一标识。
+ * options: {
+ *   sourceName: string,
+ *   id_from_params: string
+ * }
+ */
+function getShowIdentifier(sourceName, id_from_params) {
+    if (sourceName && id_from_params) {
+        return `${sourceName}_${id_from_params}`;
+    }
+    return (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
+}
+
+// 构建 custom API 查询参数（与 switchToResource/testVideoSourceSpeed 共享）
+function buildCustomApiParams(customApi) {
+    var base = '&customApi=' + encodeURIComponent(customApi.url) + '&source=custom';
+    if (customApi.detail) {
+        base = '&customApi=' + encodeURIComponent(customApi.url) + '&customDetail=' + encodeURIComponent(customApi.detail) + '&source=custom';
+    }
+    return base;
+}
+
+// 统一的剧集按钮 HTML 模板：消除 renderEpisodes 与 renderEpisodesForTab 的重复。
+// onClick: 回调函数名 (如 "playEpisode" or "playEpisodeFromModal")。
+// withId: 为 true 时生成 id = "episode-N"，inline 按钮用它来做样式和
+//        快捷键定位。Modal 按钮不需要 id。
+// extraClass: 附加的 CSS 类（如 inline 版的 "hover:!shadow-none episode-btn"）。
+function episodeButtonHTML(realIndex, isActive, opts) {
+    var onClick = opts.onClick;
+    var withId = opts.withId;
+    var extraClass = opts.extraClass || '';
+    var idAttr = withId ? 'id="episode-' + realIndex + '" ' : '';
+    return '<button ' + idAttr + 'onclick="' + onClick + '(' + realIndex + ')" ' +
+        'class="px-4 py-2 ' + (isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333]') +
+        ' !border ' + (isActive ? '!border-blue-500' : '!border-[#333]') +
+        ' rounded-lg transition-colors text-center ' + extraClass + '">' +
+        (realIndex + 1) + '</button>';
+}
 const isWebkit = (typeof window.webkitConvertPointFromNodeToPage === 'function')
 Artplayer.FULLSCREEN_WEB_IN_BODY = true;
 
@@ -834,12 +877,7 @@ function initPlayer(videoUrl) {
             const sourceName = urlParams.get('source') || '';
             const id_from_params = urlParams.get('id');
 
-            let show_identifier;
-            if (sourceName && id_from_params) {
-                show_identifier = `${sourceName}_${id_from_params}`;
-            } else {
-                show_identifier = (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
-            }
+            const show_identifier = getShowIdentifier(sourceName, id_from_params);
 
             const historyRaw = localStorage.getItem('viewingHistory');
             if (historyRaw) {
@@ -883,7 +921,6 @@ function initPlayer(videoUrl) {
         setTimeout(saveToHistory, 3000);
 
         // 优化10: 移除冗余的定期保存，已在timeupdate中实现节流保存
-        // startProgressSaveInterval(); // 已移除，使用更高效的节流方式
     })
 
     // 错误处理
@@ -915,12 +952,7 @@ function initPlayer(videoUrl) {
                 const sourceName = urlParams.get('source') || '';
                 const id_from_params = urlParams.get('id');
 
-                let show_identifier;
-                if (sourceName && id_from_params) {
-                    show_identifier = `${sourceName}_${id_from_params}`;
-                } else {
-                    show_identifier = (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
-                }
+                const show_identifier = getShowIdentifier(sourceName, id_from_params);
 
                 const historyRaw = localStorage.getItem('viewingHistory');
                 if (historyRaw) {
@@ -1208,13 +1240,7 @@ function renderEpisodes() {
         const realIndex = episodesReversed ? currentEpisodes.length - 1 - index : index;
         const isActive = realIndex === currentEpisodeIndex;
 
-        html += `
-            <button id="episode-${realIndex}" 
-                    onclick="playEpisode(${realIndex})" 
-                    class="px-4 py-2 ${isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333] hover:!shadow-none'} !border ${isActive ? '!border-blue-500' : '!border-[#333]'} rounded-lg transition-colors text-center episode-btn">
-                ${realIndex + 1}
-            </button>
-        `;
+        html += episodeButtonHTML(realIndex, isActive, { onClick: 'playEpisode', withId: true, extraClass: 'hover:!shadow-none episode-btn' });
     });
 
     episodesList.innerHTML = html;
@@ -1234,12 +1260,6 @@ function playEpisode(index) {
     // 保存当前播放进度（如果正在播放）
     if (art && art.video && !art.video.paused && !videoHasEnded) {
         saveCurrentProgress();
-    }
-
-    // 清除进度保存计时器
-    if (progressSaveInterval) {
-        clearInterval(progressSaveInterval);
-        progressSaveInterval = null;
     }
 
     // 首先隐藏之前可能显示的错误
@@ -1442,12 +1462,7 @@ function saveToHistory() {
     }
 
     // Define a show identifier
-    let show_identifier_for_video_info;
-    if (sourceName && id_from_params) {
-        show_identifier_for_video_info = `${sourceName}_${id_from_params}`;
-    } else {
-        show_identifier_for_video_info = (currentEpisodes && currentEpisodes.length > 0) ? currentEpisodes[0] : currentVideoUrl;
-    }
+    const show_identifier_for_video_info = getShowIdentifier(sourceName, id_from_params);
 
     // 构建唯一键用于Map查找
     const uniqueKey = `${currentVideoTitle}_${sourceName}_${show_identifier_for_video_info}`;
@@ -1563,17 +1578,6 @@ function formatTime(seconds) {
     const remainingSeconds = Math.floor(seconds % 60);
 
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
-
-// 开始定期保存播放进度
-function startProgressSaveInterval() {
-    // 清除可能存在的旧计时器
-    if (progressSaveInterval) {
-        clearInterval(progressSaveInterval);
-    }
-
-    // 每30秒保存一次播放进度
-    progressSaveInterval = setInterval(saveCurrentProgress, 30000);
 }
 
 // 优化5: 进度保存优化 - 使用防抖+批量更新
@@ -1877,11 +1881,7 @@ async function testVideoSourceSpeed(sourceKey, vodId) {
             if (!customApi) {
                 return { speed: -1, error: 'API配置无效' };
             }
-            if (customApi.detail) {
-                apiParams = '&customApi=' + encodeURIComponent(customApi.url) + '&customDetail=' + encodeURIComponent(customApi.detail) + '&source=custom';
-            } else {
-                apiParams = '&customApi=' + encodeURIComponent(customApi.url) + '&source=custom';
-            }
+            apiParams = buildCustomApiParams(customApi);
         } else {
             apiParams = '&source=' + sourceKey;
         }
@@ -2110,11 +2110,7 @@ async function switchToResource(sourceKey, vodId) {
                 return;
             }
             // 传递 detail 字段
-            if (customApi.detail) {
-                apiParams = '&customApi=' + encodeURIComponent(customApi.url) + '&customDetail=' + encodeURIComponent(customApi.detail) + '&source=custom';
-            } else {
-                apiParams = '&customApi=' + encodeURIComponent(customApi.url) + '&source=custom';
-            }
+            apiParams = buildCustomApiParams(customApi);
         } else {
             // 内置API
             apiParams = '&source=' + sourceKey;
@@ -2744,12 +2740,7 @@ function renderEpisodesForTab(tabIndex) {
     indices.forEach((realIndex) => {
         const isActive = realIndex === currentEpisodeIndex;
 
-        html += `
-            <button onclick="playEpisodeFromModal(${realIndex})"
-                    class="px-4 py-2 ${isActive ? 'episode-active' : '!bg-[#222] hover:!bg-[#333]'} !border ${isActive ? '!border-blue-500' : '!border-[#333]'} rounded-lg transition-colors text-center">
-                ${realIndex + 1}
-            </button>
-        `;
+        html += episodeButtonHTML(realIndex, isActive, { onClick: 'playEpisodeFromModal', withId: false, extraClass: '' });
     });
 
     modalList.innerHTML = html;
