@@ -318,52 +318,63 @@ function editCustomApi(index) {
     }
 }
 
-// 更新自定义API
-function updateCustomApi(index) {
-    if (index < 0 || index >= customAPIs.length) return;
+// 读取并校验自定义 API 表单：name/url 非空 + http(s) 协议 + 去尾斜杠。
+// 校验失败时弹 toast 并返回 null（调用方应立即 return）。
+function readValidatedCustomApiInput() {
     const nameInput = document.getElementById('customApiName');
     const urlInput = document.getElementById('customApiUrl');
     const detailInput = document.getElementById('customApiDetail');
     const isAdultInput = document.getElementById('customApiIsAdult');
     const name = nameInput.value.trim();
     let url = urlInput.value.trim();
-    const detail = detailInput ? detailInput.value.trim() : '';
-    const isAdult = isAdultInput ? isAdultInput.checked : false;
     if (!name || !url) {
         showToast('请输入API名称和链接', 'warning');
-        return;
+        return null;
     }
     if (!/^https?:\/\/.+/.test(url)) {
         showToast('API链接格式不正确，需以http://或https://开头', 'warning');
-        return;
+        return null;
     }
     if (url.endsWith('/')) url = url.slice(0, -1);
+    return {
+        name,
+        url,
+        detail: detailInput ? detailInput.value.trim() : '',
+        isAdult: isAdultInput ? isAdultInput.checked : false,
+    };
+}
+
+// 清空自定义 API 表单（name/url/detail/isAdult）并隐藏表单容器。
+// 不负责恢复添加按钮（restoreAddCustomApiButtons 由调用方按需调用）。
+function resetCustomApiForm() {
+    document.getElementById('customApiName').value = '';
+    document.getElementById('customApiUrl').value = '';
+    const detailInput = document.getElementById('customApiDetail');
+    if (detailInput) detailInput.value = '';
+    const isAdultInput = document.getElementById('customApiIsAdult');
+    if (isAdultInput) isAdultInput.checked = false;
+    document.getElementById('addCustomApiForm').classList.add('hidden');
+}
+
+// 更新自定义API
+function updateCustomApi(index) {
+    if (index < 0 || index >= customAPIs.length) return;
+    const input = readValidatedCustomApiInput();
+    if (!input) return;
+    const { name, url, detail, isAdult } = input;
     // 保存 detail 字段
     customAPIs[index] = { name, url, detail, isAdult };
     localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
     renderCustomAPIsList();
     checkAdultAPIsSelected();
     restoreAddCustomApiButtons();
-    nameInput.value = '';
-    urlInput.value = '';
-    if (detailInput) detailInput.value = '';
-    if (isAdultInput) isAdultInput.checked = false;
-    document.getElementById('addCustomApiForm').classList.add('hidden');
+    resetCustomApiForm();
     showToast('已更新自定义API: ' + name, 'success');
 }
 
 // 取消编辑自定义API
 function cancelEditCustomApi() {
-    // 清空表单
-    document.getElementById('customApiName').value = '';
-    document.getElementById('customApiUrl').value = '';
-    document.getElementById('customApiDetail').value = '';
-    const isAdultInput = document.getElementById('customApiIsAdult');
-    if (isAdultInput) isAdultInput.checked = false;
-
-    // 隐藏表单
-    document.getElementById('addCustomApiForm').classList.add('hidden');
-
+    resetCustomApiForm();
     // 恢复添加按钮
     restoreAddCustomApiButtons();
 }
@@ -436,13 +447,7 @@ function showAddCustomApiForm() {
 function cancelAddCustomApi() {
     const form = document.getElementById('addCustomApiForm');
     if (form) {
-        form.classList.add('hidden');
-        document.getElementById('customApiName').value = '';
-        document.getElementById('customApiUrl').value = '';
-        document.getElementById('customApiDetail').value = '';
-        const isAdultInput = document.getElementById('customApiIsAdult');
-        if (isAdultInput) isAdultInput.checked = false;
-
+        resetCustomApiForm();
         // 确保按钮是添加按钮
         restoreAddCustomApiButtons();
     }
@@ -450,25 +455,9 @@ function cancelAddCustomApi() {
 
 // 添加自定义API
 function addCustomApi() {
-    const nameInput = document.getElementById('customApiName');
-    const urlInput = document.getElementById('customApiUrl');
-    const detailInput = document.getElementById('customApiDetail');
-    const isAdultInput = document.getElementById('customApiIsAdult');
-    const name = nameInput.value.trim();
-    let url = urlInput.value.trim();
-    const detail = detailInput ? detailInput.value.trim() : '';
-    const isAdult = isAdultInput ? isAdultInput.checked : false;
-    if (!name || !url) {
-        showToast('请输入API名称和链接', 'warning');
-        return;
-    }
-    if (!/^https?:\/\/.+/.test(url)) {
-        showToast('API链接格式不正确，需以http://或https://开头', 'warning');
-        return;
-    }
-    if (url.endsWith('/')) {
-        url = url.slice(0, -1);
-    }
+    const input = readValidatedCustomApiInput();
+    if (!input) return;
+    const { name, url, detail, isAdult } = input;
     // 保存 detail 字段
     customAPIs.push({ name, url, detail, isAdult });
     localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
@@ -480,11 +469,7 @@ function addCustomApi() {
     renderCustomAPIsList();
     updateSelectedApiCount();
     checkAdultAPIsSelected();
-    nameInput.value = '';
-    urlInput.value = '';
-    if (detailInput) detailInput.value = '';
-    if (isAdultInput) isAdultInput.checked = false;
-    document.getElementById('addCustomApiForm').classList.add('hidden');
+    resetCustomApiForm();
     showToast('已添加自定义API: ' + name, 'success');
 }
 
@@ -679,6 +664,17 @@ function getCustomApiInfo(customApiIndex) {
     return customAPIs[index];
 }
 
+// 黄色内容过滤：敏感关键词清单统一在此定义，避免多处复制导致分岔
+const BANNED_KEYWORDS = ['伦理片', '福利', '里番动漫', '门事件', '萝莉少女', '制服诱惑', '国产传媒', 'cosplay', '黑丝诱惑', '无码', '日本无码', '有码', '日本有码', 'SWAG', '网红主播', '色情片', '同性片', '福利视频', '福利片'];
+
+// 按片名分类字段过滤敏感内容（仅在 yellowFilterEnabled 时由调用方包裹判断）
+function filterBanned(results) {
+    return results.filter(item => {
+        const typeName = item.type_name || '';
+        return !BANNED_KEYWORDS.some(keyword => typeName.includes(keyword));
+    });
+}
+
 // 从缓存渲染搜索结果（跳过 API 请求）
 function renderCachedResults(allResults) {
     const resultsDiv = document.getElementById('results');
@@ -687,11 +683,7 @@ function renderCachedResults(allResults) {
     // 黄色内容过滤
     const yellowFilterEnabled = localStorage.getItem('yellowFilterEnabled') === 'true';
     if (yellowFilterEnabled) {
-        const banned = ['伦理片', '福利', '里番动漫', '门事件', '萝莉少女', '制服诱惑', '国产传媒', 'cosplay', '黑丝诱惑', '无码', '日本无码', '有码', '日本有码', 'SWAG', '网红主播', '色情片', '同性片', '福利视频', '福利片'];
-        allResults = allResults.filter(item => {
-            const typeName = item.type_name || '';
-            return !banned.some(keyword => typeName.includes(keyword));
-        });
+        allResults = filterBanned(allResults);
     }
 
     window.searchResults = allResults;
@@ -859,11 +851,7 @@ async function search() {
         // 处理搜索结果过滤：如果启用了黄色内容过滤，则过滤掉分类含有敏感内容的项目
         const yellowFilterEnabled = localStorage.getItem('yellowFilterEnabled') === 'true';
         if (yellowFilterEnabled) {
-            const banned = ['伦理片', '福利', '里番动漫', '门事件', '萝莉少女', '制服诱惑', '国产传媒', 'cosplay', '黑丝诱惑', '无码', '日本无码', '有码', '日本有码', 'SWAG', '网红主播', '色情片', '同性片', '福利视频', '福利片'];
-            allResults = allResults.filter(item => {
-                const typeName = item.type_name || '';
-                return !banned.some(keyword => typeName.includes(keyword));
-            });
+            allResults = filterBanned(allResults);
         }
 
         // 优化1: 保存完整的搜索结果用于筛选
@@ -1574,43 +1562,26 @@ function toggleSearchFilters() {
 
 // 按片源筛选
 function filterBySource(source) {
-    currentFilters.source = source;
-    applySearchFilters();
-
-    // 更新按钮状态
-    document.querySelectorAll('#sourceFilters .filter-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.filter === source) {
-            btn.classList.add('active');
-        }
-    });
+    _applyFilter('source', source, 'sourceFilters');
 }
 
 // 按分类筛选
 function filterByCategory(category) {
-    currentFilters.category = category;
-    applySearchFilters();
-
-    // 更新按钮状态
-    document.querySelectorAll('#categoryFilters .filter-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.dataset.filter === category) {
-            btn.classList.add('active');
-        }
-    });
+    _applyFilter('category', category, 'categoryFilters');
 }
 
 // 按延迟筛选
 function filterByLatency(latency) {
-    currentFilters.latency = latency;
-    applySearchFilters();
+    _applyFilter('latency', latency, 'latencyFilters');
+}
 
-    // 更新按钮状态
-    document.querySelectorAll('#latencyFilters .filter-btn').forEach(btn => {
+// 内部统一筛选：设置 currentFilters[dimension]、刷新结果、更新对应容器按钮 active 态
+function _applyFilter(dimension, value, containerId) {
+    currentFilters[dimension] = value;
+    applySearchFilters();
+    document.querySelectorAll('#' + containerId + ' .filter-btn').forEach(btn => {
         btn.classList.remove('active');
-        if (btn.dataset.filter === latency) {
-            btn.classList.add('active');
-        }
+        if (btn.dataset.filter === value) btn.classList.add('active');
     });
 }
 
