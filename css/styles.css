@@ -1888,13 +1888,15 @@ body {
         flex-shrink: 0 !important;
     }
 
-    /* 面板内容区域可滚动 */
+    /* 面板内容区域可滚动 — 禁止横向溢出/回弹，避免滑动出大片空白 */
     #historyList,
     #settingsPanel .space-y-5,
     #episodeModalContent {
         flex: 1 !important;
         min-height: 0 !important;
         overflow-y: auto !important;
+        overflow-x: hidden !important;
+        overscroll-behavior-x: contain !important;
     }
 
     /* 面板底部固定 */
