@@ -846,8 +846,8 @@ input:checked + .slider:before {
         display: none !important;
     }
 
-    /* 移动端：隐藏集数网格容器 */
-    #episodesGridContainer {
+    /* 移动端：隐藏集数网格（保留选集模块标题行/选集按钮） */
+    #episodesGridContainer .episode-grid {
         display: none !important;
     }
 
@@ -917,5 +917,346 @@ input:checked + .slider:before {
 @media (max-width: 640px) {
     .container.mx-auto {
         margin-top: calc(88px + env(safe-area-inset-top)) !important;
+    }
+}
+
+/* ========================================
+   播放页左右分栏：播放器左置 + 右侧可折叠面板
+   ======================================== */
+
+/* 展开把手 / 收起按钮：默认隐藏（仅桌面端分栏时生效） */
+.player-sidebar-handle {
+    display: none;
+}
+
+.player-sidebar-toggle {
+    display: none;
+}
+
+/* 选集模块标题行：融入集数网格边框容器，仅保留布局与分隔线 */
+.player-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding: 0 0 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #333;
+}
+
+.player-sidebar-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #e6f2ff;
+    flex-shrink: 0;
+}
+
+/* 集数网格：边框框起来，与侧栏模块视觉统一 */
+#episodesGridContainer {
+    border: 1px solid #333;
+    border-radius: 0.5rem;
+    background: #151515;
+    padding: 0.5rem;
+}
+
+/* 切换资源模块：与选集模块同为带边框容器 */
+.resource-module {
+    margin-top: 0.5rem;
+    border: 1px solid #333;
+    border-radius: 0.5rem;
+    background: #151515;
+    padding: 0.5rem;
+}
+
+/* 模块标题行：无独立背景，底部边框分隔（与选集标题行一致） */
+.resource-info-bar {
+    padding: 0 0 0.5rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #333;
+}
+
+/* 资源信息条右侧的分页控件 */
+.resource-info-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.resource-page-info {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    min-width: 2.5rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.resource-scroll-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 0.25rem;
+    background: #222;
+    border: 1px solid #333;
+    color: #9ca3af;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.resource-scroll-btn:hover {
+    background: #333;
+    color: #ffffff;
+}
+
+.resource-scroll-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+    pointer-events: none;
+}
+
+.resource-switch-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    padding: 0.25rem 0.125rem 0.5rem;
+    min-height: 205px; /* 与一行资源卡片等高，加载前后高度不跳动 */
+}
+
+/* 加载中 / 空态 / 错误提示：在占位高度内居中 */
+.resource-switch-list .loading-text {
+    margin: auto;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    grid-column: 1 / -1;
+}
+
+
+
+.resource-switch-card {
+    width: auto;
+    min-width: 0;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: #151515;
+    border: 1px solid #333;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.resource-switch-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0, 159, 191, 0.4);
+}
+
+.resource-switch-card.is-current {
+    border-color: #009fbf;
+}
+
+.resource-switch-card-poster {
+    position: relative;
+    aspect-ratio: 3/4;
+    overflow: hidden;
+    background: #1f2937;
+}
+
+.resource-switch-card-info {
+    padding: 0.375rem;
+}
+
+/* 当前播放资源标记 */
+.resource-switch-card-current {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.resource-switch-card-current span {
+    background: rgba(37, 99, 235, 0.85);
+    border-radius: 0.375rem;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+    color: #fff;
+}
+
+/* 移动端：隐藏选集模块标题（只保留选集按钮） */
+@media (max-width: 640px) {
+    .player-sidebar-title {
+        display: none;
+    }
+}
+
+/* 桌面端（≥1024px）：左右分栏布局 */
+@media (min-width: 1024px) {
+    .player-layout {
+        display: flex;
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    /* 左栏：播放器自适应剩余宽度；高度由内容决定（不被右侧撑大），作为侧栏高度对齐锚点 */
+    .player-layout-main {
+        flex: 1;
+        min-width: 0;
+        align-self: flex-start;
+    }
+
+    /* 桌面端分栏时去掉 #playerContainer 底部 16px 间距，左栏高度即播放器高度，侧栏与其严格对齐 */
+    #playerContainer {
+        margin-bottom: 0;
+    }
+
+    /* 右栏：固定宽度面板，支持收起；高度由 JS 实时同步为左栏播放器区域高度，内部可滚但隐藏滚动条 */
+    .player-sidebar {
+        width: 360px;
+        flex-shrink: 0;
+        overflow: hidden;
+        min-height: 0;
+        transition: width 0.25s ease;
+    }
+
+    .player-sidebar-body {
+        width: 360px;
+        height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* 顶部收起按钮：固定在侧栏顶部，不参与均分、不被压缩 */
+    .player-sidebar-toggle {
+        flex-shrink: 0;
+    }
+
+    /* 选集模块：与资源模块均分剩余高度，集数过多时网格内部滚动（不撑开侧栏） */
+    #episodesGridContainer {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    #episodesGridContainer .player-sidebar-header {
+        flex-shrink: 0;
+    }
+
+    #episodesGridContainer .episode-grid {
+        flex: 1;
+        min-height: 0;
+        max-height: none;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    #episodesGridContainer .episode-grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* 其他视频源模块：与选集模块均分剩余高度，卡片在模块内自适应 */
+    .resource-module {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .resource-info-bar {
+        flex-shrink: 0;
+    }
+
+    .resource-switch-list {
+        flex: 1;
+        min-height: 0;
+        grid-auto-rows: 1fr;
+        overflow-y: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .resource-switch-card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .resource-switch-card-poster {
+        flex: 1;
+        min-height: 0;
+        aspect-ratio: auto;
+    }
+
+    .resource-switch-card-info {
+        flex-shrink: 0;
+    }
+
+    /* 侧栏内原 .player-container 元素：去掉居中与最大宽度约束，撑满侧栏 */
+    .player-sidebar .player-container {
+        max-width: none;
+        margin: 0;
+    }
+
+    /* 顶部收起按钮：仅桌面端分栏时显示，全宽横条 */
+    .player-sidebar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.375rem;
+        width: 100%;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: #151515;
+        border: 1px solid #333;
+        border-radius: 0.5rem;
+        color: #9ca3af;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: background 0.2s ease, color 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .player-sidebar-toggle:hover {
+        background: #1f2937;
+        color: #ffffff;
+    }
+
+    /* 侧栏内集数网格适配窄栏：3 列 */
+    .player-sidebar #episodesList {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    /* 收起状态：侧栏缩成窄把手，点击任意位置展开 */
+    .player-layout.sidebar-collapsed .player-sidebar {
+        width: 48px;
+    }
+
+    .player-layout.sidebar-collapsed .player-sidebar-body {
+        display: none;
+    }
+
+    .player-layout.sidebar-collapsed .player-sidebar-handle {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 100%;
+        min-height: 200px;
+        color: #9ca3af;
+        cursor: pointer;
+        background: #151515;
+        border: 1px solid #333;
+        border-radius: 0.5rem;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .player-layout.sidebar-collapsed .player-sidebar-handle:hover {
+        background: #1f2937;
+        color: #ffffff;
     }
 }
