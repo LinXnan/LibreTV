@@ -1468,8 +1468,8 @@ function saveToHistory() {
     // Define a show identifier
     const show_identifier_for_video_info = getShowIdentifier(sourceName, id_from_params);
 
-    // 构建唯一键用于Map查找
-    const uniqueKey = `${currentVideoTitle}_${sourceName}_${show_identifier_for_video_info}`;
+    // 构建唯一键用于Map查找：以规范化片名为跨源稳定身份（源相关 id/sourceName 随切源变化，不能用做去重键）
+    const uniqueKey = currentVideoTitle.trim();
 
     // 构建要保存的视频信息对象
     const videoInfo = {
@@ -1495,19 +1495,26 @@ function saveToHistory() {
         // 使用Map加速查找
         const historyMap = new Map();
         history.forEach((item, index) => {
-            const key = `${item.title}_${item.sourceName}_${item.showIdentifier}`;
-            historyMap.set(key, { item, index });
+            const key = (item.title || '').trim();
+            if (!key) return; // 空 title 不进 Map，避免空键误合并
+            const existing = historyMap.get(key);
+            // 同 title 多条时保留 timestamp 最新的一条（自愈去重时以最新记录为准）
+            if (!existing || (item.timestamp || 0) > (existing.item.timestamp || 0)) {
+                historyMap.set(key, { item, index });
+            }
         });
 
-        if (historyMap.has(uniqueKey)) {
+        if (uniqueKey && historyMap.has(uniqueKey)) {
             // 存在则更新
             const { item: existingItem, index: existingIndex } = historyMap.get(uniqueKey);
 
+            existingItem.title = videoInfo.title;
             existingItem.episodeIndex = videoInfo.episodeIndex;
             existingItem.timestamp = videoInfo.timestamp;
             existingItem.sourceName = videoInfo.sourceName;
             existingItem.sourceCode = videoInfo.sourceCode;
             existingItem.vod_id = videoInfo.vod_id;
+            existingItem.showIdentifier = videoInfo.showIdentifier;
             existingItem.directVideoUrl = videoInfo.directVideoUrl;
             existingItem.url = videoInfo.url;
             existingItem.playbackPosition = videoInfo.playbackPosition > 10 ? videoInfo.playbackPosition : (existingItem.playbackPosition || 0);
@@ -1515,17 +1522,18 @@ function saveToHistory() {
             existingItem.playbackRate = videoInfo.playbackRate;
             existingItem.vod_pic = videoInfo.vod_pic || existingItem.vod_pic || '';
 
-            // 更新集数列表
+            // 更新集数列表（切源后同步为新源集数）
             if (videoInfo.episodes && videoInfo.episodes.length > 0) {
-                if (!existingItem.episodes ||
-                    !Array.isArray(existingItem.episodes) ||
-                    existingItem.episodes.length !== videoInfo.episodes.length) {
-                    existingItem.episodes = [...videoInfo.episodes];
-                }
+                existingItem.episodes = [...videoInfo.episodes];
             }
 
-            // 移到最前面
+            // 移到最前面，并移除同片名的其他残留记录（自愈去重，切源/切集不再叠加重复条目）
             const updatedItem = history.splice(existingIndex, 1)[0];
+            for (let i = history.length - 1; i >= 0; i--) {
+                if ((history[i].title || '').trim() === uniqueKey) {
+                    history.splice(i, 1);
+                }
+            }
             history.unshift(updatedItem);
         } else {
             // 添加新记录到最前面
