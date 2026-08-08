@@ -120,8 +120,8 @@ function buildCustomApiParams(customApi) {
     return base;
 }
 
-// 统一的剧集按钮 HTML 模板：消除 renderEpisodes 与 renderEpisodesForTab 的重复。
-// onClick: 回调函数名 (如 "playEpisode" or "playEpisodeFromModal")。
+// 统一的剧集按钮 HTML 模板。
+// onClick: 回调函数名 (如 "playEpisode")。
 // withId: 为 true 时生成 id = "episode-N"，inline 按钮用它来做样式和
 //        快捷键定位。Modal 按钮不需要 id。
 // extraClass: 附加的 CSS 类（如 inline 版的 "hover:!shadow-none episode-btn"）。
@@ -279,6 +279,9 @@ function initializePageContent() {
     } else {
         showError('无效的视频链接');
     }
+
+    // 绑定集数分页按钮（静态按钮，绑定一次）
+    bindEpisodePagination();
 
     // 渲染源信息
     renderResourceInfoBar();
@@ -1213,13 +1216,12 @@ function showError(message) {
     if (errorMsgEl) errorMsgEl.textContent = message;
 }
 
-// 更新集数信息
+// 更新集数信息（仅顶部副标题）
 function updateEpisodeInfo() {
-    if (currentEpisodes.length > 0) {
-        document.getElementById('episodeInfo').textContent = `第 ${currentEpisodeIndex + 1}/${currentEpisodes.length} 集`;
-    } else {
-        document.getElementById('episodeInfo').textContent = '无集数信息';
-    }
+    const info = currentEpisodes.length > 0
+        ? `第 ${currentEpisodeIndex + 1}/${currentEpisodes.length} 集`
+        : '无集数信息';
+    document.getElementById('episodeInfo').textContent = info;
 }
 
 // 更新播放器内控制栏（播放键两侧）上一集/下一集按钮的禁用状态
@@ -1235,28 +1237,65 @@ function updatePlayerEpisodeControls() {
     }
 }
 
-// 渲染集数按钮
+// 集数分页状态（分页控件与资源面板一致）
+let episodePage = 0;
+const EPISODES_PER_PAGE = 20;
+
+// 渲染集数按钮（分页显示）
 function renderEpisodes() {
     const episodesList = document.getElementById('episodesList');
     if (!episodesList) return;
 
     if (!currentEpisodes || currentEpisodes.length === 0) {
+        episodePage = 0; // 空集数时收敛页码（REV-005）
         episodesList.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">没有可用的集数</div>';
+        updateEpisodePagination();
         return;
     }
 
-    const episodes = episodesReversed ? [...currentEpisodes].reverse() : currentEpisodes;
-    let html = '';
+    const displayList = episodesReversed ? [...currentEpisodes].reverse() : currentEpisodes;
+    const totalPages = Math.max(1, Math.ceil(displayList.length / EPISODES_PER_PAGE));
+    episodePage = Math.min(Math.max(0, episodePage), totalPages - 1);
 
-    episodes.forEach((episode, index) => {
+    const start = episodePage * EPISODES_PER_PAGE;
+    const end = Math.min(start + EPISODES_PER_PAGE, displayList.length);
+
+    let html = '';
+    for (let i = start; i < end; i++) {
         // 根据倒序状态计算真实的剧集索引
-        const realIndex = episodesReversed ? currentEpisodes.length - 1 - index : index;
+        const realIndex = episodesReversed ? displayList.length - 1 - i : i;
         const isActive = realIndex === currentEpisodeIndex;
 
         html += episodeButtonHTML(realIndex, isActive, { onClick: 'playEpisode', withId: true, extraClass: 'hover:!shadow-none episode-btn' });
-    });
+    }
 
     episodesList.innerHTML = html;
+    updateEpisodePagination();
+}
+
+// 更新集数分页控件状态（页码 + 翻页按钮禁用态）
+function updateEpisodePagination() {
+    const info = document.getElementById('episodePageInfo');
+    const prev = document.getElementById('episodePagePrev');
+    const next = document.getElementById('episodePageNext');
+    const totalPages = Math.max(1, Math.ceil(currentEpisodes.length / EPISODES_PER_PAGE));
+    if (info) info.textContent = `${episodePage + 1}/${totalPages}`;
+    if (prev) prev.disabled = episodePage <= 0;
+    if (next) next.disabled = episodePage >= totalPages - 1;
+}
+
+// 绑定集数翻页按钮（静态按钮，页面加载时绑定一次）
+function bindEpisodePagination() {
+    const prev = document.getElementById('episodePagePrev');
+    const next = document.getElementById('episodePageNext');
+    if (!prev || !next) return;
+    prev.onclick = () => {
+        if (episodePage > 0) { episodePage--; renderEpisodes(); }
+    };
+    next.onclick = () => {
+        const totalPages = Math.max(1, Math.ceil(currentEpisodes.length / EPISODES_PER_PAGE));
+        if (episodePage < totalPages - 1) { episodePage++; renderEpisodes(); }
+    };
 }
 
 // 播放指定集数
@@ -1294,6 +1333,10 @@ function playEpisode(index) {
     currentEpisodeIndex = index;
     currentVideoUrl = url;
     videoHasEnded = false; // 重置视频结束标志
+
+    // 切集后跳转到包含当前集数的分页页，保证当前集高亮可见（REV-001）
+    const displayIndex = episodesReversed ? currentEpisodes.length - 1 - index : index;
+    episodePage = Math.floor(displayIndex / EPISODES_PER_PAGE);
 
     clearVideoProgress();
 
@@ -1342,6 +1385,9 @@ function toggleEpisodeOrder() {
 
     // 保存到localStorage
     localStorage.setItem('episodesReversed', episodesReversed);
+
+    // 排序切换后回到第一页
+    episodePage = 0;
 
     // 重新渲染集数列表
     renderEpisodes();
@@ -1890,14 +1936,13 @@ function renderResourceInfoBar() {
     container.innerHTML = `
       <div class="resource-info-bar-left flex">
         <span>${resourceName}</span>
-        <span class="resource-info-bar-videos">${currentEpisodes.length} 集</span>
       </div>
-      <div class="resource-info-bar-actions">
-        <button type="button" class="resource-scroll-btn" id="resourcePagePrev" title="上一页" aria-label="上一页">
+      <div class="panel-pagination">
+        <button type="button" class="panel-scroll-btn" id="resourcePagePrev" title="上一页" aria-label="上一页">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
-        <span id="resourcePageInfo" class="resource-page-info">-</span>
-        <button type="button" class="resource-scroll-btn" id="resourcePageNext" title="下一页" aria-label="下一页">
+        <span id="resourcePageInfo" class="panel-page-info">-</span>
+        <button type="button" class="panel-scroll-btn" id="resourcePageNext" title="下一页" aria-label="下一页">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
       </div>
@@ -2715,285 +2760,79 @@ function setPlaybackRate(rate) {
 }
 
 
-// ========== 移动端集数选择弹框 ==========
+// ========== 移动端选集列表（就地展开） ==========
 
-// 打开集数选择弹框
-function openEpisodeModal() {
-    const modal = document.getElementById('episodeModal');
-    const modalList = document.getElementById('episodeModalList');
-
-    if (!modal || !modalList) return;
-
-    // 更新弹框内的排序按钮状态
-    updateOrderButtonInModal();
-
-    // 同步自动连播开关状态
-    syncAutoplayToggleInModal();
-
-    // 渲染集数列表到弹框
-    renderEpisodesToModal();
-
-    // 显示弹框
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-
-    // 移动端使用统一的面板管理函数
-    if (window.innerWidth <= 640) {
-        setTimeout(() => {
-            if (window.openPanel) {
-                window.openPanel(modal);
-            } else {
-                // 降级方案：直接操作类名
-                modal.classList.add('show');
-                const overlay = document.getElementById('panelOverlay');
-                if (overlay) {
-                    overlay.classList.add('show');
-                }
-            }
-        }, 10);
+// 切换选集/数据源面板展开/收起（移动端，替代弹框方式）
+function toggleMobileEpisodes() {
+    const container = document.getElementById('episodesGridContainer');
+    const btnContainer = document.getElementById('mobileEpisodeSelectContainer');
+    const body = document.querySelector('.player-sidebar-body');
+    if (!container) return;
+    const open = container.classList.toggle('mobile-episodes-open');
+    // 同步按钮容器状态（箭头旋转）与面板区域状态（等高布局）
+    if (btnContainer) btnContainer.classList.toggle('mobile-episodes-open', open);
+    if (body) body.classList.toggle('mobile-panel-open', open);
+    // 按钮文字与 PC 端"收起"语义一致：收起态"展开" / 展开态"收起"
+    const toggleText = document.getElementById('mobileEpisodeToggleText');
+    if (toggleText) toggleText.textContent = open ? '收起' : '展开';
+    if (open) {
+        startMobilePanelHeightSync();
+    } else {
+        stopMobilePanelHeightSync();
+        container.style.height = '';
     }
 }
 
-// Tab分组相关变量
-let currentTabIndex = 0;
-const EPISODES_PER_TAB = 20;
-
-// 渲染集数列表到弹框
-function renderEpisodesToModal() {
-    const modalList = document.getElementById('episodeModalList');
-    const tabBar = document.getElementById('episodeTabBar');
-    if (!modalList) return;
-
-    if (!currentEpisodes || currentEpisodes.length === 0) {
-        if (tabBar) tabBar.innerHTML = '';
-        modalList.innerHTML = '<div class="col-span-full text-center text-gray-400 py-8">没有可用的集数</div>';
-        return;
-    }
-
-    const totalEpisodes = currentEpisodes.length;
-    const tabCount = Math.ceil(totalEpisodes / EPISODES_PER_TAB);
-
-    // 计算当前集数所在的Tab索引
-    const activeTabIndex = Math.floor(currentEpisodeIndex / EPISODES_PER_TAB);
-    currentTabIndex = activeTabIndex;
-
-    // 渲染Tab栏
-    renderEpisodeTabs(tabCount, totalEpisodes);
-
-    // 渲染当前Tab的集数
-    renderEpisodesForTab(currentTabIndex);
-}
-
-// 渲染Tab栏
-function renderEpisodeTabs(tabCount, totalEpisodes) {
-    const tabBar = document.getElementById('episodeTabBar');
-    if (!tabBar) return;
-
-    // 如果只有一个Tab，隐藏Tab栏
-    if (tabCount <= 1) {
-        tabBar.innerHTML = '';
-        tabBar.style.display = 'none';
-        return;
-    }
-
-    tabBar.style.display = 'flex';
-    let tabHtml = '';
-
-    for (let i = 0; i < tabCount; i++) {
-        const startEp = i * EPISODES_PER_TAB + 1;
-        const endEp = Math.min((i + 1) * EPISODES_PER_TAB, totalEpisodes);
-        const isActive = i === currentTabIndex;
-        const tabLabel = startEp === endEp ? `${startEp}` : `${startEp}-${endEp}`;
-
-        tabHtml += `
-            <button onclick="switchEpisodeTab(${i})"
-                    class="episode-tab ${isActive ? 'episode-tab-active' : ''}"
-                    data-tab-index="${i}">
-                ${tabLabel}
-            </button>
-        `;
-    }
-
-    tabBar.innerHTML = tabHtml;
-
-    // 滚动到当前激活的Tab
-    setTimeout(() => {
-        const activeTab = tabBar.querySelector('.episode-tab-active');
-        if (activeTab) {
-            activeTab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-        }
-    }, 10);
-}
-
-// 切换Tab
-function switchEpisodeTab(tabIndex) {
-    currentTabIndex = tabIndex;
-
-    // 更新Tab激活状态
-    const tabBar = document.getElementById('episodeTabBar');
-    if (tabBar) {
-        tabBar.querySelectorAll('.episode-tab').forEach((tab, index) => {
-            if (index === tabIndex) {
-                tab.classList.add('episode-tab-active');
-            } else {
-                tab.classList.remove('episode-tab-active');
-            }
-        });
-    }
-
-    // 渲染对应Tab的集数
-    renderEpisodesForTab(tabIndex);
-}
-
-// 渲染指定Tab的集数
-function renderEpisodesForTab(tabIndex) {
-    const modalList = document.getElementById('episodeModalList');
-    if (!modalList || !currentEpisodes || currentEpisodes.length === 0) return;
-
-    const startIndex = tabIndex * EPISODES_PER_TAB;
-    const endIndex = Math.min(startIndex + EPISODES_PER_TAB, currentEpisodes.length);
-
-    // 获取当前Tab范围内的集数索引
-    let indices = [];
-    for (let i = startIndex; i < endIndex; i++) {
-        indices.push(i);
-    }
-
-    // 根据排序状态调整显示顺序
-    if (episodesReversed) {
-        indices.reverse();
-    }
-
-    let html = '';
-    indices.forEach((realIndex) => {
-        const isActive = realIndex === currentEpisodeIndex;
-
-        html += episodeButtonHTML(realIndex, isActive, { onClick: 'playEpisodeFromModal', withId: false, extraClass: '' });
+// REV-004：跨断点（≤640px → ≥641px）时清理移动端展开状态与内联高度残留，避免桌面端侧栏被污染
+if (window.matchMedia) {
+    window.matchMedia('(min-width: 641px)').addEventListener('change', function (e) {
+        if (!e.matches) return;
+        const container = document.getElementById('episodesGridContainer');
+        const btnContainer = document.getElementById('mobileEpisodeSelectContainer');
+        const body = document.querySelector('.player-sidebar-body');
+        if (container) { container.classList.remove('mobile-episodes-open'); container.style.height = ''; }
+        if (btnContainer) btnContainer.classList.remove('mobile-episodes-open');
+        if (body) body.classList.remove('mobile-panel-open');
+        const toggleText = document.getElementById('mobileEpisodeToggleText');
+        if (toggleText) toggleText.textContent = '展开';
+        stopMobilePanelHeightSync();
     });
-
-    modalList.innerHTML = html;
-
-    // 滚动到当前集数
-    setTimeout(() => {
-        const activeButton = modalList.querySelector('.episode-active');
-        if (activeButton) {
-            activeButton.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, 50);
 }
 
-// 关闭集数选择弹框
-function closeEpisodeModal() {
-    const modal = document.getElementById('episodeModal');
+// ===== 移动端：选集面板高度跟随资源面板（等高） =====
+let mobilePanelHeightObserver = null;
 
-    if (modal) {
-        // 移动端使用统一的面板管理函数
-        if (window.innerWidth <= 640) {
-            if (window.closePanel) {
-                // 使用统一的关闭函数，它会自动处理动画和隐藏
-                window.closePanel(modal);
-            } else {
-                // 降级方案：直接操作类名
-                modal.classList.remove('show');
-                const overlay = document.getElementById('panelOverlay');
-                if (overlay) {
-                    overlay.classList.remove('show');
-                }
-                // 等待动画完成后隐藏
-                setTimeout(() => {
-                    modal.classList.add('hidden');
-                    modal.classList.remove('flex');
-                }, 400);
-            }
-        } else {
-            // 桌面端直接隐藏
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
+// 同步选集面板高度 = 资源面板当前实际高度
+function syncMobilePanelHeight() {
+    const ep = document.getElementById('episodesGridContainer');
+    const res = document.querySelector('.player-sidebar-body .resource-module');
+    if (!ep || !res) return;
+    const h = res.offsetHeight;
+    if (h > 0) ep.style.height = h + 'px';
+}
+
+// 展开后监听资源面板尺寸变化（加载中→加载完成、分页翻页），自动重新同步高度（REV-007）
+function startMobilePanelHeightSync() {
+    stopMobilePanelHeightSync();
+    const res = document.querySelector('.player-sidebar-body .resource-module');
+    if (!res) return;
+    syncMobilePanelHeight();
+    if (window.ResizeObserver) {
+        mobilePanelHeightObserver = new ResizeObserver(syncMobilePanelHeight);
+        mobilePanelHeightObserver.observe(res);
     }
 }
 
-// 从弹框播放集数
-function playEpisodeFromModal(index) {
-    closeEpisodeModal();
-    playEpisode(index);
-}
-
-// 弹框内切换排序
-function toggleEpisodeOrderInModal() {
-    // 切换排序状态
-    episodesReversed = !episodesReversed;
-    localStorage.setItem('episodesReversed', episodesReversed);
-
-    // 重新渲染弹框内的集数列表
-    renderEpisodesToModal();
-
-    // 更新弹框内的排序按钮
-    updateOrderButtonInModal();
-
-    // 同步更新页面上的排序按钮（桌面端可见）
-    updateOrderButton();
-
-    // 重新渲染页面上的集数列表（桌面端可见）
-    renderEpisodes();
-}
-
-// 更新弹框内的排序按钮状态
-function updateOrderButtonInModal() {
-    const orderTextModal = document.getElementById('orderTextModal');
-    const orderIconModal = document.getElementById('orderIconModal');
-
-    if (orderTextModal && orderIconModal) {
-        if (episodesReversed) {
-            orderTextModal.textContent = '正序';
-            orderIconModal.innerHTML = `
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
-            `;
-        } else {
-            orderTextModal.textContent = '倒序';
-            orderIconModal.innerHTML = `
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
-            `;
-        }
+function stopMobilePanelHeightSync() {
+    if (mobilePanelHeightObserver) {
+        mobilePanelHeightObserver.disconnect();
+        mobilePanelHeightObserver = null;
     }
 }
 
-// 同步弹框内的自动连播开关状态
-function syncAutoplayToggleInModal() {
-    const autoplayToggle = document.getElementById('autoplayToggle');
-    const autoplayToggleModal = document.getElementById('autoplayToggleModal');
-
-    if (autoplayToggle && autoplayToggleModal) {
-        autoplayToggleModal.checked = autoplayToggle.checked;
-    }
-}
-
-// 点击弹框背景关闭
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('episodeModal');
-
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                closeEpisodeModal();
-            }
-        });
-    }
-
-    // 监听弹框内的自动连播开关变化
-    const autoplayToggleModal = document.getElementById('autoplayToggleModal');
-    if (autoplayToggleModal) {
-        autoplayToggleModal.addEventListener('change', function() {
-            const autoplayToggle = document.getElementById('autoplayToggle');
-            if (autoplayToggle) {
-                // 同步到原始开关
-                autoplayToggle.checked = this.checked;
-                // 触发原始开关的 change 事件
-                autoplayToggle.dispatchEvent(new Event('change'));
-            }
-        });
-    }
-});
+// ========== 移动端选集列表（就地展开） ==========
+// 说明：原"移动端集数选择弹框"（#episodeModal / openEpisodeModal / renderEpisodesToModal 等）
+// 已被就地展开方式取代，弹框链路于 REV-006 清理移除（2026-08-08）。
 
 
 // ========== 其他辅助函数 ==========

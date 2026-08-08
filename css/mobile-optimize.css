@@ -23,10 +23,9 @@
         padding: 10px !important;
     }
 
-    /* 统一三个面板的关闭按钮样式 */
+    /* 统一两个面板的关闭按钮样式 */
     #historyPanel .close-btn,
-    #settingsPanel .close-btn,
-    #episodeModal .close-btn {
+    #settingsPanel .close-btn {
         padding: 10px !important;
 
         /* 视觉样式 */
@@ -47,16 +46,14 @@
 
     /* 移动端触摸反馈（使用 :active 而非 :hover） */
     #historyPanel .close-btn:active,
-    #settingsPanel .close-btn:active,
-    #episodeModal .close-btn:active {
+    #settingsPanel .close-btn:active {
         background: #333 !important;
         border-color: #555 !important;
     }
 
     /* SVG 图标统一尺寸 */
     #historyPanel .close-btn svg,
-    #settingsPanel .close-btn svg,
-    #episodeModal .close-btn svg {
+    #settingsPanel .close-btn svg {
         width: 16px !important;
         height: 16px !important;
         stroke: currentColor !important;
@@ -164,10 +161,6 @@
     /* 模态框集数 - 3列 */
     #modalContent .grid {
         grid-template-columns: repeat(3, 1fr) !important;
-    }
-
-    #episodeModal #orderTextModal {
-        display: none !important;
     }
 }
 

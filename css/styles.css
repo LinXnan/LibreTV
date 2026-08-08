@@ -1846,15 +1846,13 @@ body {
 
     /* 面板头部固定 */
     .history-panel > .flex,
-    .settings-panel > .flex,
-    #episodeModal .episode-modal-header {
+    .settings-panel > .flex {
         flex-shrink: 0 !important;
     }
 
     /* 面板内容区域可滚动 — 禁止横向溢出/回弹，避免滑动出大片空白 */
     #historyList,
-    #settingsPanel .space-y-5,
-    #episodeModalContent {
+    #settingsPanel .space-y-5 {
         flex: 1 !important;
         min-height: 0 !important;
         overflow-y: auto !important;
@@ -2394,169 +2392,6 @@ body {
     }
 
     /* ========================================
-       选集面板内容优化
-       ======================================== */
-
-    /* 选集面板头部优化 */
-    #episodeModal .episode-modal-header {
-        padding: 16px 20px !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-        background: rgba(0, 0, 0, 0.2) !important;
-    }
-
-    #episodeModal .episode-modal-title {
-        font-size: 1.25rem !important;
-        font-weight: 700 !important;
-        color: rgba(0, 242, 255, 0.9) !important;
-        text-shadow: 0 0 10px rgba(0, 242, 255, 0.3) !important;
-    }
-
-    /* 自动连播开关现代化 */
-    #episodeModal .episode-modal-autoplay {
-        background: rgba(255, 255, 255, 0.03) !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-        border-radius: 20px !important;
-        padding: 8px 16px !important;
-    }
-
-    #episodeModal .episode-modal-autoplay span {
-        font-size: 0.875rem !important;
-        font-weight: 500 !important;
-        color: rgba(255, 255, 255, 0.8) !important;
-    }
-
-    /* 开关样式增强 */
-    #episodeModal .switch {
-        width: 52px !important;
-        height: 28px !important;
-    }
-
-    #episodeModal .slider {
-        width: 52px !important;
-        height: 28px !important;
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        transition: all 0.3s ease !important;
-    }
-
-    #episodeModal .slider:before {
-        width: 22px !important;
-        height: 22px !important;
-        left: 3px !important;
-        bottom: 3px !important;
-        background-color: #fff !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
-        transition: all 0.3s ease !important;
-    }
-
-    #episodeModal input:checked + .slider {
-        background-color: #00f2ff !important;
-        box-shadow: 0 0 12px rgba(0, 242, 255, 0.4) !important;
-    }
-
-    #episodeModal input:checked + .slider:before {
-        transform: translateX(24px) !important;
-    }
-
-    /* 排序按钮现代化 */
-    #episodeModal button[onclick*="toggleEpisodeOrder"] {
-        min-height: 44px !important;
-        border-radius: 12px !important;
-        background: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        padding: 8px 16px !important;
-        transition: all 0.2s ease !important;
-    }
-
-    #episodeModal button[onclick*="toggleEpisodeOrder"]:active {
-        transform: scale(0.95) !important;
-        background: rgba(255, 255, 255, 0.08) !important;
-        border-color: rgba(0, 242, 255, 0.3) !important;
-    }
-
-    /* Tab 栏现代化 */
-    .episode-tab-bar {
-        padding: 12px 20px !important;
-        background: rgba(0, 0, 0, 0.2) !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-    }
-
-    .episode-tab {
-        min-height: 36px !important;
-        padding: 8px 16px !important;
-        border-radius: 12px !important;
-        background: rgba(255, 255, 255, 0.03) !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-        font-size: 0.875rem !important;
-        font-weight: 500 !important;
-        color: rgba(255, 255, 255, 0.7) !important;
-        transition: all 0.2s ease !important;
-    }
-
-    .episode-tab.active {
-        background: linear-gradient(135deg, rgba(0, 159, 191, 0.2), rgba(0, 159, 191, 0.1)) !important;
-        border-color: rgba(0, 159, 191, 0.4) !important;
-        color: rgba(0, 242, 255, 0.9) !important;
-        box-shadow: 0 0 12px rgba(0, 242, 255, 0.2) !important;
-    }
-
-    .episode-tab:active {
-        transform: scale(0.95) !important;
-    }
-
-    /* 集数列表容器现代化 */
-    #episodeModalContent {
-        padding: 16px 20px !important;
-        scrollbar-width: none !important;
-        -ms-overflow-style: none !important;
-    }
-
-    #episodeModalContent::-webkit-scrollbar {
-        display: none !important;
-    }
-
-    .episode-list-group {
-        background: rgba(255, 255, 255, 0.02) !important;
-        border: 1px solid rgba(255, 255, 255, 0.05) !important;
-        border-radius: 20px !important;
-        padding: 16px !important;
-    }
-
-    /* 集数按钮现代化 */
-    #episodeModalList button {
-        min-height: 48px !important;
-        border-radius: 12px !important;
-        background: rgba(255, 255, 255, 0.04) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        font-size: 0.9375rem !important;
-        font-weight: 500 !important;
-        color: rgba(255, 255, 255, 0.8) !important;
-        transition: all 0.2s ease !important;
-    }
-
-    #episodeModalList button:active {
-        transform: scale(0.95) !important;
-        background: rgba(255, 255, 255, 0.08) !important;
-        border-color: rgba(0, 242, 255, 0.3) !important;
-    }
-
-    /* 当前播放集数高亮 */
-    #episodeModalList button.playing,
-    #episodeModalList button[style*="background: linear-gradient"] {
-        background: linear-gradient(135deg, rgba(0, 159, 191, 0.3), rgba(0, 159, 191, 0.15)) !important;
-        border-color: rgba(0, 159, 191, 0.5) !important;
-        color: rgba(0, 242, 255, 1) !important;
-        box-shadow: 0 0 15px rgba(0, 242, 255, 0.3) !important;
-        font-weight: 600 !important;
-    }
-
-    /* 已观看集数样式 */
-    #episodeModalList button.watched {
-        background: rgba(255, 255, 255, 0.02) !important;
-        border-color: rgba(255, 255, 255, 0.05) !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-    }
-
-    /* ========================================
        扫光动画效果（保留赛博朋克风格）
        ======================================== */
 
@@ -2579,8 +2414,7 @@ body {
     }
 
     /* 确保内容在扫光之上 */
-    .history-panel > *,
-    #episodeModal > * {
+    .history-panel > * {
         position: relative;
         z-index: 1;
     }
@@ -2590,19 +2424,8 @@ body {
        ======================================== */
 
     @media (max-width: 375px) {
-        .history-panel h3,
-        #episodeModal .episode-modal-title {
+        .history-panel h3 {
             font-size: 1.125rem !important;
-        }
-
-        .episode-tab {
-            padding: 6px 12px !important;
-            font-size: 0.8125rem !important;
-        }
-
-        #episodeModalList button {
-            min-height: 44px !important;
-            font-size: 0.875rem !important;
         }
     }
 }

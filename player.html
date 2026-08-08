@@ -144,30 +144,48 @@
                     </svg>
                     <span>收起</span>
                 </button>
+                <!-- 移动端外层展开/收起按钮（仅移动端显示）：展开后显示选集面板 + 其他数据源面板 -->
+                <div class="flex items-center w-full flex-shrink-0 mb-2" id="mobileEpisodeSelectContainer">
+                    <button id="mobileEpisodeSelectBtn" onclick="toggleMobileEpisodes()" title="展开/收起选集与数据源"
+                            class="hidden w-full px-4 py-2.5 bg-[#222] hover:bg-[#333] border border-[#333] text-white rounded-lg transition-colors">
+                        <svg class="w-5 h-5 flex-shrink-0 text-[#00ccff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                        </svg>
+                        <span id="mobileEpisodeToggleText">展开</span>
+                        <span class="flex-1"></span>
+                        <svg class="episode-chevron w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                </div>
                 <!-- 选集模块：标题行（自动连播/排序）+ 集数网格，合并为一个带边框容器 -->
                 <div class="player-container" id="episodesGridContainer">
                     <div class="player-sidebar-header">
-                        <span class="player-sidebar-title">选集</span>
-                        <!-- 移动端选集按钮（仅移动端显示，打开弹框） -->
-                        <div class="flex items-center gap-1 flex-shrink-0" id="mobileEpisodeSelectContainer">
-                            <button id="mobileEpisodeSelectBtn" onclick="openEpisodeModal()" title="选集"
-                                    class="hidden px-4 py-2 bg-pink-600 hover:bg-pink-700 border border-pink-500 text-white rounded-lg transition-colors">
-                                <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                                </svg>
-                                选集
+                        <!-- 左侧：选集标题（与资源面板信息条对齐方式一致） -->
+                        <div class="resource-info-bar-left flex">
+                            <span class="player-sidebar-title">选集</span>
+                        </div>
+                        <!-- 集数分页控件（靠右） -->
+                        <div class="panel-pagination">
+                            <button type="button" class="panel-scroll-btn" id="episodePagePrev" title="上一页" aria-label="上一页">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                            </button>
+                            <span id="episodePageInfo" class="panel-page-info">-</span>
+                            <button type="button" class="panel-scroll-btn" id="episodePageNext" title="下一页" aria-label="下一页">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                             </button>
                         </div>
-                        <!-- 自动连播开关（桌面端，靠右） -->
-                        <div class="flex items-center gap-1 flex-shrink-0 ml-auto" id="autoplayContainer">
+                    </div>
+                    <!-- 内容第一行：自动连播 + 排序（固定，不随集数网格滚动，REV-003） -->
+                    <div class="flex items-center gap-2 mb-2 flex-wrap episode-toolbar">
+                        <div class="flex items-center gap-1 flex-shrink-0" id="autoplayContainer">
                             <span class="text-gray-400 text-sm whitespace-nowrap">自动连播</span>
                             <label class="switch">
                                 <input type="checkbox" id="autoplayToggle">
                                 <span class="slider"></span>
                             </label>
                         </div>
-                        <!-- 排序按钮（桌面端） -->
-                        <button onclick="toggleEpisodeOrder()" class="px-2 py-1 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors flex items-center space-x-1 flex-shrink-0">
+                        <button onclick="toggleEpisodeOrder()" class="px-2 py-1 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors flex items-center space-x-1 flex-shrink-0 ml-auto">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" id="orderIcon" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
                             </svg>
@@ -206,55 +224,6 @@
 
     <!-- 弹框遮罩层 -->
     <div id="panelOverlay" class="panel-overlay" aria-hidden="true"></div>
-
-    <!-- 集数选择弹框 - 移动端底部抽屉式，桌面端居中模态框 -->
-    <div id="episodeModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center transition-opacity duration-300 z-[10000] episode-panel" role="dialog" aria-modal="true" aria-labelledby="episodeModalTitle">
-        <!-- 拖拽指示器（仅移动端显示） -->
-        <div class="panel-drag-indicator"></div>
-
-        <!-- 头部：标题 + 自动连播 + 操作按钮 + 关闭按钮 -->
-        <div class="flex justify-between items-center p-4 flex-none episode-modal-header">
-            <h2 id="episodeModalTitle" class="text-xl font-bold gradient-text flex-1 min-w-0 truncate episode-modal-title">选择集数</h2>
-            <!-- 自动连播开关（居中） -->
-            <div class="flex items-center gap-2 flex-shrink-0 episode-modal-autoplay">
-                <span class="text-gray-400 text-sm">自动连播</span>
-                <label class="switch">
-                    <input type="checkbox" id="autoplayToggleModal">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0 episode-modal-actions">
-                <!-- 排序按钮 -->
-                <button onclick="toggleEpisodeOrderInModal()" class="px-2 py-1 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors flex items-center space-x-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" id="orderIconModal" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
-                    </svg>
-                    <span id="orderTextModal" class="text-sm">倒序</span>
-                </button>
-                <!-- 关闭按钮 -->
-                <button onclick="closeEpisodeModal()" aria-label="关闭" class="close-btn">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <!-- Tab分组栏 -->
-        <div id="episodeTabBar" class="episode-tab-bar">
-            <!-- Tab按钮将在这里动态加载 -->
-        </div>
-
-        <!-- 内容区域（移动端可滚动） -->
-        <div id="episodeModalContent" class="overflow-auto flex-1 p-4 panel-content">
-            <!-- 集数选择分组 -->
-            <div class="p-3 bg-[#151515] rounded-lg shadow-inner episode-list-group">
-                <div class="grid grid-cols-4 gap-2" id="episodeModalList">
-                    <!-- 集数按钮将在这里动态加载 -->
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- 添加 loading 提示框 -->
     <div id="loading" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-[10001]">

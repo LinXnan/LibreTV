@@ -48,14 +48,6 @@ function closePanel(panel) {
     panel.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('aria-hidden', 'true');
 
-    // 集数弹框需要额外处理
-    if (panel.id === 'episodeModal') {
-        setTimeout(() => {
-            panel.classList.add('hidden');
-            panel.classList.remove('flex');
-        }, 400);
-    }
-
     const triggerElement = focusMap.get(panel);
     if (triggerElement && typeof triggerElement.focus === 'function') {
         triggerElement.focus({ preventScroll: true });
@@ -80,7 +72,6 @@ function closePanel(panel) {
 function handleOverlayClick(e) {
     const historyPanel = document.getElementById('historyPanel');
     const settingsPanel = document.getElementById('settingsPanel');
-    const episodeModal = document.getElementById('episodeModal');
 
     if (historyPanel && historyPanel.classList.contains('show')) {
         closePanel(historyPanel);
@@ -88,10 +79,6 @@ function handleOverlayClick(e) {
 
     if (settingsPanel && settingsPanel.classList.contains('show')) {
         closePanel(settingsPanel);
-    }
-
-    if (episodeModal && episodeModal.classList.contains('show')) {
-        closePanel(episodeModal);
     }
 }
 
@@ -108,8 +95,6 @@ function setupBackButtonSupport() {
                 panel = document.getElementById('historyPanel');
             } else if (panelId === 'settings') {
                 panel = document.getElementById('settingsPanel');
-            } else if (panelId === 'episode') {
-                panel = document.getElementById('episodeModal');
             }
 
             if (panel && panel.classList.contains('show')) {
@@ -132,16 +117,12 @@ function openPanel(panel, triggerElement) {
 
     const historyPanel = document.getElementById('historyPanel');
     const settingsPanel = document.getElementById('settingsPanel');
-    const episodeModal = document.getElementById('episodeModal');
 
     if (historyPanel && historyPanel !== panel && historyPanel.classList.contains('show')) {
         closePanel(historyPanel);
     }
     if (settingsPanel && settingsPanel !== panel && settingsPanel.classList.contains('show')) {
         closePanel(settingsPanel);
-    }
-    if (episodeModal && episodeModal !== panel && episodeModal.classList.contains('show')) {
-        closePanel(episodeModal);
     }
 
     if (triggerElement) {
