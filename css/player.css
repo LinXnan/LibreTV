@@ -196,22 +196,32 @@ div.player-loading-text {
     overflow-y: auto;
 }
 
-/* 恢复播放位置提示样式 */
+/* 恢复播放位置提示样式 — 顶部居中，位于固定头部(约88px)下方 */
 .position-restore-hint {
     position: fixed;
-    bottom: 20px;
+    top: calc(88px + 16px);
+    bottom: auto;
     left: 50%;
-    transform: translateX(-50%) translateY(100%);
+    transform: translateX(-50%) translateY(-100%);
     background-color: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 10px 20px;
     border-radius: 4px;
     z-index: 1000;
+    opacity: 0;
     transition: transform 0.3s ease;
     font-size: 14px;
 }
 
+/* 移动端刘海屏：叠加安全区，避免被刘海遮挡 */
+@media (max-width: 640px) {
+    .position-restore-hint {
+        top: max(calc(88px + 16px), calc(88px + env(safe-area-inset-top) + 16px));
+    }
+}
+
 .position-restore-hint.show {
+    opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
 

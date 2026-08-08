@@ -839,29 +839,6 @@ body {
     letter-spacing: 0.3px;
 }
 
-/* 添加恢复播放提示样式 */
-.position-restore-hint {
-    position: absolute;
-    bottom: 60px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
-    z-index: 100;
-    opacity: 0;
-    transition: all 0.3s ease;
-}
-
-.position-restore-hint.show {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-
-
-
 /* 播放器顶部header移动端优化 */
 .player-header {
     gap: 0.5rem;
@@ -1219,10 +1196,13 @@ body {
     }
 }
 
-/* 撤销Toast — 统一类名，媒体查询区分PC/移动端位置 */
+/* 撤销Toast — 统一类名，全端顶部居中，从上方滑入 */
 .history-undo-toast,
 .history-undo-toast-pc {
     position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.9);
     color: white;
     padding: 12px 16px;
@@ -1232,34 +1212,19 @@ body {
     gap: 16px;
     z-index: 10000;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: toast-slide-in-down 180ms ease-out;
 }
 
-/* PC端：右下角，从右侧滑入 */
-@media (min-width: 641px) {
-    .history-undo-toast,
-    .history-undo-toast-pc {
-        bottom: 20px;
-        right: 20px;
-        animation: toast-slide-in-right 180ms ease-out;
-    }
-    .history-undo-toast.hiding,
-    .history-undo-toast-pc.hiding {
-        animation: toast-slide-out-right 180ms ease-out forwards;
-    }
+.history-undo-toast.hiding,
+.history-undo-toast-pc.hiding {
+    animation: toast-slide-out-up 180ms ease-out forwards;
 }
 
-/* 移动端：底部居中，从下方弹入 */
+/* 移动端刘海屏：避免被顶部安全区遮挡 */
 @media (max-width: 640px) {
     .history-undo-toast,
     .history-undo-toast-pc {
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        animation: toast-slide-in-up 180ms ease-out;
-    }
-    .history-undo-toast.hiding,
-    .history-undo-toast-pc.hiding {
-        animation: toast-slide-out-down 180ms ease-out forwards;
+        top: max(1rem, env(safe-area-inset-top));
     }
 }
 
@@ -1295,24 +1260,14 @@ body {
     background: rgba(96, 165, 250, 0.2);
 }
 
-@keyframes toast-slide-in-right {
-    from { opacity: 0; transform: translateX(100%); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes toast-slide-out-right {
-    from { opacity: 1; transform: translateX(0); }
-    to { opacity: 0; transform: translateX(100%); }
-}
-
-@keyframes toast-slide-in-up {
-    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+@keyframes toast-slide-in-down {
+    from { opacity: 0; transform: translateX(-50%) translateY(-100%); }
     to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-@keyframes toast-slide-out-down {
+@keyframes toast-slide-out-up {
     from { opacity: 1; transform: translateX(-50%) translateY(0); }
-    to { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to { opacity: 0; transform: translateX(-50%) translateY(-100%); }
 }
 
 /* ========================================

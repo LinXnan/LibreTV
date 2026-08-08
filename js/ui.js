@@ -794,7 +794,7 @@ function hideHistoryUndoToast() {
     const toast = document.getElementById('history-undo-toast');
     if (toast) {
         toast.classList.add('hiding');
-        setTimeout(() => toast.remove(), 180);
+        setTimeout(() => toast.remove(), 220);
     }
 }
 
