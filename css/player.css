@@ -7,9 +7,9 @@ body, html {
     color: white;
 }
 
-/* 主内容区域顶部间距，刚好贴合固定头部 */
+/* 主内容区域顶部间距，刚好贴合固定头部（header 含标题+集数两行） */
 .container.mx-auto {
-    margin-top: 56px;
+    margin-top: 88px;
 }
 
 /* Critical header and navigation styles */
@@ -879,5 +879,43 @@ input:checked + .slider:before {
 @media (min-width: 641px) {
     #mobileEpisodeSelectContainer {
         display: none !important;
+    }
+}
+
+/* ========================================
+   播放器内控制栏：上一集 / 下一集 按钮
+   ======================================== */
+
+/* 控件图标大小与 hover 效果 */
+.art-controls .art-control-prevEpisode,
+.art-controls .art-control-nextEpisode {
+    cursor: pointer;
+}
+
+.art-controls .art-control-prevEpisode svg,
+.art-controls .art-control-nextEpisode svg {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+.art-controls .art-control-prevEpisode:hover svg,
+.art-controls .art-control-nextEpisode:hover svg {
+    color: #00ccff;
+}
+
+/* 首集 / 末集时禁用态 */
+.art-controls .art-control-prevEpisode.disabled,
+.art-controls .art-control-nextEpisode.disabled {
+    opacity: 0.35;
+    pointer-events: none;
+    cursor: default;
+}
+
+/* 播放器页 header 含标题+集数两行后，移动端主内容区顶部间距同步增大
+   （覆盖 styles.css 移动端的 56px 全局值，仅本页生效） */
+@media (max-width: 640px) {
+    .container.mx-auto {
+        margin-top: calc(88px + env(safe-area-inset-top)) !important;
     }
 }

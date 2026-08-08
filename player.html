@@ -66,7 +66,10 @@
                 <h1 class="text-xl font-bold gradient-text logo-text">LibreTV</h1>
             </button>
         </div>
-        <h2 id="videoTitle" class="text-xl font-semibold flex-1 text-center overflow-x-auto whitespace-nowrap truncate custom-title-scroll"></h2>
+        <div class="flex-1 flex flex-col items-center justify-center min-w-0">
+            <h2 id="videoTitle" class="text-xl font-semibold min-w-0 overflow-x-auto whitespace-nowrap truncate custom-title-scroll"></h2>
+            <span class="text-gray-400 text-xs whitespace-nowrap flex-shrink-0 mt-0.5" id="episodeInfo">加载中...</span>
+        </div>
         <a href="#" id="goBack" onclick="goBack(event)" class="px-4 py-2 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors flex items-center min-w-0 home-btn">
             <svg class="w-5 h-5 mr-1" viewBox="0 0 24 24" fill="#ffffff" xmlns="http://www.w3.org/2000/svg">
                 <path d="M5.25 11h15a1.5 1.5 0 1 1 0 3H5.25a1.5 1.5 0 0 1 0-3z"/>
@@ -119,25 +122,6 @@
         <!-- 源信息 -->
         <div class="player-container flex justify-between py-2 px-4 mb-2 bg-gray-700" id="resourceInfoBarContainer">
             <!-- 资源信息卡片、切换按钮、视频数将由JS动态渲染 -->
-        </div>
-
-        <!-- 集数导航 -->
-        <div class="player-container">
-            <div class="flex justify-between items-center my-4">
-                <button onclick="playPreviousEpisode()" id="prevButton" class="px-4 py-2 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors">
-                    <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                    </svg>
-                    上一集
-                </button>
-                <span class="text-gray-400" id="episodeInfo">加载中...</span>
-                <button onclick="playNextEpisode()" id="nextButton" class="px-4 py-2 bg-[#222] hover:bg-[#333] border border-[#333] rounded-lg transition-colors">
-                    下一集
-                    <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </button>
-            </div>
         </div>
 
         <!-- 添加自动播放开关和排序按钮 -->

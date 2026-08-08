@@ -289,8 +289,8 @@ function initializePageContent() {
     // 渲染集数列表
     renderEpisodes();
 
-    // 更新按钮状态
-    updateButtonStates();
+    // 更新播放器内控制栏的上一集/下一集按钮状态
+    updatePlayerEpisodeControls();
 
     // 更新排序按钮状态
     updateOrderButton();
@@ -571,6 +571,45 @@ function initPlayer(videoUrl) {
             style: 'transform: translateZ(0); will-change: transform;'
         },
         controls: [
+            {
+                name: 'prevEpisode',
+                index: 5,
+                position: 'left',
+                html: '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>',
+                tooltip: '上一集',
+                style: {
+                    padding: '0 6px',
+                },
+                click: function() {
+                    if (currentEpisodeIndex > 0) {
+                        playPreviousEpisode();
+                    }
+                },
+                mounted: function($control) {
+                    // 保存控件引用，供 updatePlayerEpisodeControls 同步禁用状态
+                    window.prevEpisodeControl = $control;
+                    updatePlayerEpisodeControls();
+                }
+            },
+            {
+                name: 'nextEpisode',
+                index: 15,
+                position: 'left',
+                html: '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>',
+                tooltip: '下一集',
+                style: {
+                    padding: '0 6px',
+                },
+                click: function() {
+                    if (currentEpisodeIndex < currentEpisodes.length - 1) {
+                        playNextEpisode();
+                    }
+                },
+                mounted: function($control) {
+                    window.nextEpisodeControl = $control;
+                    updatePlayerEpisodeControls();
+                }
+            },
             {
                 position: 'right',
                 html: '<span style="font-size: 13px; font-weight: bold;">1.0x</span>',
@@ -1175,31 +1214,16 @@ function updateEpisodeInfo() {
     }
 }
 
-// 更新按钮状态
-function updateButtonStates() {
-    const prevButton = document.getElementById('prevButton');
-    const nextButton = document.getElementById('nextButton');
+// 更新播放器内控制栏（播放键两侧）上一集/下一集按钮的禁用状态
+function updatePlayerEpisodeControls() {
+    const prevControl = window.prevEpisodeControl;
+    const nextControl = window.nextEpisodeControl;
 
-    // 处理上一集按钮
-    if (currentEpisodeIndex > 0) {
-        prevButton.classList.remove('bg-gray-700', 'cursor-not-allowed');
-        prevButton.classList.add('bg-[#222]', 'hover:bg-[#333]');
-        prevButton.removeAttribute('disabled');
-    } else {
-        prevButton.classList.add('bg-gray-700', 'cursor-not-allowed');
-        prevButton.classList.remove('bg-[#222]', 'hover:bg-[#333]');
-        prevButton.setAttribute('disabled', '');
+    if (prevControl) {
+        prevControl.classList.toggle('disabled', !(currentEpisodeIndex > 0));
     }
-
-    // 处理下一集按钮
-    if (currentEpisodeIndex < currentEpisodes.length - 1) {
-        nextButton.classList.remove('bg-gray-700', 'cursor-not-allowed');
-        nextButton.classList.add('bg-[#222]', 'hover:bg-[#333]');
-        nextButton.removeAttribute('disabled');
-    } else {
-        nextButton.classList.add('bg-gray-700', 'cursor-not-allowed');
-        nextButton.classList.remove('bg-[#222]', 'hover:bg-[#333]');
-        nextButton.setAttribute('disabled', '');
+    if (nextControl) {
+        nextControl.classList.toggle('disabled', !(currentEpisodeIndex < currentEpisodes.length - 1));
     }
 }
 
@@ -1280,7 +1304,7 @@ function playEpisode(index) {
 
     // 更新UI
     updateEpisodeInfo();
-    updateButtonStates();
+    updatePlayerEpisodeControls();
     renderEpisodes();
 
     // 重置用户点击位置记录
