@@ -813,7 +813,6 @@ async function playFromHistory(url, title, episodeIndex, playbackPosition = 0) {
     try {
         let episodesList = [];
         let historyItem = null; // To store the full history item
-        let syncSuccessful = false;
 
         // 检查viewingHistory，查找匹配的项
         const historyRaw = localStorage.getItem('viewingHistory');
@@ -833,9 +832,6 @@ async function playFromHistory(url, title, episodeIndex, playbackPosition = 0) {
 
         // Always attempt to fetch fresh episode list if we have the necessary info
         if (historyItem && historyItem.vod_id && historyItem.sourceName) {
-            // Show loading toast to indicate syncing
-            showToast('正在同步最新剧集列表...', 'info');
-
             // console.log(`[playFromHistory in ui.js] Attempting to fetch details for vod_id: ${historyItem.vod_id}, sourceName: ${historyItem.sourceName}`); // Log 4
             try {
                 // Construct the API URL for detail fetching
@@ -859,19 +855,7 @@ async function playFromHistory(url, title, episodeIndex, playbackPosition = 0) {
                 const videoDetails = await response.json();
 
                 if (videoDetails && videoDetails.episodes && videoDetails.episodes.length > 0) {
-                    const oldEpisodeCount = episodesList.length;
                     episodesList = videoDetails.episodes;
-                    syncSuccessful = true;
-
-                    // Show success message with episode count info
-                    const newEpisodeCount = episodesList.length;
-                    if (newEpisodeCount > oldEpisodeCount) {
-                        showToast(`已同步最新剧集列表 (${newEpisodeCount}集，新增${newEpisodeCount - oldEpisodeCount}集)`, 'success');
-                    } else if (newEpisodeCount === oldEpisodeCount) {
-                        showToast(`剧集列表已是最新 (${newEpisodeCount}集)`, 'success');
-                    } else {
-                        showToast(`已同步最新剧集列表 (${newEpisodeCount}集)`, 'success');
-                    }
 
                     // console.log(`成功获取 "${title}" 最新剧集列表:`, episodesList.length, "集");
                     // Update the history item in localStorage with the fresh episodes
