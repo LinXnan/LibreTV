@@ -390,10 +390,11 @@ input:checked + .slider:before {
 /* 广告过滤统计样式 */
 #adFilterStats {
     transition: all 0.3s ease;
+    user-select: none;
 }
 
 #adFilterCount {
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease;
     display: inline-block;
 }
 
@@ -412,8 +413,7 @@ input:checked + .slider:before {
 }
 
 #adFilterStats:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 204, 255, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 204, 255, 0.25);
 }
 
 /* ========================================

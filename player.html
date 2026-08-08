@@ -99,23 +99,20 @@
             <div class="relative">
                 <div id="player" class="player-placeholder"></div>
 
+                <!-- 广告过滤统计（轻量胶囊，播放开始时显示于播放器上方中间，5秒后自动消失） -->
+                <div id="adFilterStats" class="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-black/70 backdrop-blur-sm rounded-full border border-[#333] shadow-lg pointer-events-none">
+                    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-green-400 font-bold text-sm" id="adFilterCount">0</span>
+                    <span class="text-gray-300 text-xs">个广告已过滤</span>
+                </div>
+
                 <div class="error-container" id="error">
                     <div class="error-icon">⚠️</div>
                     <div id="error-message">视频加载失败</div>
                     <div class="error-message-sub">请尝试其他视频源或稍后重试</div>
                 </div>
-            </div>
-        </div>
-
-        <!-- 广告过滤统计 -->
-        <div class="player-container mb-2" id="adFilterStats">
-            <div class="flex items-center justify-center gap-2 py-2 px-4 bg-gradient-to-r from-[#1a1a1a] to-[#222] rounded-lg border border-[#333]">
-                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span class="text-gray-300 text-sm">检测到视频存在</span>
-                <span class="text-green-400 font-bold text-lg" id="adFilterCount">0</span>
-                <span class="text-gray-300 text-sm">个广告，已为您过滤掉</span>
             </div>
         </div>
 

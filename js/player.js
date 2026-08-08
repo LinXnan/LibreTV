@@ -90,6 +90,7 @@ let userClickedPosition = null; // 记录用户点击的位置
 let shortcutHintTimeout = null; // 用于控制快捷键提示显示时间
 let adFilteringEnabled = true; // 默认开启广告过滤
 let totalAdsFiltered = 0; // 广告过滤计数器
+let adFilterHideTimer = null; // 广告过滤胶囊自动隐藏计时器
 let currentVideoUrl = ''; // 记录当前实际的视频URL
 
 // 获取当前节目的标识符：优先 sourceName_id，回退 firstEpisode / videoUrl
@@ -1112,7 +1113,7 @@ function filterAdsFromM3U8(m3u8Content, strictMode = false) {
     return filteredLines.join('\n');
 }
 
-// 更新广告过滤显示
+// 更新广告过滤显示（只更新数字与动画，不重置胶囊的自动隐藏计时）
 function updateAdFilterDisplay() {
     const adFilterCountElement = document.getElementById('adFilterCount');
     if (adFilterCountElement) {
@@ -1126,13 +1127,27 @@ function updateAdFilterDisplay() {
     }
 }
 
+// 显示广告过滤胶囊，5秒后自动隐藏
+function showAdFilterStats() {
+    const adFilterStatsElement = document.getElementById('adFilterStats');
+    if (!adFilterStatsElement) return;
+
+    clearTimeout(adFilterHideTimer);
+    adFilterStatsElement.style.display = 'flex';
+
+    adFilterHideTimer = setTimeout(() => {
+        adFilterStatsElement.style.display = 'none';
+    }, 5000);
+}
+
 // 更新广告统计区域的显示/隐藏状态
 function updateAdFilterStatsVisibility() {
     const adFilterStatsElement = document.getElementById('adFilterStats');
     if (adFilterStatsElement) {
         if (adFilteringEnabled) {
-            adFilterStatsElement.style.display = 'block';
+            showAdFilterStats();
         } else {
+            clearTimeout(adFilterHideTimer);
             adFilterStatsElement.style.display = 'none';
         }
     }
@@ -1222,6 +1237,11 @@ function playEpisode(index) {
     // 重置广告过滤计数器
     totalAdsFiltered = 0;
     updateAdFilterDisplay();
+
+    // 新一集开始播放时展示胶囊（仅当广告过滤开启；5秒后自动隐藏）
+    if (adFilteringEnabled) {
+        showAdFilterStats();
+    }
 
     // 保存当前播放进度（如果正在播放）
     if (art && art.video && !art.video.paused && !videoHasEnded) {
