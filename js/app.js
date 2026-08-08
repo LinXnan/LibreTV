@@ -1,5 +1,5 @@
 // 全局变量
-let selectedAPIs = JSON.parse(localStorage.getItem('selectedAPIs') || JSON.stringify(Object.keys(API_SITES))); // 默认全选所有数据源
+let selectedAPIs = JSON.parse(localStorage.getItem('selectedAPIs') || JSON.stringify(Object.keys(API_SITES).filter(key => !DEFAULT_UNSELECTED_APIS.includes(key)))); // 默认全选（除失效/不可靠源）
 
 // 规范化自定义 API 数据格式，支持 api/adult 和 url/isAdult 两种格式
 function normalizeCustomAPI(api) {
@@ -48,8 +48,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 设置默认API选择（如果是第一次加载）
     if (!localStorage.getItem('hasInitializedDefaults')) {
-        // 默认全选所有数据源
-        selectedAPIs = Object.keys(API_SITES);
+        // 默认全选（排除 DEFAULT_UNSELECTED_APIS 中失效/不可靠的源）
+        selectedAPIs = Object.keys(API_SITES).filter(key => !DEFAULT_UNSELECTED_APIS.includes(key));
         localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
 
         // 默认选中过滤开关
@@ -99,7 +99,67 @@ async function searchWithConcurrencyLimit(apiIds, query, limit = 3) {
     return results;
 }
 
-// 初始化API复选框
+// 普通资源分页状态
+let apiPage = 1;
+const API_PAGE_SIZE = 12;
+
+function getNormalApiKeys() {
+    return Object.keys(API_SITES).filter(apiKey => !API_SITES[apiKey].adult);
+}
+
+function getApiTotalPages() {
+    return Math.max(1, Math.ceil(getNormalApiKeys().length / API_PAGE_SIZE));
+}
+
+// 分页控件：上一页 / 页码信息 / 下一页
+function buildPagination(totalPages) {
+    const pag = document.createElement('div');
+    pag.className = 'flex items-center justify-center space-x-3 my-2';
+
+    const prev = document.createElement('button');
+    prev.className = 'datasource-action-btn disabled:opacity-40';
+    prev.textContent = '上一页';
+    prev.disabled = apiPage <= 1;
+    prev.addEventListener('click', (event) => {
+        // 阻止冒泡：翻页同步重建 DOM 后 e.target 已脱离面板，document 的
+        // "点击外部关闭面板"判断会误判为面板外点击，需在此截断冒泡
+        event.stopPropagation();
+        changeApiPage(-1);
+    });
+
+    const info = document.createElement('span');
+    info.className = 'text-xs text-gray-400';
+    info.textContent = `第 ${apiPage}/${totalPages} 页 · 每页 ${API_PAGE_SIZE} 个`;
+
+    const next = document.createElement('button');
+    next.className = 'datasource-action-btn disabled:opacity-40';
+    next.textContent = '下一页';
+    next.disabled = apiPage >= totalPages;
+    next.addEventListener('click', (event) => {
+        event.stopPropagation();
+        changeApiPage(1);
+    });
+
+    pag.appendChild(prev);
+    pag.appendChild(info);
+    pag.appendChild(next);
+    return pag;
+}
+
+// 翻页并重新渲染
+function changeApiPage(delta) {
+    const totalPages = getApiTotalPages();
+    apiPage = Math.min(Math.max(1, apiPage + delta), totalPages);
+    initAPICheckboxes();
+    // 滚动设置面板到 API 选择区域
+    const panel = document.getElementById('settingsPanel');
+    const anchor = document.getElementById('apiCheckboxes');
+    if (panel && anchor && typeof panel.scrollTo === 'function') {
+        panel.scrollTo({ top: anchor.offsetTop - 24, behavior: 'smooth' });
+    }
+}
+
+// 初始化API复选框（普通资源分页渲染）
 function initAPICheckboxes() {
     const container = document.getElementById('apiCheckboxes');
     container.innerHTML = '';
@@ -113,11 +173,14 @@ function initAPICheckboxes() {
     normalTitle.textContent = '普通资源';
     normaldiv.appendChild(normalTitle);
 
-    // 创建普通API源的复选框 — 统一使用 mobile-api-item 结构，CSS 响应式处理布局
-    Object.keys(API_SITES).forEach(apiKey => {
-        const api = API_SITES[apiKey];
-        if (api.adult) return;
+    // 按当前页切片渲染
+    const totalPages = getApiTotalPages();
+    if (apiPage > totalPages) apiPage = totalPages;
+    const pageKeys = getNormalApiKeys().slice((apiPage - 1) * API_PAGE_SIZE, apiPage * API_PAGE_SIZE);
 
+    // 创建普通API源的复选框 — 统一使用 mobile-api-item 结构，CSS 响应式处理布局
+    pageKeys.forEach(apiKey => {
+        const api = API_SITES[apiKey];
         const checked = selectedAPIs.includes(apiKey);
         const item = document.createElement('label');
         item.className = 'mobile-api-item';
@@ -138,6 +201,11 @@ function initAPICheckboxes() {
         });
     });
     container.appendChild(normaldiv);
+
+    // 分页控件（普通组下方）
+    if (totalPages > 1) {
+        container.appendChild(buildPagination(totalPages));
+    }
 
     // 添加成人API列表
     addAdultAPI();

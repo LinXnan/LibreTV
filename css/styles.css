@@ -1335,6 +1335,10 @@ body {
 /* 批量操作按钮 */
 .datasource-action-btn {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     padding: 0.5rem 1rem;
     background: linear-gradient(135deg, rgba(0, 159, 191, 0.1), rgba(0, 159, 191, 0.05));
     border: 1px solid rgba(0, 159, 191, 0.3);
