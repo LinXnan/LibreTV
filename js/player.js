@@ -507,31 +507,19 @@ function initPlayer(videoUrl) {
         art = null;
     }
 
-    // 优化4: 智能缓冲策略 - 根据网络速度动态调整
+    // 优化4: 统一缓冲策略 - 各环境一致的缓冲参数（不依赖 navigator.connection 分档，
+    // 避免非 Chrome/Edge 回退到 4g 的 60s 前向缓冲在慢链路上过度抢跑）
     function getAdaptiveHlsConfig() {
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-        const effectiveType = connection?.effectiveType || '4g';
-
-        // 根据网络类型调整缓冲参数
-        const networkConfigs = {
-            'slow-2g': { maxBufferLength: 20, backBufferLength: 10, maxMaxBufferLength: 40 },
-            '2g': { maxBufferLength: 30, backBufferLength: 15, maxMaxBufferLength: 60 },
-            '3g': { maxBufferLength: 45, backBufferLength: 20, maxMaxBufferLength: 90 },
-            '4g': { maxBufferLength: 60, backBufferLength: 30, maxMaxBufferLength: 120 }
-        };
-
-        const networkConfig = networkConfigs[effectiveType] || networkConfigs['4g'];
-
         return {
             debug: false,
             loader: adFilteringEnabled ? CustomHlsJsLoader : Hls.DefaultConfig.loader,
             enableWorker: true,
             lowLatencyMode: false,
 
-            // 动态缓冲参数
-            backBufferLength: networkConfig.backBufferLength,
-            maxBufferLength: networkConfig.maxBufferLength,
-            maxMaxBufferLength: networkConfig.maxMaxBufferLength,
+            // 统一缓冲参数（不再按网络类型分档）
+            backBufferLength: 20,
+            maxBufferLength: 40,
+            maxMaxBufferLength: 80,
             maxBufferSize: 60 * 1000 * 1000,
 
             // seek 性能优化：放宽片段对齐精度 + 快重试间隔
@@ -547,7 +535,7 @@ function initPlayer(videoUrl) {
             levelLoadingRetryDelay: 500,
 
             startLevel: -1,
-            abrEwmaDefaultEstimate: 500000,
+            abrEwmaDefaultEstimate: 2000000,
             abrBandWidthFactor: 0.8,
             abrBandWidthUpFactor: 0.6,
             abrMaxWithRealBitrate: true,
