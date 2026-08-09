@@ -733,6 +733,10 @@ function commitHistoryDeletion(url) {
         const history = getViewingHistory();
         const newHistory = history.filter(item => item.url !== url);
         localStorage.setItem('viewingHistory', JSON.stringify(newHistory));
+        // 同步首页最近观看轮播
+        if (typeof updateRecentWatchVisibility === 'function') {
+            updateRecentWatchVisibility();
+        }
     } catch (e) {
         console.error('提交删除失败:', e);
     }
@@ -1055,6 +1059,10 @@ function clearViewingHistory() {
     try {
         localStorage.removeItem('viewingHistory');
         loadViewingHistory(); // 重新加载空的历史记录
+        // 同步首页最近观看轮播
+        if (typeof updateRecentWatchVisibility === 'function') {
+            updateRecentWatchVisibility();
+        }
         showToast('观看历史已清空', 'success');
     } catch (e) {
         // console.error('清除观看历史失败:', e);

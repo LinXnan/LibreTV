@@ -92,6 +92,7 @@ let adFilteringEnabled = true; // 默认开启广告过滤
 let totalAdsFiltered = 0; // 广告过滤计数器
 let adFilterHideTimer = null; // 广告过滤胶囊自动隐藏计时器
 let currentVideoUrl = ''; // 记录当前实际的视频URL
+let currentVodPic = ''; // 当前视频封面（切源时随新源更新，历史记录/最近观看封面跟随）
 
 // 获取当前节目的标识符：优先 sourceName_id，回退 firstEpisode / videoUrl
 
@@ -198,6 +199,10 @@ function initializePageContent() {
                 if (!urlParams.has('title') && nestedTitle) {
                     url.searchParams.set('title', nestedTitle);
                 }
+                const nestedVodPic = nestedUrlParams.get('vod_pic');
+                if (!urlParams.has('vod_pic') && nestedVodPic) {
+                    url.searchParams.set('vod_pic', nestedVodPic);
+                }
                 // 替换当前URL
                 window.history.replaceState({}, '', url);
             } else {
@@ -210,6 +215,18 @@ function initializePageContent() {
 
     // 保存当前视频URL
     currentVideoUrl = videoUrl || '';
+
+    // 初始化当前封面（嵌套解析后 URL 已同步 vod_pic）
+    const initVodPicParam = urlParams.get('vod_pic');
+    if (initVodPicParam) {
+        try {
+            const decodedUrl = decodeURIComponent(initVodPicParam);
+            currentVodPic = isValidImageUrl(decodedUrl) ? decodedUrl : '';
+        } catch (e) {
+            console.warn('Invalid vod_pic URL encoding:', e);
+            currentVodPic = '';
+        }
+    }
 
     // 从localStorage获取数据
     currentVideoTitle = title || localStorage.getItem('currentVideoTitle') || '未知视频';
@@ -1489,10 +1506,10 @@ function saveToHistory() {
     const sourceCode = urlParams.get('source') || '';
     const id_from_params = urlParams.get('id');
 
-    // 获取并验证封面URL（添加异常处理）
+    // 获取并验证封面URL（优先使用切源后同步的 currentVodPic，其次回退 URL 参数）
     const vodPicParam = urlParams.get('vod_pic');
-    let vod_pic = '';
-    if (vodPicParam) {
+    let vod_pic = currentVodPic || '';
+    if (!vod_pic && vodPicParam) {
         try {
             const decodedUrl = decodeURIComponent(vodPicParam);
             vod_pic = isValidImageUrl(decodedUrl) ? decodedUrl : '';
@@ -2302,6 +2319,15 @@ async function switchToResource(sourceKey, vodId) {
         url.searchParams.set('url', targetUrl);
         url.searchParams.set('index', String(targetIndex));
         url.searchParams.set('title', newTitle);
+        // 同步新源封面：历史记录/最近观看封面跟随切源变化
+        const rawNewVodPic = data.vod_pic || '';
+        const newVodPic = rawNewVodPic && isValidImageUrl(rawNewVodPic) ? rawNewVodPic : '';
+        currentVodPic = newVodPic;
+        if (newVodPic) {
+            url.searchParams.set('vod_pic', newVodPic);
+        } else {
+            url.searchParams.delete('vod_pic');
+        }
         // 携带切源前播放位置，播放器加载完成后恢复到相同进度
         if (resumePosition > 0) {
             url.searchParams.set('position', String(resumePosition));

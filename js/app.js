@@ -700,9 +700,8 @@ function resetSearchArea() {
     document.getElementById('results').innerHTML = '';
     document.getElementById('searchInput').value = '';
 
-    // 恢复搜索区域的样式
-    document.getElementById('searchArea').classList.add('flex-1');
-    document.getElementById('searchArea').classList.remove('mb-8');
+    // 恢复搜索区域的样式（不在首页给搜索框加 flex-1，避免把后续的最近观看/豆瓣区域挤到屏幕外）
+    document.getElementById('searchArea').classList.remove('mb-2');
     document.getElementById('resultsArea').classList.add('hidden');
 
     // 确保页脚正确显示，移除相对定位
@@ -714,6 +713,11 @@ function resetSearchArea() {
     // 如果有豆瓣功能，检查是否需要显示豆瓣推荐区域
     if (typeof updateDoubanVisibility === 'function') {
         updateDoubanVisibility();
+    }
+
+    // 同步最近观看区域的显示状态
+    if (typeof updateRecentWatchVisibility === 'function') {
+        updateRecentWatchVisibility();
     }
 
     // 重置URL为主页
@@ -771,6 +775,9 @@ function renderCachedResults(allResults) {
 
     const doubanArea = document.getElementById('doubanArea');
     if (doubanArea) doubanArea.classList.add('hidden');
+
+    const recentWatchArea = document.getElementById('recentWatchArea');
+    if (recentWatchArea) recentWatchArea.classList.add('hidden');
 
     updateSearchStatistics(allResults);
     generateSearchFilters(allResults);
@@ -838,6 +845,12 @@ async function search() {
     }
 
     showLoading();
+
+    // 点击搜索立即隐藏首页推荐与最近观看区域（结果返回前先收起）
+    const doubanAreaHidden = document.getElementById('doubanArea');
+    if (doubanAreaHidden) doubanAreaHidden.classList.add('hidden');
+    const recentWatchAreaHidden = document.getElementById('recentWatchArea');
+    if (recentWatchAreaHidden) recentWatchAreaHidden.classList.add('hidden');
 
     // 优化2: 显示骨架屏，隐藏之前的结果
     const resultsDiv = document.getElementById('results');
@@ -1240,6 +1253,8 @@ function showVideoPlayer(url) {
     // 临时隐藏搜索结果和豆瓣区域，防止高度超出播放器而出现滚动条
     document.getElementById('resultsArea').classList.add('hidden');
     document.getElementById('doubanArea').classList.add('hidden');
+    const recentWatchArea = document.getElementById('recentWatchArea');
+    if (recentWatchArea) recentWatchArea.classList.add('hidden');
     // 在框架中打开播放页面
     videoPlayerFrame = document.createElement('iframe');
     videoPlayerFrame.id = 'VideoPlayerFrame';
@@ -1265,6 +1280,10 @@ function closeVideoPlayer(home = false) {
         // 如果启用豆瓣区域则显示豆瓣区域
         if (localStorage.getItem('doubanEnabled') === 'true') {
             document.getElementById('doubanArea').classList.remove('hidden');
+        }
+        // 同步最近观看区域显示状态
+        if (typeof updateRecentWatchVisibility === 'function') {
+            updateRecentWatchVisibility();
         }
     }
     if (home) {
