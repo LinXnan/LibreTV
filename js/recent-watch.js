@@ -195,18 +195,38 @@
         const track = document.getElementById('recentWatchTrack');
         if (!track) return;
 
+        // 跳转前把该历史条目的集数列表同步到 localStorage.currentEpisodes，
+        // 与 ui.js playFromHistory 行为一致，避免播放页读到上一次播放的剧集列表导致集数显示错误
+        function prepareEpisodeContextForNavigation(itemUrl) {
+            if (!itemUrl) return;
+            try {
+                const item = getHistory().find(h => h && h.url === itemUrl);
+                if (item && Array.isArray(item.episodes) && item.episodes.length > 0) {
+                    localStorage.setItem('currentEpisodes', JSON.stringify(item.episodes));
+                } else if (!item) {
+                    // url 与当前历史失配（如跨标签页对同名剧就地更新 url）时记录日志，
+                    // 避免"播放页读到上一次播放集数"的问题在边缘场景下静默复发
+                    console.warn('[recent-watch] 观看历史中未找到匹配项，集数列表未同步:', itemUrl);
+                }
+            } catch (e) { /* 集数同步失败不阻断跳转 */ }
+        }
+
         // 卡片点击/键盘事件委托到轨道
         track.addEventListener('click', (e) => {
             const card = e.target.closest('.recent-watch-card');
             if (!card) return;
-            navigateTo(card.getAttribute('data-url'));
+            const url = card.getAttribute('data-url');
+            prepareEpisodeContextForNavigation(url);
+            navigateTo(url);
         });
         track.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter' && e.key !== ' ') return;
             const card = e.target.closest('.recent-watch-card');
             if (!card) return;
             e.preventDefault();
-            navigateTo(card.getAttribute('data-url'));
+            const url = card.getAttribute('data-url');
+            prepareEpisodeContextForNavigation(url);
+            navigateTo(url);
         });
 
         // 滚动即视为用户交互：暂停自动轮播，6 秒后恢复
