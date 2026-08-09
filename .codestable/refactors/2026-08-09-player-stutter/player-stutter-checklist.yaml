@@ -1,0 +1,60 @@
+refactor: 2026-08-09-player-stutter
+slug: player-stutter
+
+steps:
+  - id: 1
+    name: "dblclick 监听改为每播放器实例绑定一次（移出 video:playing 回调，player.js 1077-1085 → 842 后）"
+    method: M-L4-06
+    verification_owner: AI
+    exit_signal: "grep 'addEventListener('dblclick'' 全文件仅 1 处；art.on('video:playing') 回调内无 dblclick 绑定"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 暂停/播放多次后双击全屏仍单次生效，无累积闪烁"
+    human_status: pending
+
+  - id: 2
+    name: "广告过滤保留 DISCONTINUITY 行（filterAdsFromM3U8 改纯统计，Loader 不回写 response.data）"
+    method: M-L2-05
+    verification_owner: AI
+    exit_signal: "filterAdsFromM3U8 输出含 #EXT-X-DISCONTINUITY 行；对任意输入返回内容=原内容（空输入除外）；totalAdsFiltered 统计逻辑保留"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 开/关广告过滤对比同一影片广告边界不再跳变/卡顿；统计胶囊仍显示过滤数"
+    human_status: pending
+
+  - id: 3
+    name: "Loader 广告统计移出下载关键路径（onSuccess 先放行，setTimeout 异步统计）"
+    method: M-L4-06
+    verification_owner: AI
+    exit_signal: "onSuccess 同步路径无 filterAdsFromM3U8 调用（仅 setTimeout 内）；manifest/level 内容原样进入 hls.js"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN Performance 面板确认 manifest 加载时主线程无长任务；统计胶囊可正常显示"
+    human_status: pending
+
+  - id: 4
+    name: "智能降级重构（autoLevelCapping 上限 + 15s 冷却 + 缓冲恢复交还 ABR + seek/readyState 保护 + waiting 计数修正）"
+    method: M-L4-06
+    verification_owner: AI
+    exit_signal: "player.js 无 'hls.currentLevel = ... - 1' 锁级写法；降级走 hls.autoLevelCapping；存在恢复（autoLevelCapping=-1 + qualityCapped 标志）/冷却（15s）/seek 保护（5s）/readyState 保护逻辑"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 弱网与正常网各播一段：降级后可自动回升、不连续切级、seek 不误降级"
+    human_status: pending
+
+checks:
+  - id: c1
+    description: "dblclick 每实例绑定一次，无累积监听"
+    status: passed
+  - id: c2
+    description: "DISCONTINUITY 行保留在播放列表中，广告统计仍计数"
+    status: passed
+  - id: c3
+    description: "广告统计异步执行，不阻塞 manifest/level 下载路径"
+    status: passed
+  - id: c4
+    description: "智能降级走 autoLevelCapping 上限且可恢复，有冷却与误触发保护"
+    status: passed
+  - id: c5
+    description: "review-fix：降级仅在实际成功时清零计数（I1）；切集先移除再绑定降级监听，不累积（I2）"
+    status: passed

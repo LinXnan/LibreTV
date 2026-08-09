@@ -82,6 +82,7 @@ let currentVideoTitle = '';
 let currentEpisodeIndex = 0;
 let art = null; // 用于 ArtPlayer 实例
 let currentHls = null; // 跟踪当前HLS实例
+let qualityHandlers = null; // 智能降级监听引用：切集时先移除再绑定，避免同一 video 上累积
 let currentEpisodes = [];
 let episodesReversed = false;
 let autoplayEnabled = true; // 默认开启自动连播
@@ -785,39 +786,79 @@ function initPlayer(videoUrl) {
                 // 监听分段加载事件 — 仅进度更新在 FRAG_LOADING/FRAG_LOADED 进度条处处理
                 // 不在此隐藏 loading；隐藏由 playing 事件统一调度
 
-                // 优化11: 智能画质调整 - 根据缓冲情况自动调整画质
+                // 优化11: 智能画质调整 - 通过 autoLevelCapping 收窄 ABR 上限实现降级
+                // 不触碰 hls.currentLevel（避免禁用 hls.js 自动画质切换），降级后可自动恢复
                 let bufferStallCount = 0;
                 let lastBufferCheck = 0;
+                let lastDegradeAt = 0;
+                let lastSeekAt = 0;
+                let qualityCapped = false; // 是否已通过 autoLevelCapping 收窄 ABR 上限
                 const BUFFER_CHECK_INTERVAL = 3000; // 每3秒检查一次
                 const STALL_THRESHOLD = 3; // 连续卡顿3次则降低画质
                 const LOW_BUFFER_THRESHOLD = 5; // 缓冲低于5秒视为可能卡顿
+                const HEALTHY_BUFFER_THRESHOLD = 10; // 缓冲高于10秒视为健康，恢复 ABR
+                const DEGRADE_COOLDOWN_MS = 15000; // 降级后15秒内不再降级，避免连降
+                const SEEK_GUARD_MS = 5000; // 起播/seek 后5秒内不干预（缓冲瞬时为0）
 
-                video.addEventListener('waiting', function() {
+                // 降级一次：收窄 ABR 自动选择上限（不进入 manual 模式）
+                // 返回是否实际降级：被冷却/保护/等级边界拦截时为 false，调用方据此决定是否清零计数
+                function degradeLevel() {
+                    if (!hls || !hls.levels || hls.levels.length < 2) return false;
+                    const currentLevel = hls.currentLevel;
+                    // 自动模式早期 currentLevel 可能为 -1，不可降
+                    if (currentLevel < 1) return false;
+                    if (Date.now() - lastDegradeAt < DEGRADE_COOLDOWN_MS) return false;
+                    const target = currentLevel - 1;
+                    if (target < 1) return false; // 已到最低档，不再降
+                    hls.autoLevelCapping = target;
+                    qualityCapped = true;
+                    lastDegradeAt = Date.now();
+                    console.log(`智能降级: ABR 上限 → ${target}（当前 ${currentLevel}）`);
+                    return true;
+                }
+
+                // 恢复完整 ABR（解除上限）
+                function restoreAutoLevel() {
+                    if (qualityCapped) {
+                        hls.autoLevelCapping = -1;
+                        qualityCapped = false;
+                        console.log('智能降级: 缓冲恢复，交还 ABR 自动选择');
+                    }
+                }
+
+                // 先移除上一源的降级监听（art.switch 切集不重建 video 元素，避免监听累积；
+                // 旧监听闭包捕获的是已 destroy 的旧 hls，必须一并解除）
+                if (qualityHandlers) {
+                    video.removeEventListener('seeking', qualityHandlers.seeking);
+                    video.removeEventListener('waiting', qualityHandlers.waiting);
+                    video.removeEventListener('timeupdate', qualityHandlers.timeupdate);
+                }
+
+                // 记录 seek 时间，避免 seek 后缓冲瞬时为 0 触发误降级
+                const qualitySeekingHandler = function() {
+                    lastSeekAt = Date.now();
+                };
+
+                const qualityWaitingHandler = function() {
                     bufferStallCount++;
                     console.log(`视频缓冲中，卡顿计数: ${bufferStallCount}`);
 
-                    // 如果连续卡顿次数过多，主动降低画质
-                    if (bufferStallCount >= STALL_THRESHOLD && hls.levels && hls.levels.length > 1) {
-                        const currentLevel = hls.currentLevel;
-                        // 降低一级画质（如果不是最低级）
-                        if (currentLevel > 0) {
-                            hls.currentLevel = currentLevel - 1;
-                            console.log(`智能降低画质: ${currentLevel} → ${currentLevel - 1}`);
-                            bufferStallCount = 0; // 重置计数
-                        }
+                    // 连续卡顿超过阈值且距 seek 足够久，主动降级（带冷却）
+                    if (bufferStallCount >= STALL_THRESHOLD && Date.now() - lastSeekAt > SEEK_GUARD_MS) {
+                        // 仅在实际降级成功时清零；被冷却/保护拦截时保留计数，冷却过后继续累计
+                        if (degradeLevel()) bufferStallCount = 0;
                     }
-                });
-
-                video.addEventListener('playing', function() {
-                    // 播放恢复时重置计数
-                    bufferStallCount = Math.max(0, bufferStallCount - 1);
-                });
+                };
 
                 // 定期检查缓冲区健康度
-                video.addEventListener('timeupdate', function() {
+                const qualityTimeupdateHandler = function() {
                     const now = Date.now();
                     if (now - lastBufferCheck < BUFFER_CHECK_INTERVAL) return;
                     lastBufferCheck = now;
+
+                    // 起播/seek 后缓冲瞬时为 0，5 秒内不干预
+                    if (now - lastSeekAt < SEEK_GUARD_MS) return;
+                    if (video.readyState < 3) return; // HAVE_FUTURE_DATA 以下不干预
 
                     // 检查当前缓冲区长度
                     const buffered = video.buffered;
@@ -826,20 +867,36 @@ function initPlayer(videoUrl) {
                         const bufferedEnd = buffered.end(buffered.length - 1);
                         const bufferLength = bufferedEnd - currentTime;
 
-                        // 如果缓冲区过小且有多个画质级别
-                        if (bufferLength < LOW_BUFFER_THRESHOLD && hls.levels && hls.levels.length > 1) {
-                            const currentLevel = hls.currentLevel;
-                            // 预防性降低画质
-                            if (currentLevel > 0) {
-                                hls.currentLevel = currentLevel - 1;
-                                console.log(`预防性降低画质（缓冲不足 ${bufferLength.toFixed(1)}s）: ${currentLevel} → ${currentLevel - 1}`);
-                            }
+                        if (bufferLength >= HEALTHY_BUFFER_THRESHOLD) {
+                            // 缓冲健康：恢复 ABR 并归零卡顿计数
+                            restoreAutoLevel();
+                            bufferStallCount = 0;
+                        } else if (bufferLength < LOW_BUFFER_THRESHOLD) {
+                            // 缓冲不足：预防性降级（带冷却）
+                            degradeLevel();
                         }
                     }
-                });
+                };
+
+                qualityHandlers = {
+                    seeking: qualitySeekingHandler,
+                    waiting: qualityWaitingHandler,
+                    timeupdate: qualityTimeupdateHandler
+                };
+                video.addEventListener('seeking', qualitySeekingHandler);
+                video.addEventListener('waiting', qualityWaitingHandler);
+                video.addEventListener('timeupdate', qualityTimeupdateHandler);
             }
         }
     });
+
+    // 双击全屏：每播放器实例绑定一次，避免在 playing 回调里累积监听
+    if (art.video) {
+        art.video.addEventListener('dblclick', () => {
+            art.fullscreen = !art.fullscreen;
+            art.play();
+        });
+    }
 
     // artplayer 没有 'fullscreenWeb:enter', 'fullscreenWeb:exit' 等事件
     // 所以原控制栏隐藏代码并没有起作用
@@ -1073,17 +1130,6 @@ function initPlayer(videoUrl) {
         }
     });
 
-    // 添加双击全屏支持
-    art.on('video:playing', () => {
-        // 绑定双击事件到视频容器
-        if (art.video) {
-            art.video.addEventListener('dblclick', () => {
-                art.fullscreen = !art.fullscreen;
-                art.play();
-            });
-        }
-    });
-
     // 10秒后如果仍在加载，但不立即显示错误
     setTimeout(function () {
         // 如果视频已经播放开始，则不显示错误
@@ -1093,7 +1139,7 @@ function initPlayer(videoUrl) {
     }, 10000);
 }
 
-// 自定义M3U8 Loader用于过滤广告
+// 自定义M3U8 Loader：广告统计拦截（不修改播放列表内容）
 class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
     constructor(config) {
         super(config);
@@ -1103,10 +1149,12 @@ class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
             if (context.type === 'manifest' || context.type === 'level') {
                 const onSuccess = callbacks.onSuccess;
                 callbacks.onSuccess = function (response, stats, context) {
-                    // 如果是m3u8文件，处理内容以移除广告分段
+                    // 广告统计与播放无关：先放行内容，统计异步执行不阻塞下载路径
+                    // （filterAdsFromM3U8 为纯统计、不修改内容，异步调用无竞态）
                     if (response.data && typeof response.data === 'string') {
-                        // 过滤掉广告段 - 实现更精确的广告过滤逻辑
-                        response.data = filterAdsFromM3U8(response.data, true);
+                        setTimeout(() => {
+                            filterAdsFromM3U8(response.data, true);
+                        }, 0);
                     }
                     return onSuccess(response, stats, context);
                 };
@@ -1117,7 +1165,8 @@ class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
     }
 }
 
-// 过滤可疑的广告内容（单轮遍历：同时做过滤 + 统计，避免二次 O(n) 开销）
+// 检测并统计广告区间（只统计，不修改播放列表——删除 #EXT-X-DISCONTINUITY 标记会破坏 HLS 时间线，
+// 导致广告边界 PTS 空洞，播放器按 maxBufferHole 触发跳变/卡顿）
 function filterAdsFromM3U8(m3u8Content, strictMode = false) {
     if (!m3u8Content) return '';
 
@@ -1131,10 +1180,9 @@ function filterAdsFromM3U8(m3u8Content, strictMode = false) {
         const rawLine = lines[i];
         const line = rawLine.trim();
 
-        // 过滤 #EXT-X-DISCONTINUITY 行
+        // 标记 DISCONTINUITY 位置用于广告统计；保留原行（内容原样返回，保持时间线连续）
         if (line.includes('#EXT-X-DISCONTINUITY')) {
             nextIsAfterDiscontinuity = true;
-            continue; // 不加入 filteredLines
         }
 
         // 保留原始行
