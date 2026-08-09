@@ -147,6 +147,13 @@ div.player-loading-text {
     margin: 0 auto;
 }
 
+/* 播放器容器作为提示框（快捷键提示 / Toast / 恢复位置）的定位锚点：
+   绝对定位的提示框相对它水平居中于播放器，top:0 自动避让固定 header，
+   桌面分栏时也能对齐播放器中心（而非视口中心） */
+#playerContainer {
+    position: relative;
+}
+
 #player {
     width: 100%;
     height: 60vh; /* 视频播放器高度 */
@@ -196,11 +203,15 @@ div.player-loading-text {
     overflow-y: auto;
 }
 
-/* 恢复播放位置提示样式 — 顶部居中，位于固定头部(约88px)下方 */
+/* 播放页通知在播放器上方区域垂直错开，避免同时出现时重叠（均相对播放器容器水平居中）：
+   - #adFilterStats 广告胶囊（播放器内顶部 top-2 ≈ 8px；移动端 32px 避让 header）
+   - .position-restore-hint 恢复位置 56px（移动端 72px）
+   - #toast 通用 Toast 120px（移动端 136px）
+   - .shortcut-hint 快捷键提示 184px（移动端 200px）
+   各层间距 64px（除 adFilter 单独层），单层高度均 ≤64px，同时出现不重叠 */
 .position-restore-hint {
-    position: fixed;
-    top: calc(88px + 16px);
-    bottom: auto;
+    position: absolute;
+    top: 56px;
     left: 50%;
     transform: translateX(-50%) translateY(-100%);
     background-color: rgba(0, 0, 0, 0.8);
@@ -213,11 +224,39 @@ div.player-loading-text {
     font-size: 14px;
 }
 
-/* 移动端刘海屏：叠加安全区，避免被刘海遮挡 */
+/* 移动端：播放器容器顶部（.container.mx-auto margin-top calc(44px+safe) + main padding 16px ≈ 60px+safe）
+   低于移动端 header（约 78px），提示 top:0 会被固定 header 遮挡，需相对容器下移避让；
+   同时在桌面错开布局基础上整体下移，保持四类通知互不重叠 */
 @media (max-width: 640px) {
-    .position-restore-hint {
-        top: max(calc(88px + 16px), calc(88px + env(safe-area-inset-top) + 16px));
+    /* 广告胶囊在播放器内顶部，移动端也下移避让固定 header */
+    #adFilterStats {
+        top: 32px;
     }
+    .position-restore-hint {
+        top: 72px !important;
+    }
+    body #toast {
+        top: 136px !important;
+    }
+    .shortcut-hint {
+        top: 200px !important;
+    }
+}
+
+/* 播放页通用 Toast：显示在播放器上方居中（仅本页加载 player.css，首页不受影响）。
+   ui.js 在播放页把 toast 挂到 .player-container 内，此处用绝对定位对齐播放器中心；
+   用 body #toast 提升特异性：mobile-optimize.css 在后加载的同媒体查询里对 #toast 定义
+   top: max(1rem, env(safe-area-inset-top)) !important（刘海避让），同 id + !important 时
+   后加载者胜出，必须提高选择器特异性才能覆盖。
+   限宽防超长消息在窄屏换行侵入下一层快捷键提示 */
+body #toast {
+    position: absolute !important;
+    top: 120px !important;
+    left: 50% !important;
+    max-width: min(80vw, 400px) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .position-restore-hint.show {
@@ -276,12 +315,12 @@ input:checked + .slider:before {
     transform: translateX(22px);
 }
 
-/* 添加快捷键提示样式 */
+/* 快捷键提示：播放器上方区域居中（与恢复位置/Toast 垂直错开，避免同时出现重叠） */
 .shortcut-hint {
-    position: fixed;
-    top: 50%;
+    position: absolute;
+    top: 184px;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     background-color: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 1rem 2rem;

@@ -41,7 +41,9 @@ function showToast(message, type = 'error') {
         toastMessage.id = 'toastMessage';
         toast.appendChild(toastMessage);
 
-        document.body.appendChild(toast);
+        // 播放页存在播放器容器时挂到其内部，使 Toast 相对播放器居中；其余页面挂 body
+        const toastAnchor = document.querySelector('.player-container') || document.body;
+        toastAnchor.appendChild(toast);
     }
 
     // 将新的toast添加到队列

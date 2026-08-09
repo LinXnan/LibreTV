@@ -125,6 +125,14 @@
                     <div class="error-message-sub">请尝试其他视频源或稍后重试</div>
                 </div>
             </div>
+
+            <!-- 快捷键提示：置于播放器容器内，随播放器上方居中定位 -->
+            <div class="shortcut-hint" id="shortcutHint">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="shortcutIcon">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                <span id="shortcutText"></span>
+            </div>
         </div>
         </div>
 
@@ -213,14 +221,6 @@
         </aside>
         </div>
     </main>
-
-    <!-- 添加快捷键提示元素 -->
-    <div class="shortcut-hint" id="shortcutHint">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="shortcutIcon">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-        <span id="shortcutText"></span>
-    </div>
 
     <!-- 弹框遮罩层 -->
     <div id="panelOverlay" class="panel-overlay" aria-hidden="true"></div>
