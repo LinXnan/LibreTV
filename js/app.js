@@ -101,14 +101,18 @@ async function searchWithConcurrencyLimit(apiIds, query, limit = 3) {
 
 // 普通资源分页状态
 let apiPage = 1;
-const API_PAGE_SIZE = 12;
+
+// 每页显示数量：PC 端 12 个，移动端 6 个
+function getApiPageSize() {
+    return window.innerWidth <= 640 ? 6 : 12;
+}
 
 function getNormalApiKeys() {
     return Object.keys(API_SITES).filter(apiKey => !API_SITES[apiKey].adult);
 }
 
 function getApiTotalPages() {
-    return Math.max(1, Math.ceil(getNormalApiKeys().length / API_PAGE_SIZE));
+    return Math.max(1, Math.ceil(getNormalApiKeys().length / getApiPageSize()));
 }
 
 // 分页控件：上一页 / 页码信息 / 下一页
@@ -129,7 +133,7 @@ function buildPagination(totalPages) {
 
     const info = document.createElement('span');
     info.className = 'text-xs text-gray-400';
-    info.textContent = `第 ${apiPage}/${totalPages} 页 · 每页 ${API_PAGE_SIZE} 个`;
+    info.textContent = `第 ${apiPage}/${totalPages} 页`;
 
     const next = document.createElement('button');
     next.className = 'datasource-action-btn disabled:opacity-40';
@@ -151,11 +155,13 @@ function changeApiPage(delta) {
     const totalPages = getApiTotalPages();
     apiPage = Math.min(Math.max(1, apiPage + delta), totalPages);
     initAPICheckboxes();
-    // 滚动设置面板到 API 选择区域
-    const panel = document.getElementById('settingsPanel');
-    const anchor = document.getElementById('apiCheckboxes');
-    if (panel && anchor && typeof panel.scrollTo === 'function') {
-        panel.scrollTo({ top: anchor.offsetTop - 24, behavior: 'smooth' });
+    // 仅移动端滚动设置面板到 API 选择区域，PC 端保持原滚动位置避免面板跳动
+    if (window.innerWidth <= 640) {
+        const panel = document.getElementById('settingsPanel');
+        const anchor = document.getElementById('apiCheckboxes');
+        if (panel && anchor && typeof panel.scrollTo === 'function') {
+            panel.scrollTo({ top: anchor.offsetTop - 24, behavior: 'smooth' });
+        }
     }
 }
 
@@ -176,7 +182,8 @@ function initAPICheckboxes() {
     // 按当前页切片渲染
     const totalPages = getApiTotalPages();
     if (apiPage > totalPages) apiPage = totalPages;
-    const pageKeys = getNormalApiKeys().slice((apiPage - 1) * API_PAGE_SIZE, apiPage * API_PAGE_SIZE);
+    const pageSize = getApiPageSize();
+    const pageKeys = getNormalApiKeys().slice((apiPage - 1) * pageSize, apiPage * pageSize);
 
     // 创建普通API源的复选框 — 统一使用 mobile-api-item 结构，CSS 响应式处理布局
     pageKeys.forEach(apiKey => {
@@ -200,6 +207,15 @@ function initAPICheckboxes() {
             checkAdultAPIsSelected();
         });
     });
+
+    // 补足空白占位项，保持每页面板高度一致（末页不足 pageSize 项时）
+    // 复用 mobile-api-item 的 min-height 占位，visibility:hidden 保留布局且不暴露给辅助技术
+    for (let i = pageKeys.length; i < pageSize; i++) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'mobile-api-item';
+        placeholder.style.visibility = 'hidden';
+        normaldiv.appendChild(placeholder);
+    }
     container.appendChild(normaldiv);
 
     // 分页控件（普通组下方）
@@ -603,6 +619,25 @@ function toggleSettings(e) {
 
 // 设置事件监听器
 function setupEventListeners() {
+    // 窗口宽度跨越移动端阈值（640px）时重渲染分页，避免每页数量变化导致切片/页码错位
+    let mobileBreakpointActive = window.innerWidth <= 640;
+    window.addEventListener('resize', debounce(function () {
+        const isMobile = window.innerWidth <= 640;
+        if (isMobile !== mobileBreakpointActive) {
+            mobileBreakpointActive = isMobile;
+            initAPICheckboxes();
+            // 跨入移动端且面板打开时，滚动到 API 选择区域顶部，与 changeApiPage 移动端行为一致
+            // 面板关闭时不滚动，避免对离屏面板执行无意义 scrollTo
+            if (isMobile) {
+                const panel = document.getElementById('settingsPanel');
+                const anchor = document.getElementById('apiCheckboxes');
+                if (panel && anchor && typeof panel.scrollTo === 'function' && panel.classList.contains('show')) {
+                    panel.scrollTo({ top: anchor.offsetTop - 24, behavior: 'smooth' });
+                }
+            }
+        }
+    }, 200));
+
     // 回车搜索
     document.getElementById('searchInput').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {

@@ -689,6 +689,11 @@
     .swipe-content .mobile-api-item {
         width: 100%;
     }
+
+    /* 数据源分页网格（普通组）- 固定项高，末页不足项数时面板高度保持一致 */
+    #normaldiv .mobile-api-item {
+        height: 3.5rem;
+    }
 }
 
 /* 桌面端 API 网格 — 2列布局 */
@@ -747,6 +752,11 @@
         position: absolute;
         opacity: 0;
         pointer-events: none;
+    }
+
+    /* 数据源分页网格（普通组）- 固定项高，末页不足项数时面板高度保持一致 */
+    #normaldiv .mobile-api-item {
+        height: 2.5rem;
     }
 }
 
