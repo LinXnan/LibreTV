@@ -1060,6 +1060,209 @@ body {
     }
 }
 
+/* ========================================
+   Coming-Soon / 预告式详情卡片（搜索点击影片）
+   ======================================== */
+
+/* 弹窗外层遮罩：从 95% 黑改成半透明 + backdrop-filter blur，让背景页面柔和透出，
+   避免"一片黑"的死板观感（与 Disney+/Netflix 弹窗风格一致） */
+#modal {
+    background-color: rgba(0, 0, 0, 0.55) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(1.1);
+    backdrop-filter: blur(8px) saturate(1.1);
+}
+
+#modal .modal-card {
+    /* 覆盖原 #modal > div 的渐变与浅边框，给 hero 区一个深色基底 */
+    background: #0d0d0d !important;
+    border-color: #2a2a2a !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+}
+
+#modal .modal-close-btn {
+    line-height: 1;
+}
+
+#modal .detail-hero {
+    position: relative;
+    width: 100%;
+    height: 180px;
+    background-color: #1a1a1a; /* 封面加载失败 / 无封面时的占位底色 */
+    overflow: hidden;
+    isolation: isolate;
+    flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+    #modal .detail-hero {
+        height: 130px;
+    }
+}
+
+#modal .detail-hero-bg {
+    /* 封面铺满 hero 作为背景，高斯模糊 + 微放大：掩盖低分辨率失真、防模糊边缘露边 */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(24px) saturate(1.1);
+    transform: scale(1.15);
+    transform-origin: center;
+    z-index: 0;
+    image-rendering: high-quality;
+}
+
+#modal .detail-hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    /* 加载失败时由 LazyImageLoader.handleLoadError 隐藏，露出纯色占位底 */
+}
+
+#modal .detail-hero-empty-mark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.12);
+    line-height: 1;
+    z-index: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+#modal .detail-hero-shade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.10) 0%,
+        rgba(0, 0, 0, 0.30) 50%,
+        rgba(0, 0, 0, 0.82) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+#modal .detail-hero-source-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.16);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    z-index: 2;
+}
+
+#modal .detail-hero-source-mark {
+    font-size: 1rem;
+    color: #fff;
+    font-weight: 700;
+    line-height: 1;
+}
+
+#modal .detail-hero-title-wrap {
+    position: absolute;
+    left: 1.25rem;
+    right: 4rem;
+    bottom: 1rem;
+    z-index: 2;
+}
+
+#modal .detail-hero-title {
+    margin: 0;
+    font-size: clamp(1.3rem, 3vw, 1.8rem);
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.15;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+    word-break: break-word;
+}
+
+#modal .detail-hero-subtitle {
+    margin: 0.15rem 0 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.88);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+#modal .detail-meta {
+    padding: 1.25rem 1.5rem 0.25rem;
+}
+
+#modal .detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+#modal .detail-tag {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.85);
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+#modal .detail-desc {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin: 0 0 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+#modal .detail-foot {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+    margin: 0 0 1rem;
+}
+
+#modal .detail-episodes {
+    padding: 1rem 1.5rem 1.5rem;
+    border-top: 1px solid #2a2a2a;
+}
+
+#modal .detail-center {
+    padding: 3rem 1.5rem;
+}
+
+@media (max-width: 640px) {
+    #modal .detail-hero-title-wrap {
+        right: 3.5rem;
+    }
+    #modal .detail-meta {
+        padding: 1rem 1rem 0.25rem;
+    }
+    #modal .detail-episodes {
+        padding: 0.75rem 1rem 1rem;
+    }
+}
+
 /* 移动端触摸优化 */
 .card, button, a, input, select, textarea {
     -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);

@@ -1128,69 +1128,123 @@ async function showDetails(id, vod_name, sourceCode, vod_pic = '') {
             ` <span class="text-sm font-normal text-gray-400">(${data.videoInfo.source_name})</span>` : '';
 
         // 不对标题进行截断处理，允许完整显示
-        modalTitle.innerHTML = `<span class="break-words">${vod_name || '未知视频'}</span>${sourceName}`;
+        // modalTitle 为 sr-only 元素（仅供屏幕阅读器），视觉标题由 detail-hero 承载
+        modalTitle.textContent = vod_name || '未知视频';
         currentVideoTitle = vod_name || '未知视频';
 
         if (data.episodes && data.episodes.length > 0) {
-            // 构建详情信息HTML
-            let detailInfoHtml = '';
-            if (data.videoInfo) {
-                // Prepare description text, strip HTML and trim whitespace
-                const descriptionText = data.videoInfo.desc ? data.videoInfo.desc.replace(/<[^>]+>/g, '').trim() : '';
+            // ----- Coming-Soon / 预告式详情卡 ——
+            // 属性安全转义：除 escapeHtml 外再处理单引号，避免 HTML 属性内拼接被破坏
+            const attrEsc = (s) => String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+            const safeVodName = escapeHtml(vod_name || '未知视频');
+            const safeSourceName = escapeHtml((data.videoInfo && data.videoInfo.source_name) || '');
+            const safeId = attrEsc(String(id));
+            const safeSourceCode = attrEsc(sourceCode);
 
-                // Check if there's any actual grid content
-                const hasGridContent = data.videoInfo.type || data.videoInfo.year || data.videoInfo.area || data.videoInfo.director || data.videoInfo.actor || data.videoInfo.remarks;
+            // 副标题（hero 左下浮层下方）：优先展示数据源名称
+            const subtitleText = safeSourceName;
 
-                if (hasGridContent || descriptionText) { // Only build if there's something to show
-                    detailInfoHtml = `
-                <div class="modal-detail-info">
-                    ${hasGridContent ? `
-                    <div class="detail-grid">
-                        ${data.videoInfo.type ? `<div class="detail-item"><span class="detail-label">类型:</span> <span class="detail-value">${data.videoInfo.type}</span></div>` : ''}
-                        ${data.videoInfo.year ? `<div class="detail-item"><span class="detail-label">年份:</span> <span class="detail-value">${data.videoInfo.year}</span></div>` : ''}
-                        ${data.videoInfo.area ? `<div class="detail-item"><span class="detail-label">地区:</span> <span class="detail-value">${data.videoInfo.area}</span></div>` : ''}
-                        ${data.videoInfo.director ? `<div class="detail-item"><span class="detail-label">导演:</span> <span class="detail-value">${data.videoInfo.director}</span></div>` : ''}
-                        ${data.videoInfo.actor ? `<div class="detail-item"><span class="detail-label">主演:</span> <span class="detail-value">${data.videoInfo.actor}</span></div>` : ''}
-                        ${data.videoInfo.remarks ? `<div class="detail-item"><span class="detail-label">备注:</span> <span class="detail-value">${data.videoInfo.remarks}</span></div>` : ''}
-                    </div>` : ''}
-                    ${descriptionText ? `
-                    <div class="detail-desc">
-                        <p class="detail-label">简介:</p>
-                        <p class="detail-desc-content">${descriptionText}</p>
-                    </div>` : ''}
-                </div>
-                `;
-                }
+            // 标签胶囊（年份/类型/地区/class/备注）
+            const vi = data.videoInfo || {};
+            const tagItems = [];
+            if (vi.year) tagItems.push(escapeHtml(String(vi.year)));
+            if (vi.type) tagItems.push(escapeHtml(String(vi.type)));
+            if (vi.area) tagItems.push(escapeHtml(String(vi.area)));
+            if (vi.class) tagItems.push(escapeHtml(String(vi.class)));
+            else if (vi.remarks) tagItems.push(escapeHtml(String(vi.remarks)));
+            const tagsHtml = tagItems
+                .map(t => `<span class="detail-tag">${t}</span>`)
+                .join('');
+
+            // 描述（清洗 HTML 标签后再 escape）
+            const descriptionRaw = vi.desc ? String(vi.desc).replace(/<[^>]+>/g, '').trim() : '';
+            const safeDescription = escapeHtml(descriptionRaw);
+            const hasDescription = descriptionRaw.length > 0;
+
+            // 背景海报：复用 ui.js 历史封面代理逻辑，保证同源可加载
+            let backdropUrl = '';
+            const rawPic = String(window.currentVodPic || '').trim();
+            if (rawPic) {
+                try {
+                    if (rawPic.startsWith('http://') || rawPic.startsWith('https://')) {
+                        backdropUrl = `/proxy/${encodeURIComponent(rawPic).replace(/'/g, '%27')}`;
+                    } else if (rawPic.startsWith('//')) {
+                        const normalized = `${window.location.protocol}${rawPic}`;
+                        backdropUrl = `/proxy/${encodeURIComponent(normalized).replace(/'/g, '%27')}`;
+                    } else if (rawPic.startsWith('/')) {
+                        backdropUrl = rawPic;
+                    }
+                } catch (e) { backdropUrl = ''; }
             }
+            const safeBackdropUrl = escapeHtml(backdropUrl);
+
+            // 右上角源名称首字角标
+            const sourceBadgeInitial = safeSourceName
+                ? Array.from(safeSourceName)[0].toUpperCase()
+                : '影';
+            const sourceBadgeTitle = `来源: ${safeSourceName}`;
+
+            // 背景海报交给 LazyImageLoader：img.lazy-load[data-src] 会被 MutationObserver
+            // 自动接管，补 proxy 鉴权参数、缓存、加载失败降级（隐藏 img 露出纯色占位底）
+            const heroBgImg = backdropUrl
+                ? `<img class="detail-hero-bg lazy-load" data-src="${safeBackdropUrl}" alt="" aria-hidden="true" referrerpolicy="no-referrer">`
+                : '';
+            // 无封面时的居中占位：源名首字（或「影」）
+            const heroEmptyMark = backdropUrl ? '' : `<div class="detail-hero-empty-mark">${escapeHtml(sourceBadgeInitial)}</div>`;
 
             currentEpisodes = data.episodes;
             currentEpisodeIndex = 0;
 
             modalContent.innerHTML = `
-                ${detailInfoHtml}
-                <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
-                    <div class="flex items-center gap-2">
-                        <button onclick="toggleEpisodeOrder('${sourceCode}', '${id}')" 
-                                class="px-3 py-1.5 bg-[#333] hover:bg-[#444] border border-[#444] rounded text-sm transition-colors flex items-center gap-1">
-                            <svg class="w-4 h-4 transform ${episodesReversed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                            </svg>
-                            <span>${episodesReversed ? '正序排列' : '倒序排列'}</span>
-                        </button>
-                        <span class="text-gray-400 text-sm">共 ${data.episodes.length} 集</span>
+                <div class="detail-hero">
+                    ${heroBgImg}
+                    ${heroEmptyMark}
+                    <div class="detail-hero-shade"></div>
+                    <div class="detail-hero-source-badge" title="${escapeHtml(sourceBadgeTitle)}">
+                        <span class="detail-hero-source-mark">${escapeHtml(sourceBadgeInitial)}</span>
                     </div>
-                    <button onclick="copyLinks()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors">
-                        复制链接
-                    </button>
+                    <div class="detail-hero-title-wrap">
+                        <h3 class="detail-hero-title">${safeVodName}</h3>
+                        ${subtitleText ? `<p class="detail-hero-subtitle">${subtitleText}</p>` : ''}
+                    </div>
                 </div>
-                <div id="episodesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                    ${renderEpisodes(vod_name, sourceCode, id)}
+
+                <div class="detail-meta">
+                    ${tagsHtml ? `<div class="detail-tags">${tagsHtml}</div>` : ''}
+                    ${hasDescription ? `<p class="detail-desc">${safeDescription}</p>` : ''}
+                    <p class="detail-foot">仅供测试 · 视频来自第三方接口</p>
+                </div>
+
+                <div class="detail-episodes">
+                    <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleEpisodeOrder('${safeSourceCode}', '${safeId}')"
+                                    class="px-3 py-1.5 bg-[#333] hover:bg-[#444] border border-[#444] rounded text-sm transition-colors flex items-center gap-1">
+                                <svg class="w-4 h-4 transform ${episodesReversed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                                </svg>
+                                <span>${episodesReversed ? '正序排列' : '倒序排列'}</span>
+                            </button>
+                            <span class="text-gray-400 text-sm">共 ${data.episodes.length} 集</span>
+                        </div>
+                        <button onclick="copyLinks()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors">
+                            复制链接
+                        </button>
+                    </div>
+                    <div id="episodesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                        ${renderEpisodes(vod_name, sourceCode, id)}
+                    </div>
                 </div>
             `;
         } else {
             modalContent.innerHTML = `
-                <div class="text-center py-8">
-                    <div class="text-red-400 mb-2">❌ 未找到播放资源</div>
+                <div class="detail-center py-10 text-center">
+                    <div class="text-red-400 mb-2 text-lg">❌ 未找到播放资源</div>
                     <div class="text-gray-500 text-sm">该视频可能暂时无法播放，请尝试其他视频</div>
                 </div>
             `;
