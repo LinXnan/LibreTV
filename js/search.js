@@ -22,9 +22,9 @@ async function searchByAPIAndKeyWord(apiId, query) {
         // 记录开始时间以测量延迟
         const startTime = performance.now();
 
-        // 添加超时处理（减少到8秒）
+        // 添加超时处理（与测活超时对齐，4 秒）
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
         
         // 添加鉴权参数到代理URL
         const proxiedUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 
@@ -79,7 +79,7 @@ async function searchByAPIAndKeyWord(apiId, query) {
                 const pagePromise = (async () => {
                     try {
                         const pageController = new AbortController();
-                        const pageTimeoutId = setTimeout(() => pageController.abort(), 8000);
+                        const pageTimeoutId = setTimeout(() => pageController.abort(), 4000);
                         
                         // 添加鉴权参数到代理URL
                         const proxiedPageUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 

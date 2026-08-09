@@ -1,0 +1,90 @@
+refactor: 2026-08-09-search-latency
+slug: search-latency
+
+steps:
+  - id: 1
+    name: 清理搜索链路死代码（optimize-apply 并发函数 / api.js 聚合搜索与 apiCache / AGGREGATED_SEARCH_CONFIG）
+    method: M-L2-02
+    verification_owner: AI
+    exit_signal: "grep 'applySearchConcurrency|concurrentPool|handleAggregatedSearch|handleMultipleCustomSearch|testSiteAvailability|AGGREGATED_SEARCH_CONFIG|getFromCache|saveToCache' 全项目 0 引用；handleApiRequest / handleCustomApiSpecialDetail / handleSpecialSourceDetail 仍存在"
+    done: true
+
+  - id: 2
+    name: searchCache 加 LRU 上限（50 条，set 前淘汰最旧）
+    method: M-L4-05
+    verification_owner: AI
+    exit_signal: "连续搜索 > 50 个不同关键词后 searchCache.size 不超过 50；缓存命中行为与改前一致"
+    done: true
+
+  - id: 3
+    name: 搜索批次串行改为全量并发（searchWithConcurrencyLimit 去批次循环）
+    method: M-L4-06
+    verification_owner: AI
+    exit_signal: "searchWithConcurrencyLimit 函数体内无批次循环；app.js:863 调用点不变"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 打开首页搜索，Network 面板确认多个源请求同时发出（不再分批），结果集与改前一致"
+    human_status: pending
+
+  - id: 4
+    name: 降 maxPages 5→3（config.js）
+    method: M-L4-02
+    verification_owner: AI
+    exit_signal: "config.js maxPages=3；search.js 额外页上限自动为 2"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 搜索确认结果数量少于改前、耗时下降，结果仍覆盖前 3 页"
+    human_status: pending
+
+  - id: 5
+    name: 前端 8s→4s 超时 + 4 平台代理超时/重试对齐（server.mjs 超时 4000/重试 1，3 serverless 补 AbortSignal.timeout(10000)）
+    method: M-L4-06
+    verification_owner: AI
+    exit_signal: "search.js 两处 8000→4000；server.mjs timeout=4000 maxRetries=1；3 个 serverless 代理 fetchContentWithType 均含 AbortSignal.timeout"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 用 Network 面板测一个失效源确认约 4s 放弃；可用源仍正常返回结果"
+    human_status: pending
+
+  - id: 6
+    name: 搜索前读 siteHealthCache 跳过已知失效源（effectiveAPIs + cacheKey 同步）
+    method: M-L4-05
+    verification_owner: AI
+    exit_signal: "search() 内读 siteHealthCache 生成 effectiveAPIs；cacheKey 基于 effectiveAPIs；失效源被过滤"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 搜索确认失效源不再出现在 Network 面板请求中，结果集为可用源结果"
+    human_status: pending
+
+  - id: 7
+    name: 搜索结果增量渲染（逐源回调 + scheduleIncrementalRender 节流 + 最终覆盖）
+    method: M-L4-02
+    verification_owner: AI
+    exit_signal: "search() 逐源回调版本跑通；增量渲染不触发 renderPagination；最终收尾保留排序/统计/筛选/分页/缓存"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 搜索时先看到部分结果（首条 <2s）再看到全部补齐，统计/筛选/分页最终正确"
+    human_status: pending
+
+checks:
+  - id: c1
+    description: "grep 搜索相关死代码标识符全项目 0 引用；活跃函数（handleApiRequest / handleCustomApiSpecialDetail / handleSpecialSourceDetail / searchByAPIAndKeyWord）保留"
+    status: pending
+  - id: c2
+    description: "searchCache 带 50 条 LRU 上限，命中逻辑不变"
+    status: pending
+  - id: c3
+    description: "搜索全量并发，批次串行消失，结果集与改前一致"
+    status: pending
+  - id: c4
+    description: "maxPages=3，单源最多 3 请求"
+    status: pending
+  - id: c5
+    description: "前端超时 4s；4 平台代理超时/重试配置一致（server.mjs 4000/1，3 serverless 10s 兜底）"
+    status: pending
+  - id: c6
+    description: "搜索使用 effectiveAPIs（跳过失效源），cacheKey 与之一致"
+    status: pending
+  - id: c7
+    description: "增量渲染生效：先部分后全部，最终排序/筛选/分页/统计正确"
+    status: pending

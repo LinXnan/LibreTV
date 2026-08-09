@@ -288,8 +288,8 @@ export async function onRequest(context) {
         try {
             // 直接请求目标 URL
             logDebug(`开始直接请求: ${targetUrl}`);
-            // Cloudflare Functions 的 fetch 默认支持重定向
-            const response = await fetch(targetUrl, { headers, redirect: 'follow' });
+            // Cloudflare Functions 的 fetch 默认支持重定向（兜底超时 10s）
+            const response = await fetch(targetUrl, { headers, redirect: 'follow', signal: AbortSignal.timeout(10000) });
 
             if (!response.ok) {
                  const errorBody = await response.text().catch(() => '');

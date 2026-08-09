@@ -180,7 +180,7 @@ async function fetchContentWithType(targetUrl, requestHeaders) {
     Object.keys(headers).forEach(key => headers[key] === undefined || headers[key] === null || headers[key] === '' ? delete headers[key] : {});
     logDebug(`Fetching target: ${targetUrl} with headers: ${JSON.stringify(headers)}`);
     try {
-        const response = await fetch(targetUrl, { headers, redirect: 'follow' });
+        const response = await fetch(targetUrl, { headers, redirect: 'follow', signal: AbortSignal.timeout(10000) }); // 兜底超时 10s
         if (!response.ok) {
             const errorBody = await response.text().catch(() => '');
             logDebug(`Fetch failed: ${response.status} ${response.statusText} - ${targetUrl}`);

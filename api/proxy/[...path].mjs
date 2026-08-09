@@ -200,8 +200,8 @@ async function fetchContentWithType(targetUrl, requestHeaders) {
     logDebug(`准备请求目标: ${targetUrl}，请求头: ${JSON.stringify(headers)}`);
 
     try {
-        // 发起 fetch 请求
-        const response = await fetch(targetUrl, { headers, redirect: 'follow' });
+        // 发起 fetch 请求（兜底超时 10s，避免挂死；搜索场景前端 4s 已截断）
+        const response = await fetch(targetUrl, { headers, redirect: 'follow', signal: AbortSignal.timeout(10000) });
 
         // 检查响应是否成功
         if (!response.ok) {

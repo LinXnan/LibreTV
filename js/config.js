@@ -34,22 +34,13 @@ window.API_SITES = API_SITES;
 window.extendAPISites = extendAPISites;
 
 
-// 添加聚合搜索的配置选项
-const AGGREGATED_SEARCH_CONFIG = {
-    enabled: true,             // 是否启用聚合搜索
-    timeout: 8000,            // 单个源超时时间（毫秒）
-    maxResults: 10000,          // 最大结果数量
-    parallelRequests: true,   // 是否并行请求所有源
-    showSourceBadges: true    // 是否显示来源徽章
-};
-
 // 抽象API请求配置
 const API_CONFIG = {
     search: {
         // 只拼接参数部分，不再包含 /api.php/provide/vod/
         path: '?ac=videolist&wd=',
         pagePath: '?ac=videolist&wd={query}&pg={page}',
-        maxPages: 5, // 最大获取页数（优化性能）
+        maxPages: 3, // 最大获取页数（优化性能）
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': 'application/json'
