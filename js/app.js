@@ -1259,7 +1259,8 @@ async function showDetails(id, vod_name, sourceCode, vod_pic = '') {
     }
 }
 
-// 更新播放视频函数，修改为使用/watch路径而不是直接打开player.html
+// 点击选集直接进入 player.html，不再走 watch.html 中转。
+// watch.html 仅作为老链接/书签/分享的兼容重定向保留（js/watch.js 仍可用）。
 function playVideo(url, vod_name, sourceCode, episodeIndex = 0, vodId = '') {
     // 密码保护校验
     if (!window.requirePasswordOrPrompt()) return;
@@ -1267,20 +1268,21 @@ function playVideo(url, vod_name, sourceCode, episodeIndex = 0, vodId = '') {
     // 获取当前路径作为返回页面
     let currentPath = window.location.href;
 
-    // 构建播放页面URL，使用watch.html作为中间跳转页
-    let watchUrl = `watch.html?id=${vodId || ''}&source=${sourceCode || ''}&url=${encodeURIComponent(url)}&index=${episodeIndex}&title=${encodeURIComponent(vod_name || '')}`;
+    // 直接拼出 player.html URL（参数集与原 watchUrl 透传给 player.html 的入参一致）
+    let playerUrl = `player.html?id=${encodeURIComponent(vodId || '')}&source=${encodeURIComponent(sourceCode || '')}&url=${encodeURIComponent(url)}&index=${episodeIndex}&title=${encodeURIComponent(vod_name || '')}`;
 
     // 添加封面URL参数（如果存在）
     if (window.currentVodPic) {
-        watchUrl += `&vod_pic=${encodeURIComponent(window.currentVodPic)}`;
+        playerUrl += `&vod_pic=${encodeURIComponent(window.currentVodPic)}`;
     }
 
-    // 添加返回URL参数
+    // 与原 watch.html 行为对齐：仅当从首页/根路径时显式传 returnUrl；
+    // 其他场景靠 player.js 的 lastPageUrl localStorage 回退（player.js:goBack 第二步）。
     if (currentPath.includes('index.html') || currentPath.endsWith('/')) {
-        watchUrl += `&back=${encodeURIComponent(currentPath)}`;
+        playerUrl += `&returnUrl=${encodeURIComponent(currentPath)}`;
     }
 
-    // 保存当前状态到localStorage
+    // 保存当前状态到localStorage（与原 playVideo 行为完全一致）
     try {
         localStorage.setItem('currentVideoTitle', vod_name || '未知视频');
         localStorage.setItem('currentEpisodes', JSON.stringify(currentEpisodes));
@@ -1293,8 +1295,8 @@ function playVideo(url, vod_name, sourceCode, episodeIndex = 0, vodId = '') {
         console.error('保存播放状态失败:', e);
     }
 
-    // 在当前标签页中打开播放页面
-    window.location.href = watchUrl;
+    // 在当前标签页中直接打开播放器页面
+    window.location.href = playerUrl;
 }
 
 // 弹出播放器页面
