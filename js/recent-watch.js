@@ -5,7 +5,7 @@
 
     const HISTORY_KEY = 'viewingHistory';
     const MAX_ITEMS = 10;
-    const AUTO_SCROLL_INTERVAL = 4000; // 自动轮播间隔（毫秒）
+    const AUTO_SCROLL_INTERVAL = 3000; // 自动轮播间隔（毫秒）
 
     let autoScrollTimer = null;
     let resumeTimer = null;
@@ -87,7 +87,7 @@
             return;
         }
 
-        track.innerHTML = history.map((item) => {
+        const itemsHtml = history.map((item) => {
             // title 先强制字符串化：异常数据类型（对象/数组/数字）不会让 ui.js 的渐变/图标函数抛错拖垮整个渲染
             const rawTitle = String(item.title || '');
             const safeTitle = escapeHtml(rawTitle || '未知视频');
@@ -117,6 +117,13 @@
                 </div>
             `;
         }).join('');
+        // 3 段式无缝循环：S1/S3 为隐藏克隆（首尾衔接用），S2 为真实内容
+        // 滚动到 S3 时瞬间跳回 S2 对应位置，画面完全一致（视口恒小于一段宽度），实现"末尾直接衔接开头"
+        // 克隆段对辅助技术隐藏（aria-hidden），避免屏幕阅读器重复朗读
+        const hiddenHtml = itemsHtml.replace(/class="recent-watch-card"/g, 'class="recent-watch-card" aria-hidden="true" tabindex="-1"');
+        track.innerHTML = hiddenHtml + itemsHtml + hiddenHtml;
+        // 初始定位到中段（S2）开头，从真实第一部开始轮播
+        track.scrollLeft = track.scrollWidth / 3;
 
         clearTimeout(resumeTimer);
         resumeTimer = null;
@@ -125,19 +132,21 @@
     }
 
     // 单步滚动距离：一张卡片宽 + 间距
-    function stepWidth(track) {
-        const card = track.querySelector('.recent-watch-card');
-        const gap = parseFloat(getComputedStyle(track).columnGap) || 12;
-        return card ? card.offsetWidth + gap : 200;
-    }
-
-    function updateArrows(track) {
-        const prev = document.getElementById('recentWatchPrev');
-        const next = document.getElementById('recentWatchNext');
-        if (!prev || !next) return;
-        const maxScroll = track.scrollWidth - track.clientWidth;
-        prev.classList.toggle('disabled', track.scrollLeft <= 5);
-        next.classList.toggle('disabled', track.scrollLeft >= maxScroll - 5);
+    // 精确滚动到相邻卡片：自动轮播每次只移动一张卡片
+    function scrollToAdjacentCard(track, offset) {
+        const cards = track.querySelectorAll('.recent-watch-card');
+        if (!cards.length) return;
+        let currentIndex = 0;
+        const left = track.scrollLeft;
+        for (let i = 0; i < cards.length; i++) {
+            if (cards[i].offsetLeft <= left + 5) {
+                currentIndex = i;
+            } else {
+                break;
+            }
+        }
+        const targetIndex = Math.max(0, Math.min(cards.length - 1, currentIndex + offset));
+        track.scrollTo({ left: cards[targetIndex].offsetLeft, behavior: 'smooth' });
     }
 
     function stopAutoScroll() {
@@ -148,14 +157,18 @@
     }
 
     function scrollByStep(track) {
-        programmaticScroll = true;
-        const maxScroll = track.scrollWidth - track.clientWidth;
-        if (track.scrollLeft >= maxScroll - 2) {
-            track.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-            track.scrollBy({ left: stepWidth(track), behavior: 'smooth' });
+        const third = track.scrollWidth / 3;
+        if (track.scrollLeft >= third * 2 - 1) {
+            // 已滚动到 S3（末尾克隆区，视觉上第 1 部影片接在最后一部后面），
+            // 瞬间跳回 S2（真实内容）对应位置，画面与跳转前完全一致，实现"末尾衔接开头"
+            programmaticScroll = true;
+            track.scrollTo({ left: track.scrollLeft - third, behavior: 'auto' });
+            setTimeout(() => { programmaticScroll = false; }, 60);
+            return;
         }
+        scrollToAdjacentCard(track, 1);
         // smooth 滚动动画期间保持程序滚动标记，避免被 scroll 事件当作用户交互
+        programmaticScroll = true;
         setTimeout(() => { programmaticScroll = false; }, 800);
     }
 
@@ -180,8 +193,6 @@
     // 一次性绑定控件事件（事件只绑一次，重复渲染不会累积监听器）
     function bindCarouselControls() {
         const track = document.getElementById('recentWatchTrack');
-        const prev = document.getElementById('recentWatchPrev');
-        const next = document.getElementById('recentWatchNext');
         if (!track) return;
 
         // 卡片点击/键盘事件委托到轨道
@@ -198,31 +209,20 @@
             navigateTo(card.getAttribute('data-url'));
         });
 
-        if (prev) {
-            prev.addEventListener('click', () => {
-                track.scrollBy({ left: -stepWidth(track), behavior: 'smooth' });
-            });
-        }
-        if (next) {
-            next.addEventListener('click', () => {
-                track.scrollBy({ left: stepWidth(track), behavior: 'smooth' });
-            });
-        }
-
+        // 滚动即视为用户交互：暂停自动轮播，6 秒后恢复
         track.addEventListener('scroll', () => {
-            updateArrows(track);
             if (!programmaticScroll) pauseFor(track);
         }, { passive: true });
+        // 鼠标移入影片停止轮播，移出恢复
         track.addEventListener('mouseenter', stopAutoScroll);
         track.addEventListener('mouseleave', () => startAutoScroll(track));
         track.addEventListener('touchstart', () => pauseFor(track), { passive: true });
     }
 
-    // 内容变化后刷新箭头与自动轮播（事件已由 bindCarouselControls 一次性绑定）
+    // 内容变化后刷新自动轮播（事件已由 bindCarouselControls 一次性绑定）
     function refreshCarousel() {
         const track = document.getElementById('recentWatchTrack');
         if (!track) return;
-        updateArrows(track);
         startAutoScroll(track);
     }
 

@@ -51,6 +51,20 @@ tags: [home, history, carousel, ui]
 
 把"最近观看"标题居中显示，左右箭头按钮从卡片轨道两侧（绝对定位）移到标题行左右两侧：HTML 改为 `flex items-center`（左箭头 + 标题 flex-1 text-center + 右箭头）；CSS 移除 `.recent-watch-wrapper` 与箭头的绝对定位/top/transform/left/right。卡片轨道不再被箭头覆盖。`node --check` 与 lint 通过。
 
+## 迭代 6（2026-08-09，用户要求"循环轮播 + 去掉左右按钮 + 鼠标移入停止轮播"）
+
+- `index.html`：删除左右箭头按钮，标题行与轨道简化
+- `js/recent-watch.js`：
+  - 无缝循环：渲染时克隆一份卡片拼在末尾（克隆部分 `aria-hidden`/`tabindex=-1`），自动轮播滚动到后半时瞬间跳回前半对应位置，画面连续无限循环
+  - 删除 prev/next 事件绑定与 `updateArrows`/箭头相关逻辑；`refreshCarousel` 只重启自动轮播
+  - 鼠标移入影片区 `stopAutoScroll`、移出恢复；滚动/触摸视为用户交互暂停 6s 后恢复
+- `css/index.css`：删除 `.recent-watch-arrow` 样式
+- `node --check` 与 lint 通过
+
+2026-08-09 迭代 6 补：自动轮播间隔 4000→3000ms；无缝循环由"2 倍克隆"升级为"3 段式"（S1/S3 隐藏克隆 + S2 真实，初始定位中段，滚到 S3 瞬间跳回 S2 对应位置），保证跳转前后画面完全一致（视口恒小于一段宽度），实现"末尾直接衔接开头"无跳变。
+
+2026-08-09 迭代 7（用户要求"鼠标移入卡片时抽取浮出突出显示"）：`.recent-watch-card` 加 `position: relative` + `will-change`，hover 时 `scale(1.06) translateY(-6px)` 浮出、增强投影 + 青色发光、`z-index:10` 浮于相邻卡片之上；`.recent-watch-track` 上下 padding 由 0.375rem 改为 1rem，容纳放大浮出不被裁剪。lint 通过。
+
 ## 迭代 5（2026-08-09，用户反馈"播放页切换视频源后，历史记录封面不更新"）
 
 问题根源：`saveToHistory`（player.js）的 `vod_pic` 只从 URL 参数读取；切源（`switchToResource`）是同页 `replaceState`，URL 的 `vod_pic` 参数未更新，导致历史封面始终是旧源的。

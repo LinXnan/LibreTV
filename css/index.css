@@ -277,12 +277,13 @@
     display: flex;
     gap: 0.5rem;
     overflow-x: auto;
-    scroll-snap-type: x proximity;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
-    padding-bottom: 0.375rem;
-    scrollbar-width: thin;
-    scrollbar-color: #444 transparent;
+    /* 上下留白，容纳 hover 时卡片放大浮出 */
+    padding: 1rem 0;
+    /* 隐藏滚动条但保留滚动能力 */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 /* 卡片不满一行时居中显示（auto margin 吸收剩余空间；内容溢出时自动归零可正常滚动） */
@@ -295,33 +296,27 @@
 }
 
 .recent-watch-track::-webkit-scrollbar {
-    height: 6px;
+    display: none;
 }
 
-.recent-watch-track::-webkit-scrollbar-thumb {
-    background: #444;
-    border-radius: 3px;
-}
-
-.recent-watch-track::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-/* 大尺寸竖版海报卡片，纯封面，hover 微缩放 */
+/* 大尺寸竖版海报卡片，纯封面；hover 时"抽取浮出"突出显示 */
 .recent-watch-card {
     flex: 0 0 auto;
     width: 180px;
-    scroll-snap-align: start;
+    position: relative;
     background: #000;
     border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.2s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .recent-watch-card:hover {
-    transform: scale(1.03);
+    transform: scale(1.06) translateY(-6px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 24px rgba(0, 204, 255, 0.18);
+    z-index: 10;
 }
 
 .recent-watch-cover {
@@ -356,44 +351,9 @@
     display: block;
 }
 
-/* 左右箭头按钮：移到标题行两侧，圆形可点 */
-.recent-watch-arrow {
-    flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    border-radius: 9999px;
-    background: rgba(0, 0, 0, 0.6);
-    border: 1px solid #444;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.recent-watch-arrow svg {
-    width: 16px;
-    height: 16px;
-}
-
-.recent-watch-arrow:hover {
-    background: rgba(0, 0, 0, 0.85);
-    border-color: #fff;
-}
-
-.recent-watch-arrow.disabled {
-    opacity: 0.3;
-    pointer-events: none;
-}
-
 @media (max-width: 640px) {
     .recent-watch-card {
         width: 140px;
-    }
-
-    .recent-watch-arrow {
-        display: none;
     }
 }
 
