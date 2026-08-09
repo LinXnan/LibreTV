@@ -6,21 +6,18 @@ async function searchByAPIAndKeyWord(apiId, query) {
         if (apiId.startsWith('custom_')) {
             const customIndex = apiId.replace('custom_', '');
             const customApi = getCustomApiInfo(customIndex);
-            if (!customApi) return { results: [], latency: -1 };
+            if (!customApi) return { results: [] };
 
             apiBaseUrl = customApi.url;
             apiUrl = apiBaseUrl + API_CONFIG.search.path + encodeURIComponent(query);
             apiName = customApi.name;
         } else {
             // 内置API
-            if (!API_SITES[apiId]) return { results: [], latency: -1 };
+            if (!API_SITES[apiId]) return { results: [] };
             apiBaseUrl = API_SITES[apiId].api;
             apiUrl = apiBaseUrl + API_CONFIG.search.path + encodeURIComponent(query);
             apiName = API_SITES[apiId].name;
         }
-
-        // 记录开始时间以测量延迟
-        const startTime = performance.now();
 
         // 添加超时处理（与测活超时对齐，4 秒）
         const controller = new AbortController();
@@ -38,17 +35,14 @@ async function searchByAPIAndKeyWord(apiId, query) {
 
         clearTimeout(timeoutId);
 
-        // 计算延迟（毫秒）
-        const latency = Math.round(performance.now() - startTime);
-
         if (!response.ok) {
-            return { results: [], latency };
+            return { results: [] };
         }
 
         const data = await response.json();
 
         if (!data || !data.list || !Array.isArray(data.list) || data.list.length === 0) {
-            return { results: [], latency };
+            return { results: [] };
         }
         
         // 处理第一页结果
@@ -56,8 +50,7 @@ async function searchByAPIAndKeyWord(apiId, query) {
             ...item,
             source_name: apiName,
             source_code: apiId,
-            api_url: apiId.startsWith('custom_') ? getCustomApiInfo(apiId.replace('custom_', ''))?.url : undefined,
-            latency: latency  // 添加延迟信息到每个结果
+            api_url: apiId.startsWith('custom_') ? getCustomApiInfo(apiId.replace('custom_', ''))?.url : undefined
         }));
         
         // 获取总页数
@@ -104,8 +97,7 @@ async function searchByAPIAndKeyWord(apiId, query) {
                             ...item,
                             source_name: apiName,
                             source_code: apiId,
-                            api_url: apiId.startsWith('custom_') ? getCustomApiInfo(apiId.replace('custom_', ''))?.url : undefined,
-                            latency: latency  // 使用第一页的延迟
+                            api_url: apiId.startsWith('custom_') ? getCustomApiInfo(apiId.replace('custom_', ''))?.url : undefined
                         }));
                     } catch (error) {
                         console.warn(`API ${apiId} 第${page}页搜索失败:`, error);
@@ -127,9 +119,9 @@ async function searchByAPIAndKeyWord(apiId, query) {
             });
         }
 
-        return { results, latency };
+        return { results };
     } catch (error) {
         console.warn(`API ${apiId} 搜索失败:`, error);
-        return { results: [], latency: -1 };
+        return { results: [] };
     }
 }

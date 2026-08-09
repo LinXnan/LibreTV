@@ -331,8 +331,7 @@
 @media (max-width: 640px) {
     /* 筛选按钮换行优化 */
     #sourceFilters,
-    #categoryFilters,
-    #latencyFilters {
+    #categoryFilters {
         gap: 0.5rem !important;
     }
 

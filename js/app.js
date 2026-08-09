@@ -906,20 +906,17 @@ async function search() {
         }
         firstRenderDone = false;
 
-        // 对搜索结果进行排序：按延迟（响应速度）从快到慢排序
+        // 对搜索结果进行排序：按视频名称排序，名称相同则按来源排序
         allResults.sort((a, b) => {
-            // 首先按照延迟排序（延迟越小越靠前）
-            const latencyA = a.latency && a.latency > 0 ? a.latency : 999999;
-            const latencyB = b.latency && b.latency > 0 ? b.latency : 999999;
-            const latencyCompare = latencyA - latencyB;
-            if (latencyCompare !== 0) return latencyCompare;
-
-            // 如果延迟相同，则按照视频名称排序
             const nameCompare = (a.vod_name || '').localeCompare(b.vod_name || '');
             if (nameCompare !== 0) return nameCompare;
 
             // 如果名称也相同，则按照来源排序
-            return (a.source_name || '').localeCompare(b.source_name || '');
+            const sourceCompare = (a.source_name || '').localeCompare(b.source_name || '');
+            if (sourceCompare !== 0) return sourceCompare;
+
+            // 名称与来源都相同时按 id 稳定排序，保证 cache/no-cache 路径顺序一致
+            return (a.vod_id || '').toString().localeCompare((b.vod_id || '').toString());
         });
 
         // 更新搜索结果计数
@@ -1570,8 +1567,7 @@ function saveStringAsFile(content, fileName) {
 // 当前筛选条件
 let currentFilters = {
     source: 'all',
-    category: 'all',
-    latency: 'all'
+    category: 'all'
 };
 
 // 分页配置
@@ -1699,11 +1695,6 @@ function filterByCategory(category) {
     _applyFilter('category', category, 'categoryFilters');
 }
 
-// 按延迟筛选
-function filterByLatency(latency) {
-    _applyFilter('latency', latency, 'latencyFilters');
-}
-
 // 内部统一筛选：设置 currentFilters[dimension]、刷新结果、更新对应容器按钮 active 态
 function _applyFilter(dimension, value, containerId) {
     currentFilters[dimension] = value;
@@ -1729,14 +1720,6 @@ function applySearchFilters() {
         if (currentFilters.category !== 'all') {
             const category = item.type_name || '未分类';
             if (category !== currentFilters.category) return false;
-        }
-
-        // 延迟筛选
-        if (currentFilters.latency !== 'all') {
-            const latency = item.latency || 999999;
-            if (currentFilters.latency === 'fast' && latency >= 1000) return false;
-            if (currentFilters.latency === 'medium' && (latency < 1000 || latency >= 3000)) return false;
-            if (currentFilters.latency === 'slow' && latency < 3000) return false;
         }
 
         return true;
@@ -1765,8 +1748,7 @@ function applySearchFilters() {
 function resetSearchFilters() {
     currentFilters = {
         source: 'all',
-        category: 'all',
-        latency: 'all'
+        category: 'all'
     };
 
     // 重置所有按钮状态
@@ -1838,17 +1820,6 @@ function buildSearchCardHTML(item) {
                     <div class="flex justify-between items-center mt-1 pt-1 border-t border-gray-800">
                         <div class="flex items-center gap-2">
                             ${sourceInfo ? `${sourceInfo}` : ''}
-                            ${item.latency && item.latency > 0 ?
-                `<span class="text-xs px-1.5 py-0.5 rounded ${
-                    item.latency < 1000 ? 'bg-green-900/30 text-green-400' :
-                    item.latency < 3000 ? 'bg-yellow-900/30 text-yellow-400' :
-                    'bg-red-900/30 text-red-400'
-                }">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline-block mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                    </svg>
-                                    ${item.latency}ms
-                                </span>` : ''}
                         </div>
                     </div>
                 </div>

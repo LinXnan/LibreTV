@@ -393,28 +393,6 @@
                                 </div>
                             </div>
 
-                            <!-- 延迟筛选 -->
-                            <div>
-                                <label class="text-xs text-gray-400 mb-2 block">按响应速度筛选</label>
-                                <div id="latencyFilters" class="flex flex-wrap gap-2">
-                                    <button onclick="filterByLatency('all')" class="filter-btn active" data-filter="all">
-                                        全部
-                                    </button>
-                                    <button onclick="filterByLatency('fast')" class="filter-btn" data-filter="fast">
-                                        <span class="inline-block w-2 h-2 rounded-full bg-green-400 mr-1"></span>
-                                        快速 (&lt;1s)
-                                    </button>
-                                    <button onclick="filterByLatency('medium')" class="filter-btn" data-filter="medium">
-                                        <span class="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1"></span>
-                                        中速 (1-3s)
-                                    </button>
-                                    <button onclick="filterByLatency('slow')" class="filter-btn" data-filter="slow">
-                                        <span class="inline-block w-2 h-2 rounded-full bg-red-400 mr-1"></span>
-                                        慢速 (&gt;3s)
-                                    </button>
-                                </div>
-                            </div>
-
                             <!-- 重置筛选 -->
                             <div class="flex justify-end pt-2 border-t border-[#222]">
                                 <button onclick="resetSearchFilters()" class="text-xs px-3 py-1.5 bg-[#333] hover:bg-[#444] rounded transition-colors">
