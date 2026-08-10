@@ -1,0 +1,54 @@
+feature: 2026-08-10-datasource-simplify
+created: 2026-08-10
+
+steps:
+  - action: "静态配置：删除 DEFAULT_UNSELECTED_APIS 黑名单，selectedAPIs 默认值改为全选；加入 selectedAPIsV2 版本标记迁移逻辑，迁移时保留现有 custom_* 项，只重置内置源为全选"
+    exit_signal: "grep DEFAULT_UNSELECTED_APIS 全项目 0 引用；代码检查 app.js 默认值/迁移逻辑为 [custom_* 保留] + Object.keys(API_SITES)"
+    status: done
+  - action: "删除测活模块：删除 js/site_health.js 文件、index.html 中 site_health.js script 引用、app.js 中 siteHealthCache 读取段"
+    exit_signal: "grep siteHealth|runHealthCheck|SiteHealth|applyOne|applyAll 全项目 0 引用；site_health.js 文件已删；index.html 无 site_health.js 标签"
+    status: done
+  - action: "编排简化：search() 移除 effectiveAPIs 过滤段，cacheKey（:839）与搜索主循环（:906）均改用 selectedAPIs，直接并发搜索"
+    exit_signal: "grep effectiveAPIs 全项目 0 引用；search() 路径直接用 selectedAPIs"
+    status: done
+  - action: "手工验证：npm run dev 走通 S1-S8 关键场景（grep 类验证在 Windows PowerShell 下改用 Select-String 或 Git Bash）"
+    exit_signal: "S1-S8 全部可观察结果通过（目视 + Network + DevTools + grep）"
+    status: done
+
+checks:
+  - item: "DEFAULT_UNSELECTED_APIS 从 config.js 删除且全项目无引用"
+    source: 名词契约
+    status: passed
+  - item: "app.js selectedAPIs 初始化与首次初始化均为 Object.keys(API_SITES)"
+    source: 名词契约
+    status: passed
+  - item: "selectedAPIsV2 迁移：旧用户内置源重置为全选、保留 custom_* 项、不重复迁移"
+    source: 编排骨架
+    status: passed
+  - item: "js/site_health.js 文件删除，index.html 无其 script 引用"
+    source: 挂载点
+    status: passed
+  - item: "app.js 中 siteHealthCache/effectiveAPIs 读取与过滤段删除"
+    source: 编排骨架
+    status: passed
+  - item: "search() 直接对 selectedAPIs 并发搜索，无前置测活/过滤"
+    source: 流程级约束
+    status: passed
+  - item: "首页无任何后台探测请求（S3）"
+    source: 验收场景
+    status: passed
+  - item: "取消勾选后刷新保持未勾选（S4）"
+    source: 验收场景
+    status: passed
+  - item: "搜索直接全量并发且部分源失败不影响整体（S5）"
+    source: 验收场景
+    status: passed
+  - item: "自定义源参与搜索（S6）"
+    source: 验收场景
+    status: passed
+  - item: "搜索后 selectedAPIs 保持不变（S7）"
+    source: 验收场景
+    status: passed
+  - item: "全项目无测活残留标识符（S8）"
+    source: 验收场景
+    status: passed

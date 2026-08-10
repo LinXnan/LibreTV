@@ -1,5 +1,5 @@
 // 全局变量
-let selectedAPIs = JSON.parse(localStorage.getItem('selectedAPIs') || JSON.stringify(Object.keys(API_SITES).filter(key => !DEFAULT_UNSELECTED_APIS.includes(key)))); // 默认全选（除失效/不可靠源）
+let selectedAPIs = JSON.parse(localStorage.getItem('selectedAPIs') || JSON.stringify(Object.keys(API_SITES))); // 默认全选所有内置源
 
 // 规范化自定义 API 数据格式，支持 api/adult 和 url/isAdult 两种格式
 function normalizeCustomAPI(api) {
@@ -37,6 +37,27 @@ const searchCache = new Map(); // 搜索结果缓存 { key: {results, timestamp}
 
 // 页面初始化
 document.addEventListener('DOMContentLoaded', function () {
+    // 设置默认API选择（首次加载）或迁移旧数据（V1 → V2：内置源重置为全选，保留自定义源勾选）
+    // 必须在 initAPICheckboxes/updateSelectedApiCount 之前执行，确保渲染与计数使用迁移后的全选值
+    if (!localStorage.getItem('hasInitializedDefaults') || !localStorage.getItem('selectedAPIsV2')) {
+        const customSelected = selectedAPIs.filter(key => key.startsWith('custom_'));
+        selectedAPIs = [...customSelected, ...Object.keys(API_SITES)];
+        localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
+        localStorage.setItem('selectedAPIsV2', 'true');
+
+        if (!localStorage.getItem('hasInitializedDefaults')) {
+            // 默认选中过滤开关
+            localStorage.setItem('yellowFilterEnabled', 'true');
+            localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true');
+
+            // 默认关闭豆瓣功能
+            localStorage.setItem('doubanEnabled', 'false');
+
+            // 标记已初始化默认值
+            localStorage.setItem('hasInitializedDefaults', 'true');
+        }
+    }
+
     // 初始化API复选框
     initAPICheckboxes();
 
@@ -45,23 +66,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化显示选中的API数量
     updateSelectedApiCount();
-
-    // 设置默认API选择（如果是第一次加载）
-    if (!localStorage.getItem('hasInitializedDefaults')) {
-        // 默认全选（排除 DEFAULT_UNSELECTED_APIS 中失效/不可靠的源）
-        selectedAPIs = Object.keys(API_SITES).filter(key => !DEFAULT_UNSELECTED_APIS.includes(key));
-        localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
-
-        // 默认选中过滤开关
-        localStorage.setItem('yellowFilterEnabled', 'true');
-        localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true');
-
-        // 默认关闭豆瓣功能
-        localStorage.setItem('doubanEnabled', 'false');
-
-        // 标记已初始化默认值
-        localStorage.setItem('hasInitializedDefaults', 'true');
-    }
 
     // 设置黄色内容过滤器开关初始状态
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
@@ -823,20 +827,9 @@ async function search() {
         return;
     }
 
-    // 复用测活缓存跳过已知失效源：新鲜缓存（1h）内过滤掉不在 ok 列表的内置源，自定义源保留
-    let effectiveAPIs = selectedAPIs;
-    try {
-        const health = JSON.parse(localStorage.getItem('siteHealthCache') || 'null');
-        if (health && Array.isArray(health.ok) && Date.now() - health.timestamp < 3600 * 1000) {
-            const okSet = new Set(health.ok);
-            const filtered = selectedAPIs.filter(key => key.startsWith('custom_') || okSet.has(key));
-            if (filtered.length > 0) effectiveAPIs = filtered; // 空则回退全量，避免空结果
-        }
-    } catch { /* 缓存损坏则忽略，走全量 */ }
-
     // 缓存检查：相同 query + 相同源列表命中直接返回
     const CACHE_TTL = 5 * 60 * 1000; // 5 分钟
-    const cacheKey = `${query}:${[...effectiveAPIs].sort().join(',')}`;
+    const cacheKey = `${query}:${[...selectedAPIs].sort().join(',')}`;
     const cached = searchCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         searchInProgress = false;
@@ -903,7 +896,7 @@ async function search() {
         };
 
         // 逐源发起并发请求，每完成一个源立即触发增量渲染
-        const resultsArray = await Promise.allSettled(effectiveAPIs.map(async apiId => {
+        const resultsArray = await Promise.allSettled(selectedAPIs.map(async apiId => {
             const r = await searchByAPIAndKeyWord(apiId, query);
             if (r && Array.isArray(r.results) && r.results.length > 0) {
                 allResults.push(...r.results);

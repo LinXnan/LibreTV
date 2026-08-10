@@ -106,24 +106,3 @@ const CUSTOM_API_CONFIG = {
 
 // 隐藏内置黄色采集站API的变量
 const HIDE_BUILTIN_ADULT_APIS = false;
-
-// 默认不勾选的数据源 key（失效、不可靠或未经实测，避免默认全选拖慢搜索；用户可在设置中手动勾选）
-const DEFAULT_UNSELECTED_APIS = [
-	// 原内置源（2026-08-08 实测失效）
-	'zuidaziyuan',           // 最大资源
-	'maotaiziyuan',          // 茅台资源
-	'yinghuaziyuan',         // 樱花资源
-	'wolongziyuan',          // 卧龙资源
-	'dianyingtiantang',      // 电影天堂
-	'tianyayingshiziyuan',   // 天涯影视
-	'doubanziyuan',          // 豆瓣资源
-	'feifanziyuan',          // 非凡资源（详情不稳定）
-	// 批量实测候选（2026-08-08 探测时不可用或未验证，保留供用户手动测试）
-	'uku', 'qilin', 'fqzy', 'hongniu1', 'kuaibo', '8090', 'hongniu2',
-	'1080zyku', '39kan', 'vipmv', 'lehootv', 'tangrenjie', 'kuapi',
-	'kudian', 'slapibf', 'ykapi', 'kczy', 'apittzy', 'sdzy', 'aosika',
-	'apilyzy', 'bdxzy', 'lovedan', 'zzrhgg', 'tiankong', 'haiwaikan',
-	'heimuer', 'cttvys', 'cttvgwc', 'yyff', 'hw8', 'xiaohuangren',
-	'niuniu', 'yayazy', '49zyw', 'suoni', 'ikun', 'feisuapi', 'kuaikan',
-	'xzcjz', 'ahjiuman', 'moduapi', 'qhzy', 'kuaiyun'
-];
