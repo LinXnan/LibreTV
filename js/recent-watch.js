@@ -117,18 +117,30 @@
                 </div>
             `;
         }).join('');
-        // 3 段式无缝循环：S1/S3 为隐藏克隆（首尾衔接用），S2 为真实内容
-        // 滚动到 S3 时瞬间跳回 S2 对应位置，画面完全一致（视口恒小于一段宽度），实现"末尾直接衔接开头"
-        // 克隆段对辅助技术隐藏（aria-hidden），避免屏幕阅读器重复朗读
-        const hiddenHtml = itemsHtml.replace(/class="recent-watch-card"/g, 'class="recent-watch-card" aria-hidden="true" tabindex="-1"');
-        track.innerHTML = hiddenHtml + itemsHtml + hiddenHtml;
-        // 初始定位到中段（S2）开头，从真实第一部开始轮播
-        track.scrollLeft = track.scrollWidth / 3;
+        // 先应用可见性再测量内容宽度：display:none 下 scrollWidth/clientWidth 均为 0，无法判断是否需要无缝循环
+        applyVisibility();
+
+        // 先以单段渲染测量：内容不足视口时无需克隆（否则同一影片会在视口内重复展示），直接单段展示
+        track.innerHTML = itemsHtml;
+        const needsLoop = track.scrollWidth > track.clientWidth + 1;
+
+        if (needsLoop) {
+            // 3 段式无缝循环：S1/S3 为隐藏克隆（首尾衔接用），S2 为真实内容
+            // 滚动到 S3 时瞬间跳回 S2 对应位置，画面完全一致（视口恒小于一段宽度），实现"末尾直接衔接开头"
+            // 克隆段对辅助技术隐藏（aria-hidden），避免屏幕阅读器重复朗读
+            const hiddenHtml = itemsHtml.replace(/class="recent-watch-card"/g, 'class="recent-watch-card" aria-hidden="true" tabindex="-1"');
+            track.innerHTML = hiddenHtml + itemsHtml + hiddenHtml;
+            // 初始定位到中段（S2）开头，从真实第一部开始轮播
+            track.scrollLeft = track.scrollWidth / 3;
+            refreshCarousel();
+        } else {
+            // 内容不足视口：单段居中展示（首尾 auto margin 吸收剩余空间），无需自动轮播
+            track.scrollLeft = 0;
+            stopAutoScroll();
+        }
 
         clearTimeout(resumeTimer);
         resumeTimer = null;
-        applyVisibility();
-        refreshCarousel();
     }
 
     // 单步滚动距离：一张卡片宽 + 间距
