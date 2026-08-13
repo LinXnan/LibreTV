@@ -69,13 +69,6 @@
     .filter-btn {
         padding: 0.5rem 0.75rem !important;
     }
-
-    /* 豆瓣标签 */
-    .douban-tag {
-        padding: 0.5rem 1rem !important;
-        display: flex;
-        align-items: center;
-    }
 }
 
 /* ========================================
@@ -293,23 +286,6 @@
     }
 
 
-    /* 横向滚动提示 */
-    .douban-tags-container::after {
-        content: '→';
-        position: absolute;
-        right: 0;
-        top: 50%;
-        transform: translateY(-50%);
-        background: linear-gradient(to right, transparent, #0f1622);
-        padding: 0.5rem 1rem;
-        pointer-events: none;
-        opacity: 0.6;
-    }
-
-    /* 滚动到底部时隐藏提示 */
-    .douban-tags-container.scrolled-end::after {
-        display: none;
-    }
 }
 
 /* ========================================

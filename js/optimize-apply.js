@@ -6,22 +6,6 @@
 (function() {
     'use strict';
 
-    // 优化9: 搜索防抖
-    function applySearchDebounce() {
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput && typeof debounce === 'function') {
-            const debouncedHandler = debounce((e) => {
-                const query = e.target.value.trim();
-                if (query.length > 0) {
-                    // 未来可以在这里添加搜索建议功能
-                    console.log('Search input:', query);
-                }
-            }, 300);
-
-            searchInput.addEventListener('input', debouncedHandler);
-        }
-    }
-
     // 优化6: 图片懒加载
     function applyImageLazyLoading() {
         if (window.lazyImageLoader) {
@@ -53,39 +37,17 @@
         }
     }
 
-    // 优化3: localStorage 防抖 - 提供辅助函数
-    function setupStorageHelpers() {
-        if (window.storageManager) {
-            // 为常用的 localStorage 操作提供便捷方法
-            window.saveConfig = function(key, value) {
-                window.storageManager.setItem(key, value);
-            };
-
-            window.getConfig = function(key) {
-                return window.storageManager.getItem(key);
-            };
-
-            window.saveConfigImmediate = function(key, value) {
-                window.storageManager.setItemImmediate(key, value);
-            };
-        }
-    }
-
     // 页面加载完成后应用优化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
-                applySearchDebounce();
                 applyImageLazyLoading();
-                setupStorageHelpers();
                 console.log('✅ 优化已应用');
             }, 100);
         });
     } else {
         setTimeout(() => {
-            applySearchDebounce();
             applyImageLazyLoading();
-            setupStorageHelpers();
             console.log('✅ 优化已应用');
         }, 100);
     }

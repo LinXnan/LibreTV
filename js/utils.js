@@ -28,143 +28,6 @@ function isValidImageUrl(url) {
 }
 
 
-// 并发池控制类
-class ConcurrentPool {
-    constructor(limit = 3) {
-        this.limit = limit;
-        this.running = 0;
-        this.queue = [];
-    }
-
-    async run(fn) {
-        while (this.running >= this.limit) {
-            await new Promise(resolve => this.queue.push(resolve));
-        }
-        this.running++;
-        try {
-            return await fn();
-        } finally {
-            this.running--;
-            const resolve = this.queue.shift();
-            if (resolve) resolve();
-        }
-    }
-}
-
-// localStorage 管理类（带防抖和配额管理）
-class StorageManager {
-    constructor(debounceTime = 1000) {
-        this.debounceTime = debounceTime;
-        this.timers = new Map();
-        this.cache = new Map();
-        this.MAX_SIZE = 5 * 1024 * 1024;
-        this.MIN_RECORDS = 10;
-    }
-
-    setItem(key, value) {
-        this.cache.set(key, value);
-
-        if (this.timers.has(key)) {
-            clearTimeout(this.timers.get(key));
-        }
-
-        const timer = setTimeout(() => {
-            try {
-                localStorage.setItem(key, JSON.stringify(value));
-                this.timers.delete(key);
-            } catch (e) {
-                console.error('localStorage write error:', e);
-            }
-        }, this.debounceTime);
-
-        this.timers.set(key, timer);
-    }
-
-    getItem(key) {
-        if (this.cache.has(key)) {
-            return this.cache.get(key);
-        }
-
-        try {
-            const value = localStorage.getItem(key);
-            const parsed = value ? JSON.parse(value) : null;
-            this.cache.set(key, parsed);
-            return parsed;
-        } catch (e) {
-            console.error('localStorage read error:', e);
-            return null;
-        }
-    }
-
-    removeItem(key) {
-        this.cache.delete(key);
-        if (this.timers.has(key)) {
-            clearTimeout(this.timers.get(key));
-            this.timers.delete(key);
-        }
-        localStorage.removeItem(key);
-    }
-
-    setItemImmediate(key, value) {
-        if (this.timers.has(key)) {
-            clearTimeout(this.timers.get(key));
-            this.timers.delete(key);
-        }
-        this.cache.set(key, value);
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch (e) {
-            console.error('localStorage write error:', e);
-        }
-    }
-
-    getStorageSize() {
-        let total = 0;
-        for (let key in localStorage) {
-            if (localStorage.hasOwnProperty(key)) {
-                total += (localStorage[key].length + key.length) * 2;
-            }
-        }
-        return total;
-    }
-
-    needsCleanup() {
-        return this.getStorageSize() > this.MAX_SIZE;
-    }
-
-    cleanupHistory() {
-        const history = JSON.parse(localStorage.getItem('viewingHistory') || '[]');
-        history.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-        while (history.length > this.MIN_RECORDS && this.getStorageSize() > this.MAX_SIZE) {
-            history.pop();
-        }
-
-        localStorage.setItem('viewingHistory', JSON.stringify(history));
-        return history.length;
-    }
-
-    saveWithRetry(key, value) {
-        try {
-            localStorage.setItem(key, value);
-            return true;
-        } catch (e) {
-            if (e.name === 'QuotaExceededError') {
-                console.warn('localStorage quota exceeded, cleaning up...');
-                this.cleanupHistory();
-                try {
-                    localStorage.setItem(key, value);
-                    return true;
-                } catch (retryError) {
-                    console.error('Save failed after cleanup');
-                    return false;
-                }
-            }
-            throw e;
-        }
-    }
-}
-
 // 图片本地缓存管理类
 class ImageCacheManager {
     constructor(maxSize = 3 * 1024 * 1024) {
@@ -473,12 +336,10 @@ class LazyImageLoader {
 
 // 创建全局实例
 if (typeof window !== 'undefined') {
-    window.storageManager = new StorageManager(1000);
-    window.concurrentPool = new ConcurrentPool(3);
     window.imageCacheManager = new ImageCacheManager(3 * 1024 * 1024);
     window.lazyImageLoader = new LazyImageLoader();
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { debounce, ConcurrentPool, StorageManager, ImageCacheManager, isValidImageUrl };
+    module.exports = { debounce, ImageCacheManager, isValidImageUrl };
 }

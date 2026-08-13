@@ -610,16 +610,6 @@ body {
     margin-right: 0.35rem;
 }
 
-/* 编辑按钮样式 */
-.custom-api-edit {
-    color: #3b82f6;
-    transition: color 0.2s ease;
-}
-
-.custom-api-edit:hover {
-    color: #2563eb;
-}
-
 /* 自定义API条目样式改进 */
 #customApisList .api-item {
     display: flex;
@@ -634,16 +624,6 @@ body {
 
 #customApisList .api-item:hover {
     background-color: #2a2a2a;
-}
-
-/* 成人内容标签样式 */
-.adult-tag {
-    display: inline-flex;
-    align-items: center;
-    color: #ff6b8b;
-    font-size: 0.7rem;
-    font-weight: 500;
-    margin-right: 0.35rem;
 }
 
 /* 历史记录面板样式 */
@@ -1270,7 +1250,7 @@ body {
 }
 
 /* 滚动性能优化 */
-.scroll-container, #historyPanel, #settingsPanel, #modalContent, #results, #douban-results {
+#historyPanel, #settingsPanel, #modalContent, #results, #douban-results {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
@@ -1400,8 +1380,7 @@ body {
 }
 
 /* 撤销Toast — 统一类名，全端顶部居中，从上方滑入 */
-.history-undo-toast,
-.history-undo-toast-pc {
+.history-undo-toast {
     position: fixed;
     top: 16px;
     left: 50%;
@@ -1418,29 +1397,18 @@ body {
     animation: toast-slide-in-down 180ms ease-out;
 }
 
-.history-undo-toast.hiding,
-.history-undo-toast-pc.hiding {
+.history-undo-toast.hiding {
     animation: toast-slide-out-up 180ms ease-out forwards;
 }
 
 /* 移动端刘海屏：避免被顶部安全区遮挡 */
 @media (max-width: 640px) {
-    .history-undo-toast,
-    .history-undo-toast-pc {
+    .history-undo-toast {
         top: max(1rem, env(safe-area-inset-top));
     }
 }
 
-.history-undo-toast-text {
-    font-size: 14px;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.history-undo-toast-btn,
-.undo-btn {
+.history-undo-toast-btn {
     color: #60a5fa;
     font-weight: 500;
     font-size: 14px;
@@ -1452,14 +1420,12 @@ body {
     transition: all 0.2s ease;
 }
 
-.history-undo-toast-btn:hover,
-.undo-btn:hover {
+.history-undo-toast-btn:hover {
     background: #60a5fa;
     color: white;
 }
 
-.history-undo-toast-btn:active,
-.undo-btn:active {
+.history-undo-toast-btn:active {
     background: rgba(96, 165, 250, 0.2);
 }
 
@@ -1582,18 +1548,6 @@ body {
 
 .datasource-action-btn:active {
     transform: translateY(0);
-}
-
-/* API选择滚动区域 */
-.datasource-scroll-area {
-    max-height: 10rem;
-    overflow-y: auto;
-    background: linear-gradient(135deg, rgba(10, 14, 26, 0.8), rgba(18, 24, 41, 0.8));
-    border: 1px solid rgba(0, 159, 191, 0.15);
-    border-radius: 8px;
-    padding: 0.5rem;
-    margin-bottom: 1rem;
-    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* 桌面端 API 复选框项 */

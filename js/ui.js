@@ -1,27 +1,3 @@
-// UI相关函数
-function toggleSettings(e) {
-    // 密码保护校验 - 防止绕过
-    if (!window.requirePasswordOrPrompt()) return;
-    // 阻止事件冒泡，防止触发document的点击事件
-    e && e.stopPropagation();
-    const panel = document.getElementById('settingsPanel');
-    if (!panel) return;
-
-    const triggerElement = e?.currentTarget || document.activeElement;
-
-    // 移动端使用增强版打开/关闭
-    if (window.innerWidth <= 640) {
-        if (panel.classList.contains('show')) {
-            window.closePanel && window.closePanel(panel);
-        } else {
-            window.openPanel && window.openPanel(panel, triggerElement);
-        }
-    } else {
-        // 桌面端保持原有逻辑
-        panel.classList.toggle('show');
-    }
-}
-
 // 改进的Toast显示函数 - 支持队列显示多个Toast
 const toastQueue = [];
 let isShowingToast = false;
@@ -128,15 +104,6 @@ function hideLoading() {
 
     const loading = document.getElementById('loading');
     loading.style.display = 'none';
-}
-
-function updateSiteStatus(isAvailable) {
-    const statusEl = document.getElementById('siteStatus');
-    if (isAvailable) {
-        statusEl.innerHTML = '<span class="text-green-500">●</span> 可用';
-    } else {
-        statusEl.innerHTML = '<span class="text-red-500">●</span> 不可用';
-    }
 }
 
 function closeModal() {
@@ -642,20 +609,6 @@ function formatPlaybackTime(seconds) {
     const remainingSeconds = Math.floor(seconds % 60);
 
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-}
-
-// 删除单个历史记录项 - 统一使用撤销功能
-function deleteHistoryItem(encodedUrl) {
-    const url = decodeURIComponent(encodedUrl);
-    const history = getViewingHistory();
-    const itemIndex = history.findIndex(item => item.url === url);
-
-    if (itemIndex === -1) {
-        showToast('记录不存在', 'error');
-        return;
-    }
-
-    deleteHistoryItemWithUndo(encodedUrl, itemIndex);
 }
 
 // 撤销系统状态 (window 作用域，面板关闭后持续)

@@ -23,17 +23,15 @@ js/
 ├── search.js          # 单源搜索（经代理）
 ├── api.js             # apiCache, /api/search, /api/detail
 ├── app.js             # 首页 SPA：搜索编排/详情/筛选分页/设置面板/导入导出
-├── infinite-scroll.js # 移动端搜索页无限滚动加载
 ├── player.js          # 播放器：HLS 管理/广告过滤/连播/快捷键/资源切换（~3000行）
 ├── ui.js              # UI 辅助：历史面板/设置面板样式
 ├── index-page.js      # 免责声明弹窗 + URL 搜索参数处理
 ├── watch.js           # 到 player 的 query 桥接
 ├── recent-watch.js    # 首页最近观看模块
 ├── douban.js          # 豆瓣推荐
-├── utils.js           # debounce, ConcurrentPool, StorageManager
+├── utils.js           # debounce, ImageCacheManager, LazyImageLoader
 ├── mobile-panel-gestures.js # 移动端面板手势
 ├── pwa-register.js    # PWA 注册
-├── version-check.js   # 版本检查
 └── optimize-apply.js  # ArtPlayer 插件
 
 css/

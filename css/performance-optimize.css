@@ -142,9 +142,7 @@ button:active {
 }
 
 /* 加载动画 */
-.loading-spinner,
-#style-loader::after,
-.player-loading-spinner {
+#style-loader::after {
     will-change: transform;
 }
 
@@ -162,8 +160,7 @@ button:active {
 .history-panel,
 .settings-panel,
 #modal,
-#toast,
-.loading-spinner {
+#toast {
     transform: translateZ(0);
     backface-visibility: hidden;
     perspective: 1000px;
@@ -185,20 +182,10 @@ button:active {
 .history-panel,
 .settings-panel,
 #modalContent,
-.episode-grid,
-.douban-tags-container {
+.episode-grid {
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
-}
-
-/* 滚动捕捉（可选） */
-.douban-tags-container {
-    scroll-snap-type: x proximity;
-}
-
-.douban-tag {
-    scroll-snap-align: start;
 }
 
 /* ========================================
@@ -420,8 +407,7 @@ video {
     .history-panel,
     .settings-panel,
     #modal,
-    #toast,
-    .loading-spinner {
+    #toast {
         display: none !important;
     }
 

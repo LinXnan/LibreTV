@@ -1341,30 +1341,6 @@ function closeVideoPlayer(home = false) {
     }
 }
 
-// 播放上一集
-function playPreviousEpisode(sourceCode) {
-    if (currentEpisodeIndex > 0) {
-        const prevIndex = currentEpisodeIndex - 1;
-        const prevUrl = currentEpisodes[prevIndex];
-        playVideo(prevUrl, currentVideoTitle, sourceCode, prevIndex);
-    }
-}
-
-// 播放下一集
-function playNextEpisode(sourceCode) {
-    if (currentEpisodeIndex < currentEpisodes.length - 1) {
-        const nextIndex = currentEpisodeIndex + 1;
-        const nextUrl = currentEpisodes[nextIndex];
-        playVideo(nextUrl, currentVideoTitle, sourceCode, nextIndex);
-    }
-}
-
-// 处理播放器加载错误
-function handlePlayerError() {
-    hideLoading();
-    showToast('视频播放加载失败，请尝试其他视频源', 'error');
-}
-
 // 辅助函数用于渲染剧集按钮（使用当前的排序状态）
 function renderEpisodes(vodName, sourceCode, vodId) {
     const episodes = episodesReversed ? [...currentEpisodes].reverse() : currentEpisodes;

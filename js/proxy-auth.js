@@ -79,31 +79,6 @@ async function addAuthToProxyUrl(url) {
 }
 
 /**
- * 验证代理请求的鉴权
- */
-function validateProxyAuth(authHash, serverPasswordHash, timestamp) {
-    if (!authHash || !serverPasswordHash) {
-        return false;
-    }
-    
-    // 验证哈希是否匹配
-    if (authHash !== serverPasswordHash) {
-        return false;
-    }
-    
-    // 验证时间戳（60分钟有效期）
-    const now = Date.now();
-    const maxAge = 60 * 60 * 1000; // 60分钟
-
-    if (timestamp && (now - parseInt(timestamp)) > maxAge) {
-        console.warn('代理请求时间戳过期');
-        return false;
-    }
-    
-    return true;
-}
-
-/**
  * 清除缓存的鉴权信息
  */
 function clearAuthCache() {
@@ -121,7 +96,6 @@ window.addEventListener('storage', (e) => {
 // 导出函数
 window.ProxyAuth = {
     addAuthToProxyUrl,
-    validateProxyAuth,
     clearAuthCache,
     getPasswordHash
 };
