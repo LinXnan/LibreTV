@@ -1,5 +1,8 @@
 # LibreTV — AI Agent 入口
 
+> 本文档是项目唯一的 AI 约定入口（AGENTS.md 是跨 AI 工具通用标准）。
+> 请所有 AI 助手在开始工作前阅读本文件，并按 `.codestable/attention.md` 的要求操作。
+
 ## 技术栈
 
 - 纯静态前端：HTML5 + Vanilla JS (ES6+) + Tailwind CSS
@@ -14,16 +17,23 @@ js/
 ├── config.js          # 常量：PROXY_URL, API_CONFIG, PASSWORD_CONFIG
 ├── customer_site.js   # 内置采集源 → 合并到 API_SITES
 ├── password.js        # 密码门禁
+├── password-inject.js # 服务端注入密码哈希到页面
+├── sha256.js          # SHA-256 工具（密码哈希/代理鉴权）
 ├── proxy-auth.js      # 代理鉴权加签
 ├── search.js          # 单源搜索（经代理）
 ├── api.js             # apiCache, /api/search, /api/detail
 ├── app.js             # 首页 SPA：搜索编排/详情/筛选分页/设置面板/导入导出
+├── infinite-scroll.js # 移动端搜索页无限滚动加载
 ├── player.js          # 播放器：HLS 管理/广告过滤/连播/快捷键/资源切换（~3000行）
 ├── ui.js              # UI 辅助：历史面板/设置面板样式
-├── index-page.js      # 首页初始化
+├── index-page.js      # 免责声明弹窗 + URL 搜索参数处理
 ├── watch.js           # 到 player 的 query 桥接
+├── recent-watch.js    # 首页最近观看模块
 ├── douban.js          # 豆瓣推荐
 ├── utils.js           # debounce, ConcurrentPool, StorageManager
+├── mobile-panel-gestures.js # 移动端面板手势
+├── pwa-register.js    # PWA 注册
+├── version-check.js   # 版本检查
 └── optimize-apply.js  # ArtPlayer 插件
 
 css/
@@ -37,14 +47,31 @@ css/
 
 > **注意**：`mobile-optimize.css` 已于 2026-08 重构精简（1975→929行），仅保留跨页面移动端工具样式。**新增组件样式禁止追加到此文件**——应放在对应页面 CSS 的 `@media` 块内。
 
+```
+根目录 /
+├── index.html / player.html / watch.html / about.html   # 四个页面
+├── server.mjs            # Express 开发服务器（静态 + 密码注入 + /proxy 代理）
+├── middleware.js         # Vercel Middleware（密码注入，供 Vercel 部署）
+├── service-worker.js     # PWA Service Worker
+├── manifest.json         # PWA 清单
+├── api/proxy/            # Vercel serverless 代理
+├── netlify/functions/    # Netlify 代理函数
+├── netlify/edge-functions/inject-env.js  # Netlify Edge 密码注入
+├── functions/proxy/      # CF Pages 代理函数
+├── functions/_middleware.js              # CF Pages 密码注入中间件
+├── vercel.json / netlify.toml / render.yaml / Dockerfile / docker-compose.yml  # 各平台部署配置
+└── libs/                 # 第三方库（ArtPlayer, HLS.js, Tailwind CDN, sha256）
+```
+
 ## 命令
 
 ```bash
-npm run dev     # 启动开发服务器 → http://localhost:8080
-npm install     # 安装依赖（仅 express + node-fetch）
+npm install     # 安装依赖（express、axios、cors、dotenv、node-fetch + nodemon）
+npm run dev     # 开发服务器（nodemon 监听 server.mjs）→ http://localhost:8080
+npm start       # 直接启动（node server.mjs）
 ```
 
-无构建，无测试命令。部署用 Vercel/Netlify/CF/Docker 按钮。
+无构建，无测试命令。部署用 Vercel/Netlify/CF/Docker 按钮（见 `vercel.json` / `netlify.toml` / `render.yaml` / `Dockerfile`）。
 
 ## 禁区
 
@@ -54,6 +81,7 @@ npm install     # 安装依赖（仅 express + node-fetch）
 - **禁止向 git 提交 `.env`**，`PASSWORD` 是敏感环境变量
 - **player.js 和 app.js 不再追加新功能**到文件末尾，新功能应拆到独立模块（审计 #6/#7 延后执行）
 - **修改代理逻辑必须同步所有平台**：Vercel (`api/proxy/`)、Netlify (`netlify/functions/`)、CF (`functions/proxy/`)、Express (`server.mjs`) 四个实现路径
+- **修改密码注入逻辑必须同步 4 处**：共享函数 `js/password-inject.js` 供 Vercel `middleware.js`、Netlify `edge-functions/inject-env.js`、CF `functions/_middleware.js` 使用；Express 走 `server.mjs` 的 `renderPage`（`{{PASSWORD}}` 占位符替换）
 - **禁止创建独立的移动端 CSS 文件**：移动端样式通过 `@media (max-width: 640px)` 写在组件所在的主 CSS 文件中，不要新增 `mobile-*.css`
 
 ## 代码约定
@@ -92,6 +120,8 @@ div.className = 'responsive-grid';
 - `navigator.userAgent` 检测仅用于**交互模式**判断（触摸 vs 鼠标），不用于布局
 
 ## 文档索引
+
+> 本文件记录稳定约定；易变运行细节与陷阱见 `.codestable/attention.md`（CodeStable 工作流必读）。
 
 - 系统总览：`.codestable/architecture/system-overview.md`
 - 代理网关：`.codestable/architecture/proxy-gateway.md`

@@ -1,2 +1,4 @@
 /.env
 .ace-tool/
+/.idea/
+/node_modules/
