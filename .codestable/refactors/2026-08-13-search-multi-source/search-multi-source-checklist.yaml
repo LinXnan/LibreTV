@@ -1,0 +1,66 @@
+refactor: 2026-08-13-search-multi-source
+slug: search-multi-source
+
+steps:
+  - id: 1
+    name: 每源拉页上限 3→2（config.js maxPages）
+    method: M-L4-02
+    verification_owner: AI
+    exit_signal: "config.js maxPages === 2；search.js 额外页上限自动为 1；node --check 通过"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 搜索确认结果数量略少、耗时下降，请求量降 1/3（Network 每源最多 2 请求）"
+    human_status: pending
+
+  - id: 2
+    name: 取消在途旧请求 + 代际隔离（searchGeneration token + searchByAPIAndKeyWord 外部 signal）
+    method: M-L4-06
+    verification_owner: AI
+    exit_signal: "searchByAPIAndKeyWord 签名加可选第三参且 player.js 调用点兼容；search() 内 myGen 校验覆盖增量回调/收尾/finally；searchAbortController.abort() 触发旧 fetch 取消；node --check 通过"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 连续搜索（搜 A 紧接搜 B）Network 面板确认 A 在途请求被 abort；锁不因旧搜索 finally 提前解锁"
+    human_status: pending
+
+  - id: 3
+    name: "搜索交付节奏（用户反馈 3 次迭代后定稿）：全部 settle 后一次性渲染（竞速早退+增量渲染+加载提示均已移除）"
+    method: M-L4-06
+    verification_owner: AI
+    exit_signal: "search() 无竞速/增量逻辑残留（grep incrementalTimer|RACE_WINDOW|earlyFinalized|refinalizeTimer|partialLoadingHint 0 引用）；全部源 allSettled 后 finalizeSearchResults() 单次调用；代际校验保留；node --check 通过"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 搜索后骨架屏保持至全部源完成，结果/统计/筛选/分页一次性出现且稳定，无'先部分后补齐'闪烁"
+    human_status: pending
+
+  - id: 4
+    name: 同名多源结果去重合并（dedupeSearchResults + merged_sources 展开统计/筛选 + 来源数徽标）
+    method: M-L4-08
+    verification_owner: AI
+    exit_signal: "dedupeSearchResults 单次 Map 遍历按 vod_name|vod_year 去重；finalizeSearchResults 与 renderCachedResults 均去重；buildSearchCardHTML 兼容 merged_sources；筛选/统计遍历 merged_sources || [source_name]；node --check 通过"
+    done: true
+    human_checkpoint:
+      detail: "HUMAN 搜索结果同名卡片合并且标注 N 个源；统计数与卡片一致；按某源筛选仍能看到对应合并卡片；同名不同年不误合并"
+    human_status: pending
+
+checks:
+  - id: c1
+    description: "maxPages=2，单源最多 2 请求"
+    status: pending
+  - id: c2
+    description: "取消在途旧请求生效；searchGeneration 代际隔离覆盖增量回调/收尾/finally，无双搜索/串扰"
+    status: pending
+  - id: c3
+    description: "竞速窗口 2s 早退收尾；早退不写缓存、最终才写；窗口后新结果节流重收尾；加载提示生命周期正确"
+    status: pending
+  - id: c4
+    description: "同名+同年去重合并，卡片标注来源数；统计/筛选基于 merged_sources 展开，按源筛选仍有效"
+    status: pending
+  - id: c5
+    description: "缓存路径与非缓存路径结果一致（均去重，幂等修复）；player.js 资源切换调用点不受 searchByAPIAndKeyWord 签名影响"
+    status: verified
+  - id: c6
+    description: "播放页资源切换与搜索卡片徽标口径统一（name+year 精确匹配，年份全链路透传）；无年份入口降级 name-only"
+    status: verified
+  - id: c7
+    description: "REV-001 幂等修复：缓存命中二次 dedupe 保留 merged_sources（round2 APPROVED）"
+    status: verified

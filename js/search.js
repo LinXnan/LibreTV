@@ -1,4 +1,4 @@
-async function searchByAPIAndKeyWord(apiId, query) {
+async function searchByAPIAndKeyWord(apiId, query, externalSignal) {
     try {
         let apiUrl, apiName, apiBaseUrl;
 
@@ -22,6 +22,8 @@ async function searchByAPIAndKeyWord(apiId, query) {
         // 添加超时处理（与测活超时对齐，4 秒）
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 4000);
+        // 合并外部取消信号（新搜索发起时取消在途旧请求）
+        const signal = externalSignal ? AbortSignal.any([controller.signal, externalSignal]) : controller.signal;
         
         // 添加鉴权参数到代理URL
         const proxiedUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 
@@ -30,7 +32,7 @@ async function searchByAPIAndKeyWord(apiId, query) {
         
         const response = await fetch(proxiedUrl, {
             headers: API_CONFIG.search.headers,
-            signal: controller.signal
+            signal: signal
         });
 
         clearTimeout(timeoutId);
@@ -73,6 +75,8 @@ async function searchByAPIAndKeyWord(apiId, query) {
                     try {
                         const pageController = new AbortController();
                         const pageTimeoutId = setTimeout(() => pageController.abort(), 4000);
+                        // 合并外部取消信号（与第一页一致）
+                        const pageSignal = externalSignal ? AbortSignal.any([pageController.signal, externalSignal]) : pageController.signal;
                         
                         // 添加鉴权参数到代理URL
                         const proxiedPageUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 
@@ -81,7 +85,7 @@ async function searchByAPIAndKeyWord(apiId, query) {
                         
                         const pageResponse = await fetch(proxiedPageUrl, {
                             headers: API_CONFIG.search.headers,
-                            signal: pageController.signal
+                            signal: pageSignal
                         });
                         
                         clearTimeout(pageTimeoutId);

@@ -79,6 +79,7 @@ window.addEventListener('load', function () {
 // =================================
 // 全局变量
 let currentVideoTitle = '';
+let currentVideoYear = ''; // 当前视频年份（URL year 参数，用于资源切换按 name+year 统一口径）
 let currentEpisodeIndex = 0;
 let art = null; // 用于 ArtPlayer 实例
 let currentHls = null; // 跟踪当前HLS实例
@@ -204,6 +205,10 @@ function initializePageContent() {
                 if (!urlParams.has('vod_pic') && nestedVodPic) {
                     url.searchParams.set('vod_pic', nestedVodPic);
                 }
+                const nestedYear = nestedUrlParams.get('year');
+                if (!urlParams.has('year') && nestedYear) {
+                    url.searchParams.set('year', nestedYear);
+                }
                 // 替换当前URL
                 window.history.replaceState({}, '', url);
             } else {
@@ -231,6 +236,7 @@ function initializePageContent() {
 
     // 从localStorage获取数据
     currentVideoTitle = title || localStorage.getItem('currentVideoTitle') || '未知视频';
+    currentVideoYear = urlParams.get('year') || '';
     currentEpisodeIndex = index;
 
     // 设置自动连播开关状态
@@ -2137,13 +2143,24 @@ async function loadResourceSwitchList() {
             if (queryResult.results.length == 0) {
                 return
             }
-            // 优先取完全同名资源，否则默认取第一个
-            let result = queryResult.results[0]
-            queryResult.results.forEach((res) => {
-                if (res.vod_name == currentVideoTitle) {
-                    result = res;
-                }
-            })
+            // 统一口径：有年份信息时按 name+year 精确匹配（与搜索结果去重 dedupeSearchResults 一致），
+            // 该源无同年版本则跳过；无年份信息（最近观看/豆瓣/分享等入口）降级为 name-only 兼容
+            let result = null;
+            if (currentVideoYear) {
+                queryResult.results.forEach((res) => {
+                    if (res.vod_name == currentVideoTitle && String(res.vod_year || '') == String(currentVideoYear)) {
+                        result = res;
+                    }
+                });
+                if (!result) return;
+            } else {
+                result = queryResult.results[0];
+                queryResult.results.forEach((res) => {
+                    if (res.vod_name == currentVideoTitle) {
+                        result = res;
+                    }
+                });
+            }
             allResults[opt.key] = result;
         }));
 
