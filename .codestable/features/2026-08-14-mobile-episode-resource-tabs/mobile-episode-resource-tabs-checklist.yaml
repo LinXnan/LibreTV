@@ -1,0 +1,43 @@
+feature: mobile-episode-resource-tabs
+date: 2026-08-14
+execution_lane: standard
+checks:
+  - id: c1
+    name: "移动端默认直接展示 Tab 栏 + 选集内容，无展开按钮"
+    status: passed
+  - id: c2
+    name: "点视频源 Tab 切到资源列表，不重复触发加载、分页不归零"
+    status: passed
+  - id: c3
+    name: "Tab 切换不重置分页/不重发请求；选集/资源各自状态保留"
+    status: passed
+  - id: c4
+    name: "断点切换（≤640↔≥641）无残留类错位"
+    status: passed
+  - id: c5
+    name: "桌面端 ≥1024 / 平板 641-1023 行为与改动前一致（无 Tab 栏）"
+    status: passed
+  - id: c6
+    name: "清理彻底：全仓库无旧展开按钮/等高同步死代码引用"
+    status: passed
+steps:
+  - id: s1
+    action: "player.html：删除 #mobileEpisodeSelectContainer 整块（含按钮/文字/箭头），在 .player-sidebar-body 内 #episodesGridContainer 之前新增 #mobilePanelTabs Tab 容器（选集/视频源两个按钮），给 #episodesGridContainer 静态预置 is-tab-active"
+    exit_signal: "player.html 中无 mobileEpisodeSelect* / episode-chevron / toggleMobileEpisodes 引用；#mobilePanelTabs 两个按钮存在；#episodesGridContainer 带 is-tab-active 类"
+    status: done
+  - id: s2
+    action: "css/player.css：移动端块删除按钮/展开类规则，改写面板默认显隐为 flex（无 mobile-panel-open 前缀），新增 Tab 栏样式 + is-tab-active 互斥规则；桌面端块删除按钮隐藏规则、新增 Tab 栏隐藏"
+    exit_signal: "css/player.css 中无 mobileEpisodeSelect* / episode-chevron / mobile-episodes-open / mobile-panel-open 引用；新增 #mobilePanelTabs / .mobile-tab / is-tab-active 规则；桌面端媒体块隐藏 Tab 栏"
+    status: done
+  - id: s3
+    action: "js/mobile-panel-tabs.js：新建独立模块，挂 window.MobilePanelTabs，实现 init/activate/getActiveTab/cleanup；绑定 Tab 按钮点击、断点监听；activate('resources') 不触发 loadResourceSwitchList（仅 resourcePageCtx===null 兜底）"
+    exit_signal: "lint 通过；模块无调试输出；player.html 引入该脚本"
+    status: done
+  - id: s4
+    action: "js/player.js：删除 toggleMobileEpisodes / matchMedia(641px) 清理块 / syncMobilePanelHeight / start/stopMobilePanelHeightSync / mobilePanelHeightObserver 死代码"
+    exit_signal: "lint 通过；全仓库无 mobileEpisodeSelect* / toggleMobileEpisodes / mobile-episodes-open / mobile-panel-open / syncMobilePanelHeight 引用残留"
+    status: done
+  - id: s5
+    action: "player.html 引入 js/mobile-panel-tabs.js 脚本标签（defer，置于 player.js 之后）"
+    exit_signal: "player.html script 列表含 mobile-panel-tabs.js；无重复引用"
+    status: done

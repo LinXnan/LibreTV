@@ -1,5 +1,12 @@
 # 移动端播放页选集/数据源面板改造：展开收起、等高、对齐与分页
 
+> **⚠️ 已废弃（2026-08-14）**：本文档记录的"外层展开/收起按钮 + 就地展开 + 等高布局"方案已被
+> `2026-08-14-mobile-episode-resource-tabs`（移动端选集/视频源改 Tab 页切换，默认直接展示）取代。
+> 展开/收起按钮、`toggleMobileEpisodes`、等高同步（`syncMobilePanelHeight` / `startMobilePanelHeightSync` 等）
+> 均已随该 feature 删除。**新布局模式见 `.codestable/compound/2026-08-14-mobile-panel-mutex-active-class.md`**
+> （单一激活类 + 高特异性覆盖 + 无固定高度时 flex 坍塌坑 + matchMedia 断点清理）。
+> 本文档保留作为历史沉淀与排查思路参考（对齐/分页模式仍适用），但其中交互结构描述不再代表当前实现。
+
 ## 背景
 
 LibreTV 播放页移动端（≤640px）的选集入口从"独立小按钮 + 底部抽屉弹框"逐步改造为"外层展开/收起按钮 + 就地展开选集面板和数据源面板"。过程中连续踩了容器宽度、内边距累加、等高布局、分页复用等 CSS/布局坑，且每次"没对齐"的根因都不同，值得沉淀排查路径。
@@ -18,7 +25,7 @@ LibreTV 播放页移动端（≤640px）的选集入口从"独立小按钮 + 底
 
 ## 证据
 
-- `player.html:147-202` — 外层展开/收起按钮 + 选集面板（标题行 + 工具栏 + 分页控件 + 网格）结构
-- `css/player.css:771+` — 移动端播放页规则：展开/收起、等高布局、对齐修复（`.player-sidebar .player-container`、`#resourceInfoBarContainer` padding 归零）
-- `js/player.js` — `toggleMobileEpisodes` / `syncMobilePanelHeight` / `startMobilePanelHeightSync`（MutationObserver）/ `renderEpisodes` / `updateEpisodePagination` / `bindEpisodePagination` / `renderResourceInfoBar`
+- `player.html:147-202` — 外层展开/收起按钮 + 选集面板（标题行 + 工具栏 + 分页控件 + 网格）结构（**⚠️ 按钮与 `#mobileEpisodeSelectContainer` 已随 2026-08-14 feature 删除**；面板结构仍保留）
+- `css/player.css:771+` — 移动端播放页规则：展开/收起、等高布局、对齐修复（`.player-sidebar .player-container`、`#resourceInfoBarContainer` padding 归零）（**⚠️ 展开/收起与等高规则已删除**；`.player-sidebar .player-container` 覆盖与 padding 归零仍保留）
+- `js/player.js` — `toggleMobileEpisodes` / `syncMobilePanelHeight` / `startMobilePanelHeightSync`（MutationObserver）/ `renderEpisodes` / `updateEpisodePagination` / `bindEpisodePagination` / `renderResourceInfoBar`（**⚠️ 前三个已随 2026-08-14 feature 删除**；`renderEpisodes` / 分页函数 / `renderResourceInfoBar` 仍有效）
 - 与本仓库既有沉淀 `2026-08-08-player-layout-collapsible-sidebar.md`（桌面端侧栏分栏/折叠）互补，两者合起来是播放页响应式布局的完整图景

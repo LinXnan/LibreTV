@@ -411,60 +411,65 @@ input:checked + .slider:before {
         gap: 0.5rem !important;
     }
 
-    /* 移动端：显示选集按钮容器（全宽，作为模块内操作条） */
-    #mobileEpisodeSelectContainer {
+    /* 移动端 Tab 栏（选集/视频源）：默认直接展示，位于侧栏顶部 */
+    #mobilePanelTabs {
         display: flex !important;
-        width: 100% !important;
+        flex-shrink: 0;
+        border: 1px solid #333;
+        border-radius: 0.5rem;
+        background: #151515;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
     }
 
-    /* 移动端选集按钮：全宽操作条，与资源分页按钮同一视觉语言 */
-    #mobileEpisodeSelectBtn {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 0.5rem !important;
-        width: 100% !important;
-        /* 覆盖通用按钮样式，保持与资源信息栏按钮一致 */
-        font-size: 1rem !important;
-        line-height: 1.5rem !important;
-        padding: 0.625rem 1rem !important;
-        font-weight: 400 !important;
-        white-space: nowrap !important;
+    .mobile-tab {
+        flex: 1 1 0;
+        padding: 0.625rem 0.5rem;
+        background: transparent;
+        color: #9ca3af;
+        font-size: 0.875rem;
+        text-align: center;
+        cursor: pointer;
+        transition: background 0.15s ease, color 0.15s ease;
     }
 
-    #mobileEpisodeSelectBtn > svg {
-        flex-shrink: 0 !important;
+    .mobile-tab.is-tab-active {
+        background: rgba(0, 159, 191, 0.15);
+        color: #009fbf;
+        font-weight: 600;
     }
 
-    /* 移动端：选集面板 + 其他数据源面板默认隐藏，仅保留外层展开/收起按钮 */
+    .mobile-tab + .mobile-tab {
+        border-left: 1px solid #333;
+    }
+
+    /* 移动端：两面板默认显示（flex 布局），Tab 互斥——仅带 is-tab-active 的面板可见 */
     #episodesGridContainer {
-        display: none !important;
-    }
-
-    #episodesGridContainer.mobile-episodes-open {
-        display: block !important;
+        display: flex !important;
+        flex-direction: column !important;
     }
 
     .resource-module {
+        display: flex !important;
+        flex-direction: column !important;
+        margin-top: 0 !important;
+    }
+
+    /* 互斥规则：同容器下不带 is-tab-active 的面板隐藏 */
+    .player-sidebar-body #episodesGridContainer:not(.is-tab-active),
+    .player-sidebar-body .resource-module:not(.is-tab-active) {
         display: none !important;
     }
 
-    #episodesGridContainer.mobile-episodes-open ~ .resource-module {
-        display: block !important;
-    }
-
-    /* 移动端：展开后集数网格 3 列占满整行 */
+    /* 移动端：集数网格 3 列占满整行 + 显式高度上限（移动端无桌面分栏固定高度，
+       必须给 .episode-grid 一个 max-height 才能避免 flex 列布局下高度坍塌为 0） */
     #episodesGridContainer #episodesList {
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }
 
-    /* 外层按钮箭头：展开时上旋指示 */
-    #mobileEpisodeSelectBtn .episode-chevron {
-        transition: transform 0.2s ease !important;
-    }
-
-    #mobileEpisodeSelectContainer.mobile-episodes-open #mobileEpisodeSelectBtn .episode-chevron {
-        transform: rotate(180deg) !important;
+    .player-sidebar-body #episodesGridContainer .episode-grid {
+        max-height: 40vh !important;
+        overflow-y: auto !important;
     }
 
     /* 移动端：侧栏内所有 .player-container 去掉 max-width/居中约束并修正盒模型，
@@ -474,40 +479,11 @@ input:checked + .slider:before {
         max-width: none !important;
         margin: 0 !important;
     }
-
-    /* 展开态：选集面板高度与资源面板加载后一致（JS 同步 height），内容超高时内部滚动 */
-    .player-sidebar-body.mobile-panel-open #episodesGridContainer {
-        display: flex !important;
-        flex-direction: column !important;
-        min-height: 0 !important;
-        overflow: hidden !important;
-    }
-
-    .player-sidebar-body.mobile-panel-open #episodesGridContainer .player-sidebar-header,
-    .player-sidebar-body.mobile-panel-open #episodesGridContainer .episode-toolbar {
-        flex-shrink: 0 !important;
-    }
-
-    .player-sidebar-body.mobile-panel-open #episodesGridContainer .episode-grid {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        max-height: none !important;
-        overflow-y: auto !important;
-    }
-
-    /* 展开态：两面板间距由选集面板底部提供，资源模块顶部 margin 归零，边框等高对齐（REV-002） */
-    #episodesGridContainer.mobile-episodes-open {
-        margin-bottom: 0.5rem !important;
-    }
-
-    .player-sidebar-body.mobile-panel-open .resource-module {
-        margin-top: 0 !important;
-    }
 }
 
-/* 桌面端：隐藏移动端选集按钮容器 */
+/* 桌面端：隐藏移动端 Tab 栏 */
 @media (min-width: 641px) {
-    #mobileEpisodeSelectContainer {
+    #mobilePanelTabs {
         display: none !important;
     }
 }

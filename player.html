@@ -151,22 +151,13 @@
                     </svg>
                     <span>收起</span>
                 </button>
-                <!-- 移动端外层展开/收起按钮（仅移动端显示）：展开后显示选集面板 + 其他数据源面板 -->
-                <div class="flex items-center w-full flex-shrink-0 mb-2" id="mobileEpisodeSelectContainer">
-                    <button id="mobileEpisodeSelectBtn" onclick="toggleMobileEpisodes()" title="展开/收起选集与数据源"
-                            class="hidden w-full px-4 py-2.5 bg-[#222] hover:bg-[#333] border border-[#333] text-white rounded-lg transition-colors">
-                        <svg class="w-5 h-5 flex-shrink-0 text-[#00ccff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                        </svg>
-                        <span id="mobileEpisodeToggleText">展开</span>
-                        <span class="flex-1"></span>
-                        <svg class="episode-chevron w-4 h-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                        </svg>
-                    </button>
+                <!-- 移动端 Tab 栏（选集/视频源，仅移动端显示；桌面端由 CSS 隐藏） -->
+                <div id="mobilePanelTabs">
+                    <button id="mobileTabEpisodes" type="button" class="mobile-tab is-tab-active" data-tab="episodes">选集</button>
+                    <button id="mobileTabResources" type="button" class="mobile-tab" data-tab="resources">视频源</button>
                 </div>
                 <!-- 选集模块：标题行（自动连播/排序）+ 集数网格，合并为一个带边框容器 -->
-                <div class="player-container" id="episodesGridContainer">
+                <div class="player-container is-tab-active" id="episodesGridContainer">
                     <div class="player-sidebar-header">
                         <!-- 左侧：选集标题（与资源面板信息条对齐方式一致） -->
                         <div class="resource-info-bar-left flex">
@@ -258,6 +249,7 @@
     <script src="js/api.js" defer></script>
     <script src="js/search.js" defer></script>
     <script src="js/player.js" defer></script>
+    <script src="js/mobile-panel-tabs.js" defer></script>
     <script src="js/mobile-panel-gestures.js" defer></script>
 
     <script>

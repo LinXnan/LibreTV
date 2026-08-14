@@ -35,3 +35,23 @@ CodeStable 所有落盘产出的正文用**中文**：plan / design、plan revie
 - 无数据库，所有持久化在 `localStorage`
 - `js/config.js` 是全局常量入口（PROXY_URL / API_CONFIG / PASSWORD_CONFIG）
 - 架构文档：`.codestable/architecture/`
+
+## 项目碎片知识
+
+<!-- cs-note managed: 用 cs-note 维护，新条目按下面分节追加 -->
+
+### 编译与构建
+
+### 运行与本地起服务
+
+### 测试
+
+### 命令与脚本陷阱
+
+- 本会话执行环境 execute_command 无法解析带空格的 pwsh 路径（如 `C:\Program Files\...`），`node`/`git`/`npm` 命令会报 `'C:\Program' 不是内部或外部命令`；语法验证用 IDE 语言服务 read_lints 替代
+
+### 路径与目录约定
+
+### 环境变量与凭证
+
+### 其他
