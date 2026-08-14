@@ -1,15 +1,24 @@
-// 首页最近观看轮播
-// 读取 localStorage.viewingHistory（最新在前），取前 10 条以小卡片轮播展示，点击跳转历史记录对应播放链接
+// 首页最近观看轮播（槽位式 Coverflow）
+// 读取 localStorage.viewingHistory（最新在前），历史有多少条就展示多少条（按 title 去重，上限 50）。
+// 中央槽位固定：当前凸显的影片始终停在正中央放大，两侧卡片逐级缩小压暗；
+// 自动轮流时下一部平滑滑入中央凸显，循环连播。点击卡片跳转历史记录对应播放链接。
 (function() {
     'use strict';
 
     const HISTORY_KEY = 'viewingHistory';
-    const MAX_ITEMS = 10;
-    const AUTO_SCROLL_INTERVAL = 3000; // 自动轮播间隔（毫秒）
+    // 展示数量与历史记录面板拉齐：历史存储上限 50 条（见 ui.js addToViewingHistory / player.js saveToHistory）
+    const MAX_ITEMS = 50;
+    const AUTO_SCROLL_INTERVAL = 3000; // 自动轮流间隔（毫秒）
+    // 中央卡放大凸显；两侧保持原始尺寸（scale 1，与最初全宽一致）
+    const CENTER_SCALE = 1.1;
+    // 距中央每远一级的亮度衰减
+    const BRIGHTNESS_STEP = 0.06;
+    // 超过该槽位距离的卡片完全隐藏（不参与视觉）
+    const MAX_VISIBLE_DIST = 3;
 
     let autoScrollTimer = null;
     let resumeTimer = null;
-    let programmaticScroll = false;
+    let activeIndex = 0; // 当前中央凸显的卡片索引
     let historyCount = 0; // 当前历史条数，供显示隐藏判断，避免高频路径重复解析 localStorage
 
     function getHistory() {
@@ -69,13 +78,78 @@
         } catch (e) { /* 非法 URL 忽略 */ }
     }
 
+    // 卡片像素宽度（响应断点）：用于等视觉间距位置算法
+    function getCardWidth(track) {
+        const card = track.querySelector('.recent-watch-card');
+        if (card && card.offsetWidth > 0) return card.offsetWidth;
+        const isMobile = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+        return isMobile ? 140 : 180;
+    }
+
+    // 等视觉间距位置计算：从中央(0)向两侧按 |delta| 升序累加，
+    // 单个槽位位置：从中央(0)向 |delta| 逐级累加，每级视觉间距恒为 visualGap。
+    // pos(delta) = sign(delta) * Σ [visualGap + (scale(k-1) + scale(k)) * cardWidth / 2]，k = 1..|delta|
+    function slotPosition(delta, cardWidth, visualGap) {
+        const scaleForDist = dist => (dist === 0 ? CENTER_SCALE : 1);
+        const sign = delta > 0 ? 1 : -1;
+        let pos = 0;
+        for (let k = 1; k <= Math.abs(delta); k++) {
+            const step = visualGap + (scaleForDist(k - 1) + scaleForDist(k)) * cardWidth / 2;
+            pos += sign * step;
+        }
+        return pos;
+    }
+
+    // 槽位式 Coverflow 排版（环形最短距离）：
+    // delta 折叠到 [-half, half]，两侧对称展开；切换时 activeIndex 环形 +1，
+    // 循环轮流连播。中央卡放大凸显，两侧同宽；距中央超过 MAX_VISIBLE_DIST 的卡淡出隐藏
+    function updateCoverflow(track) {
+        const cards = track.querySelectorAll('.recent-watch-card');
+        const count = cards.length;
+        if (!count) return;
+        const cardWidth = getCardWidth(track);
+        const half = Math.floor(count / 2);
+        cards.forEach((card, i) => {
+            let delta = ((i - activeIndex) % count + count) % count;
+            if (delta > half) delta -= count;
+            const dist = Math.abs(delta);
+            // 中央放大凸显，两侧保持原始尺寸
+            const scale = dist === 0 ? CENTER_SCALE : 1;
+            const brightness = Math.max(1 - dist * BRIGHTNESS_STEP, 0.6);
+            card.style.transform = `translate(-50%, -50%) translateX(${slotPosition(delta, cardWidth, 24)}px)`;
+            card.style.scale = scale;
+            card.style.filter = `brightness(${brightness}) saturate(${Math.max(1 - dist * 0.12, 0.6)})`;
+            card.style.zIndex = count - dist;
+            card.style.opacity = dist > MAX_VISIBLE_DIST ? '0' : '1';
+        });
+    }
+
+    // 推进到下一张：下一部平滑滑入中央凸显（CSS transition 驱动动画），环形循环
+    function advance(track) {
+        const count = track.querySelectorAll('.recent-watch-card').length;
+        if (count < 2) return;
+        activeIndex = (activeIndex + 1) % count;
+        updateCoverflow(track);
+    }
+
     function render() {
         const area = document.getElementById('recentWatchArea');
         if (!area) return;
         const track = document.getElementById('recentWatchTrack');
 
-        // 过滤非对象条目（如 [null]），避免渲染崩溃
-        const history = getHistory().filter(item => item && typeof item === 'object').slice(0, MAX_ITEMS);
+        // 过滤非对象条目（如 [null]）避免渲染崩溃；
+        // 按 title 归一化去重（保留最新一条）：历史可能因旧版本残留/不同源写入同影片多条记录，
+        // 归一化（trim + 小写 + 去空白）可合并 "赌神" 与 "赌神 "、"GOD OF GAMBLERS" 与 "god of gamblers" 等细微差异
+        const seenTitles = new Set();
+        const history = getHistory()
+            .filter(item => item && typeof item === 'object')
+            .filter(item => {
+                const titleKey = String(item.title || '').trim().toLowerCase().replace(/\s+/g, '');
+                if (!titleKey || seenTitles.has(titleKey)) return false;
+                seenTitles.add(titleKey);
+                return true;
+            })
+            .slice(0, MAX_ITEMS);
         historyCount = history.length;
 
         if (history.length === 0) {
@@ -114,28 +188,29 @@
                         </div>
                         ${coverHtml}
                     </div>
+                    <div class="recent-watch-play" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+                    </div>
+                    <div class="recent-watch-info" aria-hidden="true">
+                        <span class="recent-watch-title">${safeTitle}</span>
+                    </div>
                 </div>
             `;
         }).join('');
-        // 先应用可见性再测量内容宽度：display:none 下 scrollWidth/clientWidth 均为 0，无法判断是否需要无缝循环
+        // 先应用可见性再渲染：display:none 下 offsetWidth 为 0，gap 会回退到断点值，
+        // 但显示路径（app.js updateRecentWatchVisibility）会重新 render，排版随即正确
         applyVisibility();
 
-        // 先以单段渲染测量：内容不足视口时无需克隆（否则同一影片会在视口内重复展示），直接单段展示
         track.innerHTML = itemsHtml;
-        const needsLoop = track.scrollWidth > track.clientWidth + 1;
+        activeIndex = 0; // 第一部影片在中央凸显，然后逐张轮流
+        updateCoverflow(track);
 
-        if (needsLoop) {
-            // 3 段式无缝循环：S1/S3 为隐藏克隆（首尾衔接用），S2 为真实内容
-            // 滚动到 S3 时瞬间跳回 S2 对应位置，画面完全一致（视口恒小于一段宽度），实现"末尾直接衔接开头"
-            // 克隆段对辅助技术隐藏（aria-hidden），避免屏幕阅读器重复朗读
-            const hiddenHtml = itemsHtml.replace(/class="recent-watch-card"/g, 'class="recent-watch-card" aria-hidden="true" tabindex="-1"');
-            track.innerHTML = hiddenHtml + itemsHtml + hiddenHtml;
-            // 初始定位到中段（S2）开头，从真实第一部开始轮播
-            track.scrollLeft = track.scrollWidth / 3;
+        applyEntranceDelays(track);
+
+        // 多于 1 部影片时自动轮流连播；单张/无动画偏好下静态展示
+        if (history.length > 1) {
             refreshCarousel();
         } else {
-            // 内容不足视口：单段居中展示（首尾 auto margin 吸收剩余空间），无需自动轮播
-            track.scrollLeft = 0;
             stopAutoScroll();
         }
 
@@ -143,22 +218,14 @@
         resumeTimer = null;
     }
 
-    // 单步滚动距离：一张卡片宽 + 间距
-    // 精确滚动到相邻卡片：自动轮播每次只移动一张卡片
-    function scrollToAdjacentCard(track, offset) {
-        const cards = track.querySelectorAll('.recent-watch-card');
-        if (!cards.length) return;
-        let currentIndex = 0;
-        const left = track.scrollLeft;
-        for (let i = 0; i < cards.length; i++) {
-            if (cards[i].offsetLeft <= left + 5) {
-                currentIndex = i;
-            } else {
-                break;
-            }
-        }
-        const targetIndex = Math.max(0, Math.min(cards.length - 1, currentIndex + offset));
-        track.scrollTo({ left: cards[targetIndex].offsetLeft, behavior: 'smooth' });
+    // 入场动画延迟：卡片按序递增淡入（槽位位移由 updateCoverflow 一次性排版，不依赖延迟）
+    function applyEntranceDelays(track) {
+        const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduceMotion) return;
+        const realCards = track.querySelectorAll('.recent-watch-card:not([aria-hidden])');
+        realCards.forEach((card, index) => {
+            card.style.animationDelay = `${Math.min(index * 60, 800)}ms`;
+        });
     }
 
     function stopAutoScroll() {
@@ -168,22 +235,6 @@
         }
     }
 
-    function scrollByStep(track) {
-        const third = track.scrollWidth / 3;
-        if (track.scrollLeft >= third * 2 - 1) {
-            // 已滚动到 S3（末尾克隆区，视觉上第 1 部影片接在最后一部后面），
-            // 瞬间跳回 S2（真实内容）对应位置，画面与跳转前完全一致，实现"末尾衔接开头"
-            programmaticScroll = true;
-            track.scrollTo({ left: track.scrollLeft - third, behavior: 'auto' });
-            setTimeout(() => { programmaticScroll = false; }, 60);
-            return;
-        }
-        scrollToAdjacentCard(track, 1);
-        // smooth 滚动动画期间保持程序滚动标记，避免被 scroll 事件当作用户交互
-        programmaticScroll = true;
-        setTimeout(() => { programmaticScroll = false; }, 800);
-    }
-
     function startAutoScroll(track) {
         stopAutoScroll();
         const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -191,11 +242,11 @@
         autoScrollTimer = setInterval(() => {
             const area = document.getElementById('recentWatchArea');
             if (!area || area.classList.contains('hidden') || document.hidden) return;
-            scrollByStep(track);
+            advance(track);
         }, AUTO_SCROLL_INTERVAL);
     }
 
-    // 用户交互后暂停自动轮播，一段时间后恢复
+    // 用户交互后暂停自动轮流，一段时间后恢复
     function pauseFor(track) {
         stopAutoScroll();
         clearTimeout(resumeTimer);
@@ -241,17 +292,13 @@
             navigateTo(url);
         });
 
-        // 滚动即视为用户交互：暂停自动轮播，6 秒后恢复
-        track.addEventListener('scroll', () => {
-            if (!programmaticScroll) pauseFor(track);
-        }, { passive: true });
-        // 鼠标移入影片停止轮播，移出恢复
+        // 鼠标移入影片停止轮流，移出恢复
         track.addEventListener('mouseenter', stopAutoScroll);
         track.addEventListener('mouseleave', () => startAutoScroll(track));
         track.addEventListener('touchstart', () => pauseFor(track), { passive: true });
     }
 
-    // 内容变化后刷新自动轮播（事件已由 bindCarouselControls 一次性绑定）
+    // 内容变化后刷新自动轮流（事件已由 bindCarouselControls 一次性绑定）
     function refreshCarousel() {
         const track = document.getElementById('recentWatchTrack');
         if (!track) return;

@@ -103,53 +103,36 @@
 }
 
 /* ========================================
-   最近观看轮播样式
+   最近观看轮播样式（Coverflow 焦点流）
    ======================================== */
+/* 槽位式 Coverflow：容器相对定位，卡片绝对定位、中心锚定容器中心。
+   卡片位移/缩放/亮度/层叠由 JS 按"距中央的槽位距离"计算并内联，
+   CSS 只负责基础定位与过渡动画 */
 .recent-watch-track {
-    flex: 1;
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-    /* 上下留白，容纳 hover 时卡片放大浮出 */
-    padding: 1rem 0;
-    /* 隐藏滚动条但保留滚动能力 */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-/* 卡片不满一行时居中显示（auto margin 吸收剩余空间；内容溢出时自动归零可正常滚动） */
-.recent-watch-track > .recent-watch-card:first-child {
-    margin-left: auto;
-}
-
-.recent-watch-track > .recent-watch-card:last-child {
-    margin-right: auto;
-}
-
-.recent-watch-track::-webkit-scrollbar {
-    display: none;
-}
-
-/* 大尺寸竖版海报卡片，纯封面；hover 时"抽取浮出"突出显示 */
-.recent-watch-card {
-    flex: 0 0 auto;
-    width: 180px;
     position: relative;
+    /* 高度 = 中央放大卡高（180*1.5*1.1≈297）+ 上下留白 */
+    height: 318px;
+    overflow: hidden;
+}
+
+.recent-watch-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 180px;
     background: #000;
-    border-radius: 6px;
+    border-radius: 10px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    will-change: transform;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.recent-watch-card:hover {
-    transform: scale(1.06) translateY(-6px);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 24px rgba(0, 204, 255, 0.18);
-    z-index: 10;
+    transform: translate(-50%, -50%);
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                scale 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+                filter 0.6s ease,
+                opacity 0.6s ease;
+    will-change: transform, scale, filter;
+    /* 无阴影无边框，焦点凸显只靠 scale + filter */
+    box-shadow: none;
+    animation: recent-watch-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 .recent-watch-cover {
@@ -184,9 +167,64 @@
     display: block;
 }
 
+/* 右上角播放徽章：彻底隐藏（hover 也不再弹出，避免在封面上叠加色块） */
+.recent-watch-play {
+    display: none;
+}
+
+/* 底部信息层：彻底隐藏（hover 不再浮现标题，避免在封面上叠加色块）。
+   影片名仍可从卡片的原生 title 属性 / aria-label 看到 */
+.recent-watch-info,
+.recent-watch-title {
+    display: none;
+}
+
+/* 入场动画：只淡入（位移/缩放由 JS 内联控制，动画不碰 transform 避免与槽位定位冲突） */
+@keyframes recent-watch-card-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* 区域不再加独立背景/光晕：与页面统一深蓝黑渐变，避免"一块浅色面板"的割裂感 */
+
+/* 标题装饰：恢复纯白文字与页面其他标题风格一致，仅保留左侧渐变竖条作为轻装饰 */
+#recentWatchArea h2 {
+    position: relative;
+    display: inline-block;
+    padding-left: 0.75rem;
+}
+#recentWatchArea h2::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 1.05em;
+    border-radius: 2px;
+    background: linear-gradient(to bottom, var(--primary-color), var(--accent-color));
+    box-shadow: 0 0 6px rgba(0, 204, 255, 0.5);
+}
+
 @media (max-width: 640px) {
     .recent-watch-card {
         width: 140px;
+    }
+    .recent-watch-track {
+        /* 移动端中央放大卡高 = 140*1.5*1.1 = 231 + 上下留白 */
+        height: 252px;
+    }
+}
+
+/* 尊重系统减弱动效设置：关闭入场动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+    .recent-watch-card {
+        animation: none;
+        transition: none;
     }
 }
 
