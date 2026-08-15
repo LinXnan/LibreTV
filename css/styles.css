@@ -634,12 +634,14 @@ body {
     left: -100% !important;
     transform: none !important;
     transition: left 0.3s ease-in-out;
-    overflow-y: scroll; /* 始终显示滚动条，防止宽度变化 */
-    overflow-x: hidden; /* 防止水平滚动 */
+    overflow: hidden; /* 面板不整体滚动，改为内部列表滚动，避免底部按钮悬浮遮挡 */
     width: 320px; /* 固定宽度 */
     box-sizing: border-box; /* 确保padding不影响总宽度 */
     scrollbar-gutter: stable; /* 现代浏览器：为滚动条预留空间 */
     background: linear-gradient(135deg, var(--page-gradient-end), var(--page-gradient-start));
+    /* 与移动端一致：flex column 布局，头部/列表/底部按钮三段分离 */
+    display: flex;
+    flex-direction: column;
 }
 
 .history-panel.show {
@@ -647,9 +649,22 @@ body {
     transform: none !important;
 }
 
+/* 底部清空按钮固定在面板底部，不与列表重叠 */
+.history-panel > div:last-child {
+    flex-shrink: 0;
+}
+
+/* 头部标题行固定，极矮视口下不被压缩（与移动端规则对齐） */
+.history-panel > .flex {
+    flex-shrink: 0;
+}
 
 #historyList {
     padding-right: 6px; /* 为滚动条预留空间，确保内容不被挤压 */
+    /* 列表独立滚动，避免与底部按钮重叠 */
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 /* 时间线标题样式 - 桌面端 */
