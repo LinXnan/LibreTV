@@ -255,6 +255,15 @@
     }
     .recent-watch-nav-prev { left: 2px; }
     .recent-watch-nav-next { right: 2px; }
+    /* 覆盖 mobile-optimize.css 的全局移动端触摸反馈（button:active / button:hover
+       特异性 0,1,1 会覆盖 .recent-watch-nav 的 translateY(-50%) 垂直定位，导致点击时
+       按钮向下跳动）。这里以更高特异性（0,2,0）保留垂直居中，active 仅叠加轻微缩放 */
+    .recent-watch-nav:hover {
+        transform: translateY(-50%);
+    }
+    .recent-watch-nav:active {
+        transform: translateY(-50%) scale(0.95);
+    }
 }
 
 /* 尊重系统减弱动效设置：关闭入场动画与过渡 */
