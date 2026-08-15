@@ -10,9 +10,9 @@
     const MAX_ITEMS = 50;
     const AUTO_SCROLL_INTERVAL = 3000; // 自动轮流间隔（毫秒）
     // 中央卡放大凸显；两侧保持原始尺寸（scale 1，与最初全宽一致）
-    const CENTER_SCALE = 1.1;
-    // 距中央每远一级的亮度衰减
-    const BRIGHTNESS_STEP = 0.06;
+    const CENTER_SCALE = 1.2;
+    // 距中央每远一级的亮度衰减（增强后两侧更暗，衬托中央凸显）
+    const BRIGHTNESS_STEP = 0.08;
     // 超过该槽位距离的卡片完全隐藏（不参与视觉）
     const MAX_VISIBLE_DIST = 3;
 
@@ -86,22 +86,18 @@
         return isMobile ? 140 : 180;
     }
 
-    // 等视觉间距位置计算：从中央(0)向两侧按 |delta| 升序累加，
-    // 单个槽位位置：从中央(0)向 |delta| 逐级累加，每级视觉间距恒为 visualGap。
-    // pos(delta) = sign(delta) * Σ [visualGap + (scale(k-1) + scale(k)) * cardWidth / 2]，k = 1..|delta|
+    // 等中心距位置计算：让所有相邻对卡片的中心距恒为 cardWidth + visualGap，
+    // 视觉上"距离感"一致。中央卡放大（scale=1.2）使中央卡与第1级卡的留白比外侧对略窄，
+    // 反而强化中央焦点（贴近两侧卡），符合 Coverflow 风格。
+    // 旧"等留白"算法（slotPosition = sign * Σ [visualGap + (scale(k-1) + scale(k)) * cardWidth / 2]）
+    // 让中央-第1级中心距 213、第1级-第2级中心距 204，差 9px，用户截图反馈"距离不一样"。
     function slotPosition(delta, cardWidth, visualGap) {
-        const scaleForDist = dist => (dist === 0 ? CENTER_SCALE : 1);
-        const sign = delta > 0 ? 1 : -1;
-        let pos = 0;
-        for (let k = 1; k <= Math.abs(delta); k++) {
-            const step = visualGap + (scaleForDist(k - 1) + scaleForDist(k)) * cardWidth / 2;
-            pos += sign * step;
-        }
-        return pos;
+        const step = cardWidth + visualGap;
+        return delta * step;
     }
 
     // 槽位式 Coverflow 排版（环形最短距离）：
-    // delta 折叠到 [-half, half]，两侧对称展开；切换时 activeIndex 环形 +1，
+    // delta 折叠到 [-half, half]，两侧对称展开；切换时 activeIndex 环形 ±1，
     // 循环轮流连播。中央卡放大凸显，两侧同宽；距中央超过 MAX_VISIBLE_DIST 的卡淡出隐藏
     function updateCoverflow(track) {
         const cards = track.querySelectorAll('.recent-watch-card');
@@ -116,19 +112,22 @@
             // 中央放大凸显，两侧保持原始尺寸
             const scale = dist === 0 ? CENTER_SCALE : 1;
             const brightness = Math.max(1 - dist * BRIGHTNESS_STEP, 0.6);
-            card.style.transform = `translate(-50%, -50%) translateX(${slotPosition(delta, cardWidth, 24)}px)`;
-            card.style.scale = scale;
-            card.style.filter = `brightness(${brightness}) saturate(${Math.max(1 - dist * 0.12, 0.6)})`;
+            // scale 必须并入 transform 末尾：独立 scale 属性围绕固定 transform-origin 缩放，
+            // 会与 translateX 定位产生叠加偏移（中央卡 scale>1 时整体错位，左右空隙不对称）。
+            // translate(-50%,-50%) translateX(pos) scale(s) 中 scale 先围绕卡片中心缩放、
+            // translate 后移动，卡片中心精确落在槽位点，向两侧对称扩展。
+            card.style.transform = `translate(-50%, -50%) translateX(${slotPosition(delta, cardWidth, 30)}px) scale(${scale})`;
+            card.style.filter = `brightness(${brightness}) saturate(${Math.max(1 - dist * 0.15, 0.6)})`;
             card.style.zIndex = count - dist;
             card.style.opacity = dist > MAX_VISIBLE_DIST ? '0' : '1';
         });
     }
 
-    // 推进到下一张：下一部平滑滑入中央凸显（CSS transition 驱动动画），环形循环
-    function advance(track) {
+    // 推进到上一张/下一张：目标卡平滑滑入中央凸显（CSS transition 驱动动画），环形循环
+    function advance(track, dir = 1) {
         const count = track.querySelectorAll('.recent-watch-card').length;
         if (count < 2) return;
-        activeIndex = (activeIndex + 1) % count;
+        activeIndex = ((activeIndex + dir) % count + count) % count;
         updateCoverflow(track);
     }
 
@@ -151,6 +150,7 @@
             })
             .slice(0, MAX_ITEMS);
         historyCount = history.length;
+        updateNavButtons(history.length);
 
         if (history.length === 0) {
             track.innerHTML = '';
@@ -228,6 +228,15 @@
         });
     }
 
+    // 左右切换按钮可见性：超过 1 部影片才需要手动切换，否则隐藏
+    function updateNavButtons(count) {
+        const prevBtn = document.getElementById('recentWatchPrevBtn');
+        const nextBtn = document.getElementById('recentWatchNextBtn');
+        const show = count > 1;
+        if (prevBtn) prevBtn.classList.toggle('hidden', !show);
+        if (nextBtn) nextBtn.classList.toggle('hidden', !show);
+    }
+
     function stopAutoScroll() {
         if (autoScrollTimer) {
             clearInterval(autoScrollTimer);
@@ -283,6 +292,13 @@
             navigateTo(url);
         });
         track.addEventListener('keydown', (e) => {
+            // 左右方向键手动切换上一部/下一部（与左右按钮行为一致）
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                pauseFor(track);
+                advance(track, e.key === 'ArrowRight' ? 1 : -1);
+                return;
+            }
             if (e.key !== 'Enter' && e.key !== ' ') return;
             const card = e.target.closest('.recent-watch-card');
             if (!card) return;
@@ -295,7 +311,22 @@
         // 鼠标移入影片停止轮流，移出恢复
         track.addEventListener('mouseenter', stopAutoScroll);
         track.addEventListener('mouseleave', () => startAutoScroll(track));
-        track.addEventListener('touchstart', () => pauseFor(track), { passive: true });
+
+        // 左右切换按钮：点击切换上一部/下一部，交互时暂停自动轮流（6s 后恢复）
+        const prevBtn = document.getElementById('recentWatchPrevBtn');
+        const nextBtn = document.getElementById('recentWatchNextBtn');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                pauseFor(track);
+                advance(track, -1);
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                pauseFor(track);
+                advance(track, 1);
+            });
+        }
     }
 
     // 内容变化后刷新自动轮流（事件已由 bindCarouselControls 一次性绑定）

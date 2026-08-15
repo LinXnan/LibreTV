@@ -110,9 +110,38 @@
    CSS 只负责基础定位与过渡动画 */
 .recent-watch-track {
     position: relative;
-    /* 高度 = 中央放大卡高（180*1.5*1.1≈297）+ 上下留白 */
-    height: 318px;
+    /* 高度 = 中央放大卡高（180*1.5*1.2=324）+ 上下留白 */
+    height: 350px;
     overflow: hidden;
+}
+
+/* 左右切换按钮：绝对定位在轨道两侧垂直居中，点击切换上一部/下一部 */
+.recent-watch-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.recent-watch-nav-prev { left: 8px; }
+.recent-watch-nav-next { right: 8px; }
+.recent-watch-nav:hover {
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+.recent-watch-nav:focus-visible {
+    outline: 2px solid var(--primary-color, #00ccff);
+    outline-offset: 2px;
 }
 
 .recent-watch-card {
@@ -125,11 +154,12 @@
     overflow: hidden;
     cursor: pointer;
     transform: translate(-50%, -50%);
+    /* 缩放围绕卡片自身中心，保证放大/定位无叠加偏移 */
+    transform-origin: center;
     transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
-                scale 0.6s cubic-bezier(0.22, 1, 0.36, 1),
                 filter 0.6s ease,
                 opacity 0.6s ease;
-    will-change: transform, scale, filter;
+    will-change: transform, filter;
     /* 无阴影无边框，焦点凸显只靠 scale + filter */
     box-shadow: none;
     animation: recent-watch-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
@@ -215,9 +245,16 @@
         width: 140px;
     }
     .recent-watch-track {
-        /* 移动端中央放大卡高 = 140*1.5*1.1 = 231 + 上下留白 */
-        height: 252px;
+        /* 移动端中央放大卡高 = 140*1.5*1.2 = 252 + 上下留白 */
+        height: 272px;
     }
+    /* 移动端按钮缩小、贴近边缘 */
+    .recent-watch-nav {
+        width: 32px;
+        height: 32px;
+    }
+    .recent-watch-nav-prev { left: 2px; }
+    .recent-watch-nav-next { right: 2px; }
 }
 
 /* 尊重系统减弱动效设置：关闭入场动画与过渡 */

@@ -329,7 +329,16 @@
                     <div class="mb-4">
                         <h2 class="text-xl font-bold text-white">最近观看</h2>
                     </div>
-                    <div id="recentWatchTrack" class="recent-watch-track"></div>
+                    <div class="relative">
+                        <div id="recentWatchTrack" class="recent-watch-track"></div>
+                        <!-- 左右切换按钮：点击手动切换上一部/下一部（自动轮流时暂停，6s 后恢复） -->
+                        <button type="button" id="recentWatchPrevBtn" class="recent-watch-nav recent-watch-nav-prev hidden" aria-label="上一部" title="上一部">
+                            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button type="button" id="recentWatchNextBtn" class="recent-watch-nav recent-watch-nav-next hidden" aria-label="下一部" title="下一部">
+                            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 

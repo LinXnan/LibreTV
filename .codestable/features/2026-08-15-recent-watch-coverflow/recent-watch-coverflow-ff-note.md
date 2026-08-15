@@ -82,6 +82,85 @@ tags: [home, history, carousel, ui, coverflow]
 - `advance()`：`activeIndex = (activeIndex + 1) % count` 环形循环
 - CSS：删除 `.recent-watch-no-anim` 瞬移类
 
+## 迭代 15（2026-08-15，用户要求"手动作用滑动"）
+
+**增加手动滑动切换**（触摸滑动 / 鼠标拖拽 / 键盘左右方向键），保留自动轮流连播，交互时暂停、6s 后恢复（复用 `pauseFor`）。改动 `js/recent-watch.js` + `css/index.css`：
+
+- **JS**（`js/recent-watch.js`）：
+  - 抽 `cardTranslateX(delta, cardWidth, extraOffset)`：槽位位移 + 拖拽偏移，`updateCoverflow` 与新增 `applyDragOffset`（拖拽中只更新位移跟手，不动 scale/filter/zIndex/opacity）共用
+  - `advance(track, dir)` 支持方向：`activeIndex = ((activeIndex + dir) % count + count) % count`，`dir=1` 下一部、`dir=-1` 上一部
+  - Pointer Events 拖拽（`window.PointerEvent` 存在才绑定）：pointerdown 记录起点 + `pauseFor` 暂停自动 + 加 `recent-watch-dragging` class + `setPointerCapture`；pointermove 累计位移调 `applyDragOffset` 跟手；pointerup/cancel 结束。松手位移 ≥ `DRAG_SWITCH_RATIO`（0.35 卡宽）→ 切换，未达 → 回弹（先 `dragOffset=0` 再重排，transition 恢复后从拖拽位置平滑滑入/回弹）
+  - 点击防误触：位移超过 `DRAG_ACTIVATE_DIST`（8px）判定为拖动，松手后 `suppressClick` 抑制本次 click（400ms 兜底复位）
+  - 键盘左右方向键（ArrowLeft/ArrowRight）切换上一部/下一部 + `preventDefault` + `pauseFor`
+  - `render()` 开头清理拖拽残留状态（isDragging/dragOffset/dragActivated/dragPointerId/dragging class）
+- **CSS**（`css/index.css`）：
+  - `.recent-watch-track` 加 `touch-action: pan-y`（水平手势交给 JS，垂直保留页面滚动）+ `cursor: grab`
+  - `.recent-watch-track.recent-watch-dragging { cursor: grabbing }` + `.recent-watch-track.recent-watch-dragging .recent-watch-card { transition: none }`（拖拽中跟手，松手后恢复 0.6s 过渡平滑滑入）
+
+## 迭代 15 修复（2026-08-15，自检发现的回弹 bug）
+
+`endDrag` 先归零 `dragOffset` 再 `advance/updateCoverflow`：初版在归零前重排导致"未达阈值回弹"路径把卡片留在偏移位。现改为先判 `target`（1/-1/0）、归零、再重排，卡片从当前拖拽位置平滑滑入目标槽位或回弹原位。
+
+## 迭代 15 修复 2（2026-08-15，code review REV-201）
+
+`endDrag` 移除 `recent-watch-dragging`（恢复 transition）与改 transform 在同一同步块，浏览器可能跳过 CSS transition 导致松手切换/回弹瞬间跳变。修复：remove class 后 `void track.offsetWidth` 强制回流，先应用"transition 已恢复、transform 仍为拖拽值"的样式再重排，保证平滑过渡。复查：`read_lints` 0 报错，round 2 review `passed`。
+
+## 迭代 16（2026-08-15，用户澄清"不是要拖拽，要点击左右滚动的按钮"）
+
+**废弃拖拽滑动方案，改为左右切换按钮**。用户明确"不是这种效果，我是想要有手动可以点击左右滚动的按钮"，移除全部拖拽逻辑，新增轨道两侧圆形箭头按钮点击切换：
+
+- **回滚拖拽**（`js/recent-watch.js` + `css/index.css`）：删除 `DRAG_ACTIVATE_DIST`/`DRAG_SWITCH_RATIO` 常量、全部拖拽状态变量、`cardTranslateX` 的 extraOffset 参数（恢复直接 `slotPosition`）、`applyDragOffset`、Pointer Events 四件套、`suppressClick`、`endDrag` 的 reflow、`.recent-watch-track.recent-watch-dragging` 样式与 `touch-action`/`cursor: grab`
+- **新增左右按钮**（`index.html` + `css/index.css` + `js/recent-watch.js`）：
+  - `index.html`：`#recentWatchTrack` 外包 `<div class="relative">` 容器，内加 `#recentWatchPrevBtn` / `#recentWatchNextBtn` 两个 `<button>`（SVG chevron 箭头、`aria-label`、初始 `hidden`）
+  - `css/index.css`：`.recent-watch-nav` 绝对定位轨道两侧垂直居中（40px 圆形、半透明黑底、hover 提亮、focus-visible 描边）；移动端 32px 贴边
+  - `js/recent-watch.js`：`updateNavButtons(count)` 控制按钮可见性（>1 部才显示，`render` 里调用）；`bindCarouselControls` 绑定 prev→`advance(track, -1)`、next→`advance(track, 1)`，点击均 `pauseFor`（暂停自动轮流 6s 后恢复）；`advance` 的 `dir` 参数与键盘 ←/→ 保留（与按钮行为一致）
+- **保留**：自动轮流连播、环形循环、卡片点击跳转、键盘方向键
+
+按钮位于轨道外部（wrapper 内、track 外），点击不冒泡到卡片委托，无误触跳转；`render` 重建卡片时按钮不受 `track.innerHTML` 影响。
+
+## 迭代 17（2026-08-15，用户反馈"中间和左右两部影片的距离好像不一样"）
+
+**根因**：`slotPosition` 的"等留白"算法保证相邻卡片边缘距离恒为 24px，但**中心距不等**——中央卡（视觉宽度 198 = 180×1.1）比两侧卡（180）多 18px，摊到中心距 9px + 留白 9px，导致中央-第1级中心距 213、第1级-第2级中心距 204。用户截图视觉读数为"距离"，与"中心距"对齐而非"留白"。
+
+**修法**：换为**等中心距算法**——所有相邻对中心距恒为 `cardWidth + visualGap = 204`。新留白：中央-第1级 = 15px（中央卡更宽，多占 9px），第1级-第2级 / 第2级-第3级 = 24px。几何上让"距离感"统一，反过来中央卡与第1级更贴近 9px，反而**强化中央焦点**（符合 Coverflow 风格）。
+
+**代码改动**（`js/recent-watch.js`，仅 `slotPosition` 函数）：
+```js
+// 旧：等留白（step 随 dist 变化）
+function slotPosition(delta, cardWidth, visualGap) {
+    const step = visualGap + (scaleForDist(k-1) + scaleForDist(k)) * cardWidth / 2;
+    // 中心距 213/204/204 → 差 9px
+}
+
+// 新：等中心距（step 恒定）
+function slotPosition(delta, cardWidth, visualGap) {
+    const step = cardWidth + visualGap; // 204
+    return delta * step;
+}
+```
+
+**验证**：用 `_spacing_check.mjs` 临时脚本（已删除）跑出新旧几何对比，确认新算法所有相邻对中心距 = 204px，留白 = 15/24/24px。`read_lints` 0 报错。
+
+## 迭代 18（2026-08-15，用户反馈"中间凸显影片左边窄右边宽"）
+
+**根因**：缩放用 CSS 独立 `scale` 属性（`card.style.scale`）而非 transform。独立 `scale` 围绕固定 `transform-origin`（盒子中心原始位置）缩放，而 `transform` 的 `translate(-50%,-50%) translateX(pos)` 先移动卡片——两者组合时**缩放中心与定位后的卡片中心不重合**，中央卡（scale=1.1）整体偏移 `180×(1.1-1)/2 = 9px`，偏左；两侧卡（scale=1）无缩放无偏移。结果中央卡左偏，左侧空隙窄、右侧空隙宽。
+
+**修法**：把缩放并入 `transform` 末尾（`js/recent-watch.js` + `css/index.css`）：
+- JS `updateCoverflow`：`transform = translate(-50%,-50%) translateX(pos) scale(scale)`，删除 `card.style.scale = scale`
+- CSS `.recent-watch-card`：加 `transform-origin: center`（缩放围绕卡片中心）；transition 移除 `scale`、will-change 移除 `scale`（scale 已并入 transform，由 transition transform 覆盖）
+- 效果：scale 先围绕卡片中心缩放（中心不动、两侧对称扩展），translate 后移动，卡片中心精确落在槽位点，左右对称
+- 顺带清理：全文 grep 无独立 `style.scale` / `transition: scale` / `will-change: scale` 残留
+
+## 迭代 19（2026-08-15，用户"中间的凸显还可以再明显点吗"）
+
+**增强中央焦点**（`js/recent-watch.js` + `css/index.css`）：
+- `CENTER_SCALE` 1.1 → **1.2**（中央卡视觉宽 180→216、高 270→324，凸显更明显）
+- `BRIGHTNESS_STEP` 0.06 → **0.08**（两侧逐级更暗，衬托中央提亮）
+- saturate 衰减 0.12 → **0.15**（两侧更灰，中央更鲜艳）
+- `visualGap` 24 → **30**（等中心距 step 桌面 204→210、移动 170），中央↔第1级留白保持 ~12-16px 不重叠
+- 轨道高度：桌面 318→**350**、移动端 252→**272**（容纳放大后的中央卡 324/252 + 上下留白）
+- 几何验证（手算）：桌面中央↔第1级留白 = 210-108-90 = 12px ✓；第1↔第2 = 30px；移动端 16px / 30px，均不重叠
+
 ## 迭代 13 补充（2026-08-15，用户坚持"要有循环效果"）
 
 纯 DOM 环形折叠必有 half 边界跳变；纯线性无跳变但不循环。最终方案：**克隆 DOM + 线性推进 + 无感瞬移复位**（`js/recent-watch.js` + `css/index.css`）：
