@@ -95,9 +95,9 @@ document.addEventListener('DOMContentLoaded', function () {
 // 普通资源分页状态
 let apiPage = 1;
 
-// 每页显示数量：PC 端 12 个，移动端 6 个
+// 每页显示数量：固定 6 个（PC/移动端一致）
 function getApiPageSize() {
-    return window.innerWidth <= 640 ? 6 : 12;
+    return 6;
 }
 
 function getNormalApiKeys() {
