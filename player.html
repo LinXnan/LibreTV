@@ -262,6 +262,11 @@
                     event.preventDefault();
                     event.stopPropagation();
 
+                    // 标记本次回首页不弹「继续观看」弹窗（continue-watch.js 读取后用后即删）
+                    try {
+                        sessionStorage.setItem('skipContinueWatchPrompt', '1');
+                    } catch (e) { /* sessionStorage 不可用时忽略，弹窗逻辑不受影响 */ }
+
                     // 如果是在iframe中打开的，尝试关闭iframe
                     if (window.self !== window.top) {
                         try {

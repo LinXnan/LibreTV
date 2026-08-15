@@ -126,6 +126,15 @@
     function showIfNeeded() {
         // 播放页由 watch.html 处理，不弹
         if (window.location.pathname.startsWith('/watch')) return;
+        // 从播放页点 logo 回首页时（player.html 设置标记），本次不弹；标记用后即删。
+        // getItem/removeItem 与 player.html 的 setItem 一致做 try/catch 兜底：
+        // sessionStorage 受限（隐私模式/旧浏览器）时读不到标记按"无标记"处理，弹窗逻辑不受影响
+        try {
+            if (sessionStorage.getItem('skipContinueWatchPrompt') === '1') {
+                sessionStorage.removeItem('skipContinueWatchPrompt');
+                return;
+            }
+        } catch (e) { /* storage 不可用忽略，按无标记处理 */ }
         if (!isEnabled()) return;
         // 用户本会话已主动关闭过弹窗，不再自动弹出（刷新页面后重置）
         if (userDismissed) return;
