@@ -218,13 +218,21 @@
         resumeTimer = null;
     }
 
-    // 入场动画延迟：卡片按序递增淡入（槽位位移由 updateCoverflow 一次性排版，不依赖延迟）
+    // 入场动画延迟：按卡片距中央槽位的视觉距离（dist=|delta|）分配，
+    // 中央先出、左右两侧对称淡入——避免按 DOM index 递增导致左侧卡（index 最大）透明最久，
+    // 形成"左侧空白、过一会才加载出来"的视觉割裂（槽位位移由 updateCoverflow 一次性排版，不依赖延迟）
     function applyEntranceDelays(track) {
         const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         if (reduceMotion) return;
         const realCards = track.querySelectorAll('.recent-watch-card:not([aria-hidden])');
-        realCards.forEach((card, index) => {
-            card.style.animationDelay = `${Math.min(index * 60, 800)}ms`;
+        const count = realCards.length;
+        if (!count) return;
+        const half = Math.floor(count / 2);
+        realCards.forEach((card, i) => {
+            let delta = ((i - activeIndex) % count + count) % count;
+            if (delta > half) delta -= count;
+            const dist = Math.abs(delta);
+            card.style.animationDelay = `${Math.min(dist * 80, 400)}ms`;
         });
     }
 
