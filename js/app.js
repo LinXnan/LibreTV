@@ -82,6 +82,12 @@ document.addEventListener('DOMContentLoaded', function () {
         adFilterToggle.checked = localStorage.getItem(PLAYER_CONFIG.adFilteringStorage) !== 'false'; // 默认为true
     }
 
+    // 设置继续观看弹窗开关初始状态（默认开启）
+    const continueWatchPromptToggle = document.getElementById('continueWatchPromptToggle');
+    if (continueWatchPromptToggle) {
+        continueWatchPromptToggle.checked = localStorage.getItem('continueWatchPromptEnabled') !== 'false';
+    }
+
     // 设置事件监听器
     setupEventListeners();
 
@@ -697,6 +703,14 @@ function setupEventListeners() {
     if (adFilterToggle) {
         adFilterToggle.addEventListener('change', function (e) {
             localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, e.target.checked);
+        });
+    }
+
+    // 继续观看弹窗开关
+    const continueWatchPromptToggle = document.getElementById('continueWatchPromptToggle');
+    if (continueWatchPromptToggle) {
+        continueWatchPromptToggle.addEventListener('change', function (e) {
+            localStorage.setItem('continueWatchPromptEnabled', e.target.checked);
         });
     }
 }

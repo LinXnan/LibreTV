@@ -258,6 +258,19 @@
                         <div class="toggle-dot absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-transform duration-300 ease-in-out"></div>
                     </div>
                 </div>
+
+                <!-- 继续观看弹窗开关 -->
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-[#222]">
+                    <div>
+                        <label class="text-sm font-medium text-gray-400">继续观看弹窗</label>
+                        <p class="text-xs text-gray-500 mt-1">访问网站时提醒最近观看的影片</p>
+                    </div>
+                    <div class="relative inline-block w-12 align-middle select-none">
+                        <input type="checkbox" id="continueWatchPromptToggle" class="opacity-0 absolute w-full h-full cursor-pointer z-10">
+                        <div class="toggle-bg bg-[#333] w-12 h-6 rounded-full transition-colors duration-300 ease-in-out"></div>
+                        <div class="toggle-dot absolute w-5 h-5 bg-white rounded-full top-0.5 left-0.5 transition-transform duration-300 ease-in-out"></div>
+                    </div>
+                </div>
             </div>
 
             <!-- 一般功能区域 -->
@@ -506,6 +519,25 @@
         </div>
     </div>
 
+    <!-- 继续观看弹窗：访问首页时提示最近一次播放的影片（设置面板可关闭） -->
+    <div id="continueWatchModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[61]">
+        <div class="bg-[#111] p-8 rounded-lg border border-[#333] w-11/12 max-w-md max-h-[90vh] overflow-y-auto relative">
+            <button id="continueWatchCloseBtn" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-gray-200 hover:text-white text-xl transition-colors flex items-center justify-center" aria-label="关闭">&times;</button>
+            <h2 class="text-2xl font-bold gradient-text mb-6 text-center">继续观看</h2>
+            <div class="flex items-center gap-4 mb-6">
+                <div id="continueWatchCover" class="relative w-24 h-32 rounded-lg overflow-hidden flex-none bg-[#222]"></div>
+                <div class="min-w-0">
+                    <p id="continueWatchTitle" class="text-lg font-semibold text-white break-words"></p>
+                    <p id="continueWatchMeta" class="text-sm text-gray-400 mt-2"></p>
+                </div>
+            </div>
+            <div class="flex space-x-3">
+                <button id="continueWatchResumeBtn" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-medium rounded-lg hover:shadow-lg transition-all duration-300">继续观看</button>
+                <button id="continueWatchLaterBtn" class="flex-1 px-4 py-2.5 bg-[#333] hover:bg-[#444] text-white font-medium rounded-lg transition-colors">暂不</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 错误提示框 -->
     <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 z-50 hidden">
         <p id="toastMessage"></p>
@@ -569,6 +601,7 @@
     <script src="js/pwa-register.js" async></script>
 
     <!-- 添加弹窗和URL搜索参数处理脚本 -->
+    <script src="js/continue-watch.js" defer></script>
     <script src="js/index-page.js" defer></script>
 </body>
 </html>

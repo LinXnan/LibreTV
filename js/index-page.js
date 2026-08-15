@@ -4,17 +4,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // 检查用户是否已经看过声明
     const hasSeenDisclaimer = localStorage.getItem('hasSeenDisclaimer');
     
-    if (!hasSeenDisclaimer) {
-        // 显示弹窗
+    // 部署未设置密码时（强制密码弹窗 z-65 在最上层且无关闭按钮），
+    // 不显示免责声明弹窗，避免两弹窗叠加锁死（与 continue-watch.js 同口径）
+    const forcedPassword = typeof isPasswordRequired === 'function' && isPasswordRequired();
+    
+    if (!forcedPassword && !hasSeenDisclaimer) {
+        // 显示弹窗（classList 方式：index.html 内联 .hidden 带 !important，style.display 会被其覆盖）
         const disclaimerModal = document.getElementById('disclaimerModal');
-        disclaimerModal.style.display = 'flex';
+        disclaimerModal.classList.remove('hidden');
+        disclaimerModal.classList.add('flex');
         
         // 添加接受按钮事件
         document.getElementById('acceptDisclaimerBtn').addEventListener('click', function() {
             // 保存用户已看过声明的状态
             localStorage.setItem('hasSeenDisclaimer', 'true');
             // 隐藏弹窗
-            disclaimerModal.style.display = 'none';
+            disclaimerModal.classList.add('hidden');
+            disclaimerModal.classList.remove('flex');
         });
     }
 
