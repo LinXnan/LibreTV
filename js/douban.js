@@ -185,11 +185,11 @@ async function fillAndSearchWithDouban(title) {
             // 使用HTML5 History API更新URL，不刷新页面
             window.history.pushState(
                 { search: safeTitle }, 
-                `搜索: ${safeTitle} - LibreTV`, 
+                `搜索: ${safeTitle} - OpenPlay`, 
                 `/s=${encodedQuery}`
             );
             // 更新页面标题
-            document.title = `搜索: ${safeTitle} - LibreTV`;
+            document.title = `搜索: ${safeTitle} - OpenPlay`;
         } catch (e) {
             console.error('更新浏览器历史失败:', e);
         }

@@ -1,4 +1,4 @@
-# LibreTV — AI Agent 入口
+# OpenPlay — AI Agent 入口
 
 > 本文档是项目唯一的 AI 约定入口（AGENTS.md 是跨 AI 工具通用标准）。
 > 请所有 AI 助手在开始工作前阅读本文件，并按 `.codestable/attention.md` 的要求操作。

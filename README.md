@@ -1,14 +1,14 @@
-# LibreTV - 免费在线视频搜索与观看平台
+# OpenPlay - 免费在线视频搜索与观看平台
 
 <div align="center">
-  <img src="image/logo.png" alt="LibreTV Logo" width="120">
+  <img src="image/logo.png" alt="OpenPlay Logo" width="120">
   <br>
-  <p><strong>自由观影，畅享精彩</strong></p>
+  <p><strong>欢迎来到观影净土</strong></p>
 </div>
 
 ## 📺 项目简介
 
-LibreTV 是一个轻量级、免费的在线视频搜索与观看平台，提供来自多个视频源的内容搜索与播放服务。无需注册，即开即用，支持多种设备访问。项目结合了前端技术和后端代理功能，可部署在支持服务端功能的各类网站托管服务上。**项目门户**： [libretv.is-an.org](https://libretv.is-an.org)
+OpenPlay 是一个轻量级、免费的在线视频搜索与观看平台，提供来自多个视频源的内容搜索与播放服务。无需注册，即开即用，支持多种设备访问。项目结合了前端技术和后端代理功能，可部署在支持服务端功能的各类网站托管服务上。**项目门户**： [libretv.is-an.org](https://libretv.is-an.org)
 
 本项目基于 [bestK/tv](https://github.com/bestK/tv) 进行重构与增强。
 
@@ -19,7 +19,7 @@ LibreTV 是一个轻量级、免费的在线视频搜索与观看平台，提供
 
 ## 🚀 快速部署
 
-选择以下任一平台，点击一键部署按钮，即可快速创建自己的 LibreTV 实例：
+选择以下任一平台，点击一键部署按钮，即可快速创建自己的 OpenPlay 实例：
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FLibreSpark%2FLibreTV)  
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/LibreSpark/LibreTV)  
@@ -92,7 +92,7 @@ services:
       - PASSWORD=${PASSWORD:-111111} # 可将 111111 修改为你想要的密码，默认为 your_password
     restart: unless-stopped
 ```
-启动 LibreTV：
+启动 OpenPlay：
 
 ```bash
 docker compose up -d
@@ -126,7 +126,7 @@ npm run dev
 
 ### 默认功能设置
 
-首次访问 LibreTV 时，以下功能的默认状态：
+首次访问 OpenPlay 时，以下功能的默认状态：
 - 黄色内容过滤：启用
 - 分片广告过滤：启用
 - 豆瓣热门推荐：关闭（可在设置面板中手动启用）
@@ -134,7 +134,7 @@ npm run dev
 
 ### API兼容性
 
-LibreTV 支持标准的苹果 CMS V10 API 格式。添加自定义 API 时需遵循以下格式：
+OpenPlay 支持标准的苹果 CMS V10 API 格式。添加自定义 API 时需遵循以下格式：
 - 搜索接口: `https://example.com/api.php/provide/vod/?ac=videolist&wd=关键词`
 - 详情接口: `https://example.com/api.php/provide/vod/?ac=detail&ids=视频ID`
 
@@ -165,7 +165,7 @@ LibreTV 支持标准的苹果 CMS V10 API 格式。添加自定义 API 时需遵
 
 ## ⚠️ 免责声明
 
-LibreTV 仅作为视频搜索工具，不存储、上传或分发任何视频内容。所有视频均来自第三方 API 接口提供的搜索结果。如有侵权内容，请联系相应的内容提供方。
+OpenPlay 仅作为视频搜索工具，不存储、上传或分发任何视频内容。所有视频均来自第三方 API 接口提供的搜索结果。如有侵权内容，请联系相应的内容提供方。
 
 本项目开发者不对使用本项目产生的任何后果负责。使用本项目时，您必须遵守当地的法律法规。
 

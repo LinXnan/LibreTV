@@ -294,7 +294,7 @@ function initializePageContent() {
     }
 
     // 设置页面标题
-    document.title = currentVideoTitle + ' - LibreTV播放器';
+    document.title = currentVideoTitle + ' - OpenPlay 播放器';
     document.getElementById('videoTitle').textContent = currentVideoTitle;
 
     // 初始化播放器
@@ -2390,7 +2390,7 @@ async function switchToResource(sourceKey, vodId) {
         window.history.replaceState({}, '', url.toString());
 
         // 更新页面标题与标题栏
-        document.title = newTitle + ' - LibreTV播放器';
+        document.title = newTitle + ' - OpenPlay 播放器';
         const titleEl = document.getElementById('videoTitle');
         if (titleEl) titleEl.textContent = newTitle;
 
