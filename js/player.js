@@ -2147,9 +2147,9 @@ function renderResourcePage() {
         html += resourceCardHTML(sourceKey, result, isCurrentSource, sourceName, speedResult);
     });
 
-    // 补占位项填满最后一行空缺（3 列网格，透明度占位保持行高一致；不参与交互）
-    const remainder = pageItems.length % 3;
-    for (let p = 0; p < (remainder === 0 ? 0 : 3 - remainder); p++) {
+    // 补占位项填满本页空缺（每页 RESOURCE_PAGE_SIZE 个，透明度占位保持 2 行行高一致；不参与交互）
+    const remainder = pageItems.length % RESOURCE_PAGE_SIZE;
+    for (let p = 0; p < (remainder === 0 ? 0 : RESOURCE_PAGE_SIZE - remainder); p++) {
         html += '<div class="resource-placeholder" aria-hidden="true"></div>';
     }
 
