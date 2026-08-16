@@ -411,39 +411,7 @@ input:checked + .slider:before {
         gap: 0.5rem !important;
     }
 
-    /* 移动端 Tab 栏（选集/视频源）：默认直接展示，位于侧栏顶部 */
-    #mobilePanelTabs {
-        display: flex !important;
-        flex-shrink: 0;
-        border: 1px solid #333;
-        border-radius: 0.5rem;
-        background: #151515;
-        overflow: hidden;
-        margin-bottom: 0.5rem;
-    }
-
-    .mobile-tab {
-        flex: 1 1 0;
-        padding: 0.625rem 0.5rem;
-        background: transparent;
-        color: #9ca3af;
-        font-size: 0.875rem;
-        text-align: center;
-        cursor: pointer;
-        transition: background 0.15s ease, color 0.15s ease;
-    }
-
-    .mobile-tab.is-tab-active {
-        background: rgba(0, 159, 191, 0.15);
-        color: #009fbf;
-        font-weight: 600;
-    }
-
-    .mobile-tab + .mobile-tab {
-        border-left: 1px solid #333;
-    }
-
-    /* 移动端：两面板默认显示（flex 布局），Tab 互斥——仅带 is-tab-active 的面板可见 */
+    /* 移动端：两面板默认显示（flex 布局）；Tab 栏样式与互斥规则已上移通用区 */
     #episodesGridContainer {
         display: flex !important;
         flex-direction: column !important;
@@ -453,12 +421,6 @@ input:checked + .slider:before {
         display: flex !important;
         flex-direction: column !important;
         margin-top: 0 !important;
-    }
-
-    /* 互斥规则：同容器下不带 is-tab-active 的面板隐藏 */
-    .player-sidebar-body #episodesGridContainer:not(.is-tab-active),
-    .player-sidebar-body .resource-module:not(.is-tab-active) {
-        display: none !important;
     }
 
     /* 移动端：集数网格 3 列占满整行 + 显式高度上限（移动端无桌面分栏固定高度，
@@ -478,13 +440,6 @@ input:checked + .slider:before {
         box-sizing: border-box !important;
         max-width: none !important;
         margin: 0 !important;
-    }
-}
-
-/* 桌面端：隐藏移动端 Tab 栏 */
-@media (min-width: 641px) {
-    #mobilePanelTabs {
-        display: none !important;
     }
 }
 
@@ -557,6 +512,51 @@ input:checked + .slider:before {
     flex-shrink: 0;
 }
 
+/* Tab 栏（选集/视频源）：全部断点显示，位于侧栏顶部（桌面收起态随 body 一起隐藏） */
+#mobilePanelTabs {
+    display: flex;
+    flex-shrink: 0;
+    border: 1px solid #333;
+    border-radius: 0.5rem;
+    background: #151515;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.mobile-tab {
+    flex: 1 1 0;
+    padding: 0.625rem 0.5rem;
+    background: transparent;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mobile-tab.is-tab-active {
+    background: rgba(0, 159, 191, 0.15);
+    color: #009fbf;
+    font-weight: 600;
+}
+
+.mobile-tab + .mobile-tab {
+    border-left: 1px solid #333;
+}
+
+/* Tab 互斥显隐：同一时刻仅一个面板带 is-tab-active（高特异性 + !important 覆盖两面板 display 规则） */
+.player-sidebar-body #episodesGridContainer:not(.is-tab-active),
+.player-sidebar-body .resource-module:not(.is-tab-active) {
+    display: none !important;
+}
+
+/* 分页网格占位项：透明度占位填满末行空缺，保持行高一致且不参与交互 */
+.episode-placeholder,
+.resource-placeholder {
+    visibility: hidden;
+    min-height: 2.5rem;
+}
+
 /* 集数网格：边框框起来，与侧栏模块视觉统一 */
 #episodesGridContainer {
     border: 1px solid #333;
@@ -565,9 +565,9 @@ input:checked + .slider:before {
     padding: 0.5rem;
 }
 
-/* 切换资源模块：与选集模块同为带边框容器 */
+/* 切换资源模块：与选集模块同为带边框容器（顶部间距由 Tab 栏 margin-bottom 提供） */
 .resource-module {
-    margin-top: 0.5rem;
+    margin-top: 0;
     border: 1px solid #333;
     border-radius: 0.5rem;
     background: #151515;
@@ -788,9 +788,7 @@ input:checked + .slider:before {
     }
 
     .resource-switch-card-poster {
-        flex: 1;
-        min-height: 0;
-        aspect-ratio: auto;
+        aspect-ratio: 3/4; /* 封面保持 3/4 竖版比例，不被侧栏高度拉伸变形 */
     }
 
     .resource-switch-card-info {

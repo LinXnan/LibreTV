@@ -1200,7 +1200,8 @@ function updatePlayerEpisodeControls() {
 
 // 集数分页状态（分页控件与资源面板一致）
 let episodePage = 0;
-const EPISODES_PER_PAGE = 20;
+// 每页 21 集 = 3 列 × 7 行（桌面/移动端网格为 3 列，正好填满；平板 4/6 列由占位补全末行）
+const EPISODES_PER_PAGE = 21;
 
 // 渲染集数按钮（分页显示）
 function renderEpisodes() {
@@ -1230,8 +1231,25 @@ function renderEpisodes() {
         html += episodeButtonHTML(realIndex, isActive, { onClick: 'playEpisode', withId: true, extraClass: 'hover:!shadow-none episode-btn' });
     }
 
+    // 补占位项填满最后一行空缺（透明度占位保持网格行高一致；不参与交互）
+    const placeholders = episodePlaceholderCount(end - start);
+    for (let p = 0; p < placeholders; p++) {
+        html += '<div class="episode-placeholder" aria-hidden="true"></div>';
+    }
+
     episodesList.innerHTML = html;
     updateEpisodePagination();
+}
+
+// 计算选集网格需补的占位项数：使每页最后一行填满。
+// 列数按断点映射（与 CSS 实际列数一致）：≤640 移动 3 列、641-767 平板 4 列、768-1023 平板 6 列、≥1024 桌面侧栏 3 列。
+// 不用 getComputedStyle().gridTemplateColumns 解析——display:none（资源 Tab 激活时切集）下返回
+// 含 minmax 内部空格的抽象 track list，split(' ') 会算错列数（round 2 I-1）。
+function episodePlaceholderCount(shown) {
+    const w = window.innerWidth;
+    const cols = w >= 1024 ? 3 : (w <= 640 ? 3 : (w <= 767 ? 4 : 6));
+    const remainder = shown % cols;
+    return remainder === 0 ? 0 : cols - remainder;
 }
 
 // 更新集数分页控件状态（页码 + 翻页按钮禁用态）
@@ -2107,7 +2125,7 @@ async function loadResourceSwitchList() {
 let resourceResults = [];    // 排序后的 [sourceKey, result] 列表
 let resourcePage = 0;        // 当前页（0 基）
 let resourcePageCtx = null;  // 渲染所需上下文：当前源/资源选项/速率结果
-const RESOURCE_PAGE_SIZE = 3; // 每页显示的视频源数量
+const RESOURCE_PAGE_SIZE = 6; // 每页显示的视频源数量（3 列 × 2 行，填满侧栏高度）
 
 // 渲染当前页的资源卡片
 function renderResourcePage() {
@@ -2128,6 +2146,12 @@ function renderResourcePage() {
         const speedResult = speedResults[sourceKey] || { speed: -1, error: '未测试' };
         html += resourceCardHTML(sourceKey, result, isCurrentSource, sourceName, speedResult);
     });
+
+    // 补占位项填满最后一行空缺（3 列网格，透明度占位保持行高一致；不参与交互）
+    const remainder = pageItems.length % 3;
+    for (let p = 0; p < (remainder === 0 ? 0 : 3 - remainder); p++) {
+        html += '<div class="resource-placeholder" aria-hidden="true"></div>';
+    }
 
     container.innerHTML = html || '<div class="loading-text">未找到可切换的资源</div>';
 

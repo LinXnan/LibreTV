@@ -1,0 +1,65 @@
+feature: desktop-episode-resource-tabs
+date: 2026-08-16
+execution_lane: standard
+checks:
+  - id: c1
+    name: "桌面 ≥1024：Tab 栏显示于收起按钮下，默认选集，资源隐藏；收起/展开保留"
+    status: passed
+  - id: c2
+    name: "桌面切视频源 Tab：资源占满侧栏剩余高度，不重复触发加载、分页不归零"
+    status: passed
+  - id: c3
+    name: "平板 641-1023：Tab 栏显示、默认选集、互斥切换、状态保留"
+    status: passed
+  - id: c4
+    name: "移动端 ≤640 行为与改动前一致（默认选集 Tab、无展开按钮）"
+    status: passed
+  - id: c5
+    name: "断点切换（≤640↔≥641）无残留类错位；刷新回默认选集"
+    status: passed
+  - id: c6
+    name: "清理彻底：mobile-panel-tabs.js 无断点监听/cleanup 残留，全仓库无 MobilePanelTabs.cleanup 调用"
+    status: passed
+  - id: c7
+    name: "选集网格每页填充满（末行无空缺，占位项 visibility:hidden 不参与交互）"
+    status: passed
+  - id: c8
+    name: "数据源每页填满（RESOURCE_PAGE_SIZE=6，3 列×2 行）+ 封面保持 3/4 不变形"
+    status: passed
+steps:
+  - id: s1
+    action: "js/mobile-panel-tabs.js：简化 init()——删除 matchMedia 断点分支（≤640 activate / ≥641 cleanup）与两条 change 监听，统一 activate('episodes')；删除 cleanup() 函数与导出"
+    exit_signal: "lint 通过；文件无 matchMedia / cleanup 引用；init 直接 activate('episodes')"
+    status: done
+  - id: s2
+    action: "css/player.css：① 将 @media (max-width: 640px) 块内 #mobilePanelTabs / .mobile-tab / .mobile-tab.is-tab-active / .mobile-tab + .mobile-tab 样式上移通用区；② 将 is-tab-active 互斥规则（.player-sidebar-body #episodesGridContainer:not(.is-tab-active) / .resource-module:not(.is-tab-active)）上移通用区"
+    exit_signal: "lint 通过；上述规则在 @media 块外出现；移动端块无重复定义"
+    status: done
+  - id: s3
+    action: "css/player.css：删除 @media (min-width: 641px) { #mobilePanelTabs { display: none !important; } } 隐藏块"
+    exit_signal: "grep 无 '#mobilePanelTabs.*display: none' 残留（收起态除外，收起时 body 整体隐藏）"
+    status: done
+  - id: s4
+    action: "css/player.css：.resource-module 基础样式 margin-top: 0.5rem 改为 0（三端 Tab 场景间距由 Tab 栏 margin-bottom 提供）"
+    exit_signal: "grep 确认基础 .resource-module 规则 margin-top: 0"
+    status: done
+  - id: s5
+    action: "player.html：更新 #mobilePanelTabs 注释（可选）；确认无 DOM 改动、is-tab-active 静态预置保留"
+    exit_signal: "DOM 结构未变；lint 通过"
+    status: done
+  - id: s6
+    action: "js/player.js renderEpisodes()：EPISODES_PER_PAGE 20→21（3 列×7 行整页填满），每页真实集数渲染后补透明占位 div 填满最后一行空缺（列数优先 getComputedStyle 读取，display:none 时按断点兜底）"
+    exit_signal: "lint 通过；桌面 3 列每页 21 集满 7 行无空缺；平板/末页占位填满；占位不触发 playEpisode"
+    status: done
+  - id: s7
+    action: "数据源填充 + 封面：js/player.js RESOURCE_PAGE_SIZE 3→6 并在 renderResourcePage() 补占位填满末行；css/player.css 桌面块 .resource-switch-card-poster 恢复 aspect-ratio: 3/4（移除 flex:1 / aspect-ratio: auto）；新增 .episode-placeholder/.resource-placeholder 通用占位样式"
+    exit_signal: "lint 通过；每页 6 个（3 列×2 行）填满侧栏高度；封面 3/4 竖版不变形；翻页/切源/当前播放标记正常"
+    status: done
+  - id: s8
+    action: "验证：node --check js/player.js / js/mobile-panel-tabs.js；grep 全仓库无 MobilePanelTabs.cleanup 调用；三断点浏览器手动验证 M1-M11 + 填充/封面专项"
+    exit_signal: "语法/lint 通过；grep 无残留；M1-M11 + 专项全部通过"
+    status: done
+  - id: s9
+    action: "回归验证（design §5.3）：侧栏收起展开（含 art.resize() 重算）、集数分页/倒序/切集跳页/当前集高亮、自动连播跨集高亮、切源 switchToResource 路径（0 修改）、资源加载无重复请求/分页不归零"
+    exit_signal: "§5.3 回归项全部通过；切换资源时网络面板无二次搜索请求"
+    status: pending
