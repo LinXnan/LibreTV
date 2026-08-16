@@ -33,6 +33,9 @@ let currentVideoTitle = '';
 let currentVideoYear = ''; // 当前视频年份（用于播放页资源切换按 name+year 统一口径）
 // 全局变量用于倒序状态
 let episodesReversed = false;
+// 当前详情弹窗的可用数据源列表（merged_source_items）与当前激活源下标，供 switchDetailSource 切源使用
+let currentDetailSourceItems = [];
+let currentDetailSourceActiveIndex = 0;
 let searchInProgress = false; // 防抖锁，防止重复搜索
 let searchGeneration = 0; // 搜索代际 token：新搜索递增并 abort 旧搜索，防止旧回调/收尾串扰
 let searchAbortController = null; // 当前搜索的 AbortController，用于取消在途旧请求
@@ -789,12 +792,26 @@ function dedupeSearchResults(results) {
                 existing.merged_sources.push(src);
                 existing.source_count = existing.merged_sources.length;
             }
+            // merged_source_items：记录每个来源的 code 与该源 vod_id（vod_id 源相关，
+            // 切源详情请求必须用目标源自己的 vod_id），供详情页数据源选择使用。
+            // vod_id 与 buildSearchCardHTML 的 safeId 一致做 [\w-] 清洗：保证 showDetails
+            // 匹配（String(vod_id) === String(id)）与 /api/detail 的 id 校验（api.js [\w-]+）均通过
+            const code = item.source_code;
+            const itemEntry = { name: src || '', code: code || '', vod_id: String(item.vod_id ?? '').replace(/[^\w-]/g, '') };
+            if (itemEntry.code && !existing.merged_source_items.some(e => e.code === itemEntry.code)) {
+                existing.merged_source_items.push(itemEntry);
+            }
         } else {
             // 幂等：已 dedupe 数据（如缓存命中路径 renderCachedResults 二次调用）保留已有 merged_sources，避免覆盖多源信息
             item.merged_sources = (item.merged_sources && item.merged_sources.length)
                 ? item.merged_sources
                 : (item.source_name ? [item.source_name] : []);
             item.source_count = item.merged_sources.length;
+            // 幂等：保留已有 merged_source_items；否则构建（保留项自身为第一项，含 source_code 与该源 vod_id）
+            if (!(item.merged_source_items && item.merged_source_items.length)) {
+                const ownEntry = { name: item.source_name || '', code: item.source_code || '', vod_id: String(item.vod_id ?? '').replace(/[^\w-]/g, '') };
+                item.merged_source_items = ownEntry.code ? [ownEntry] : [];
+            }
             seen.set(key, item);
             deduped.push(item);
         }
@@ -1135,125 +1152,41 @@ async function showDetails(id, vod_name, sourceCode, vod_pic = '', vod_year = ''
         // 保存封面URL到全局变量（优先使用传递的vod_pic，否则从API响应获取）
         window.currentVodPic = vod_pic || (data.videoInfo && data.videoInfo.vod_pic ? data.videoInfo.vod_pic : '');
 
-        // 显示来源信息
-        const sourceName = data.videoInfo && data.videoInfo.source_name ?
-            ` <span class="text-sm font-normal text-gray-400">(${data.videoInfo.source_name})</span>` : '';
-
         // 不对标题进行截断处理，允许完整显示
         // modalTitle 为 sr-only 元素（仅供屏幕阅读器），视觉标题由 detail-hero 承载
         modalTitle.textContent = vod_name || '未知视频';
         currentVideoTitle = vod_name || '未知视频';
         currentVideoYear = vod_year || (data.videoInfo && data.videoInfo.year) || '';
 
-        if (data.episodes && data.episodes.length > 0) {
-            // ----- Coming-Soon / 预告式详情卡 ——
-            // 属性安全转义：除 escapeHtml 外再处理单引号，避免 HTML 属性内拼接被破坏
-            const attrEsc = (s) => String(s ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-            const safeVodName = escapeHtml(vod_name || '未知视频');
-            const safeSourceName = escapeHtml((data.videoInfo && data.videoInfo.source_name) || '');
-            const safeId = attrEsc(String(id));
-            const safeSourceCode = attrEsc(sourceCode);
-
-            // 副标题（hero 左下浮层下方）：优先展示数据源名称
-            const subtitleText = safeSourceName;
-
-            // 标签胶囊（年份/类型/地区/class/备注）
-            const vi = data.videoInfo || {};
-            const tagItems = [];
-            if (vi.year) tagItems.push(escapeHtml(String(vi.year)));
-            if (vi.type) tagItems.push(escapeHtml(String(vi.type)));
-            if (vi.area) tagItems.push(escapeHtml(String(vi.area)));
-            if (vi.class) tagItems.push(escapeHtml(String(vi.class)));
-            else if (vi.remarks) tagItems.push(escapeHtml(String(vi.remarks)));
-            const tagsHtml = tagItems
-                .map(t => `<span class="detail-tag">${t}</span>`)
-                .join('');
-
-            // 描述（清洗 HTML 标签后再 escape）
-            const descriptionRaw = vi.desc ? String(vi.desc).replace(/<[^>]+>/g, '').trim() : '';
-            const safeDescription = escapeHtml(descriptionRaw);
-            const hasDescription = descriptionRaw.length > 0;
-
-            // 背景海报：复用 ui.js 历史封面代理逻辑，保证同源可加载
-            let backdropUrl = '';
-            const rawPic = String(window.currentVodPic || '').trim();
-            if (rawPic) {
-                try {
-                    if (rawPic.startsWith('http://') || rawPic.startsWith('https://')) {
-                        backdropUrl = `/proxy/${encodeURIComponent(rawPic).replace(/'/g, '%27')}`;
-                    } else if (rawPic.startsWith('//')) {
-                        const normalized = `${window.location.protocol}${rawPic}`;
-                        backdropUrl = `/proxy/${encodeURIComponent(normalized).replace(/'/g, '%27')}`;
-                    } else if (rawPic.startsWith('/')) {
-                        backdropUrl = rawPic;
-                    }
-                } catch (e) { backdropUrl = ''; }
+        // 从去重后的搜索结果中匹配当前详情项，获取可用数据源列表（merged_source_items）
+        // 筛选只过滤不修改对象，merged_source_items 不丢失；匹配不到（旧缓存 / 非搜索入口）则单源回退
+        // vod_id 与 buildSearchCardHTML 的 safeId 同规则清洗后比较：卡片 onclick 传入的 id 已清洗，
+        // 顶层 r.vod_id 是原始值，两者统一清洗才可匹配特殊字符 id 的源（review REV-004）
+        let sourceItems = [];
+        let activeIndex = 0;
+        const mergedItem = (window.searchResults || []).find(r => String(r.vod_id).replace(/[^\w-]/g, '') === String(id) && r.source_code === sourceCode);
+        if (mergedItem && mergedItem.merged_source_items && mergedItem.merged_source_items.length) {
+            sourceItems = mergedItem.merged_source_items;
+            activeIndex = sourceItems.findIndex(s => s.code === sourceCode);
+            if (activeIndex < 0) {
+                // 异常缓存：当前源不在 items 中 → 整体单源回退，避免数据源与源参数不一致
+                sourceItems = [{ name: (data.videoInfo && data.videoInfo.source_name) || '', code: sourceCode, vod_id: String(id) }];
+                activeIndex = 0;
             }
-            const safeBackdropUrl = escapeHtml(backdropUrl);
+        } else {
+            // 单源 / 旧缓存 / 非搜索入口回退：构建仅含当前源的列表，界面与现状一致（无来源 Tab）
+            sourceItems = [{ name: (data.videoInfo && data.videoInfo.source_name) || '', code: sourceCode, vod_id: String(id) }];
+            activeIndex = 0;
+        }
+        currentDetailSourceItems = sourceItems;
+        currentDetailSourceActiveIndex = activeIndex;
+        // 打开新影片时递增切源令牌：作废上一部影片在途的切源响应，防止跨影片串台
+        detailSourceSwitchToken++;
 
-            // 右上角源名称首字角标
-            const sourceBadgeInitial = safeSourceName
-                ? Array.from(safeSourceName)[0].toUpperCase()
-                : '影';
-            const sourceBadgeTitle = `来源: ${safeSourceName}`;
-
-            // 背景海报交给 LazyImageLoader：img.lazy-load[data-src] 会被 MutationObserver
-            // 自动接管，补 proxy 鉴权参数、缓存、加载失败降级（隐藏 img 露出纯色占位底）
-            const heroBgImg = backdropUrl
-                ? `<img class="detail-hero-bg lazy-load" data-src="${safeBackdropUrl}" alt="" aria-hidden="true" referrerpolicy="no-referrer">`
-                : '';
-            // 无封面时的居中占位：源名首字（或「影」）
-            const heroEmptyMark = backdropUrl ? '' : `<div class="detail-hero-empty-mark">${escapeHtml(sourceBadgeInitial)}</div>`;
-
+        if (data.episodes && data.episodes.length > 0) {
             currentEpisodes = data.episodes;
             currentEpisodeIndex = 0;
-
-            modalContent.innerHTML = `
-                <div class="detail-hero">
-                    ${heroBgImg}
-                    ${heroEmptyMark}
-                    <div class="detail-hero-shade"></div>
-                    <div class="detail-hero-source-badge" title="${escapeHtml(sourceBadgeTitle)}">
-                        <span class="detail-hero-source-mark">${escapeHtml(sourceBadgeInitial)}</span>
-                    </div>
-                    <div class="detail-hero-title-wrap">
-                        <h3 class="detail-hero-title">${safeVodName}</h3>
-                        ${subtitleText ? `<p class="detail-hero-subtitle">${subtitleText}</p>` : ''}
-                    </div>
-                </div>
-
-                <div class="detail-meta">
-                    ${tagsHtml ? `<div class="detail-tags">${tagsHtml}</div>` : ''}
-                    ${hasDescription ? `<p class="detail-desc">${safeDescription}</p>` : ''}
-                    <p class="detail-foot">仅供测试 · 视频来自第三方接口</p>
-                </div>
-
-                <div class="detail-episodes">
-                    <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
-                        <div class="flex items-center gap-2">
-                            <button onclick="toggleEpisodeOrder('${safeSourceCode}', '${safeId}')"
-                                    class="px-3 py-1.5 bg-[#333] hover:bg-[#444] border border-[#444] rounded text-sm transition-colors flex items-center gap-1">
-                                <svg class="w-4 h-4 transform ${episodesReversed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-                                </svg>
-                                <span>${episodesReversed ? '正序排列' : '倒序排列'}</span>
-                            </button>
-                            <span class="text-gray-400 text-sm">共 ${data.episodes.length} 集</span>
-                        </div>
-                        <button onclick="copyLinks()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors">
-                            复制链接
-                        </button>
-                    </div>
-                    <div id="episodesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
-                        ${renderEpisodes(vod_name, sourceCode, id)}
-                    </div>
-                </div>
-            `;
+            renderDetailIntoModal(data, sourceItems, activeIndex, vod_name, vod_year);
         } else {
             modalContent.innerHTML = `
                 <div class="detail-center py-10 text-center">
@@ -1270,6 +1203,209 @@ async function showDetails(id, vod_name, sourceCode, vod_pic = '', vod_year = ''
     } finally {
         hideLoading();
     }
+}
+
+// 渲染详情弹窗内容（hero + 来源 Tab + 工具栏 + 剧集网格）。
+// 从 showDetails 内联渲染段抽取：切源后整体重渲染，保证工具栏倒序按钮 / 剧集按钮
+// onclick 均携带当前源 code / vodId（避免局部重渲染留下陈旧源参数导致播放 URL 错乱）。
+function renderDetailIntoModal(detailData, sourceItems, activeIndex, vodName, vodYear) {
+    const modalContent = document.getElementById('modalContent');
+    const vi = detailData.videoInfo || {};
+    const currentItem = (sourceItems && sourceItems.length) ? sourceItems[activeIndex] : null;
+
+    // 属性安全转义：除 escapeHtml 外再处理单引号，避免 HTML 属性内拼接被破坏
+    const attrEsc = (s) => String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    const safeVodName = escapeHtml(vodName || '未知视频');
+    // 当前源名称：优先取详情响应（videoInfo.source_name），回退合并项 name
+    const safeSourceName = escapeHtml(vi.source_name || (currentItem && currentItem.name) || '');
+    const rawSourceCode = currentItem ? String(currentItem.code ?? '') : '';
+    const rawVodId = currentItem ? String(currentItem.vod_id ?? '') : '';
+    const safeSourceCode = attrEsc(rawSourceCode);
+    const safeId = attrEsc(rawVodId);
+
+    // 副标题（hero 左下浮层下方）：优先展示数据源名称
+    const subtitleText = safeSourceName;
+
+    // 标签胶囊（年份/类型/地区/class/备注）
+    const tagItems = [];
+    if (vi.year) tagItems.push(escapeHtml(String(vi.year)));
+    if (vi.type) tagItems.push(escapeHtml(String(vi.type)));
+    if (vi.area) tagItems.push(escapeHtml(String(vi.area)));
+    if (vi.class) tagItems.push(escapeHtml(String(vi.class)));
+    else if (vi.remarks) tagItems.push(escapeHtml(String(vi.remarks)));
+    const tagsHtml = tagItems
+        .map(t => `<span class="detail-tag">${t}</span>`)
+        .join('');
+
+    // 描述（清洗 HTML 标签后再 escape）
+    const descriptionRaw = vi.desc ? String(vi.desc).replace(/<[^>]+>/g, '').trim() : '';
+    const safeDescription = escapeHtml(descriptionRaw);
+    const hasDescription = descriptionRaw.length > 0;
+
+    // 背景海报：复用 ui.js 历史封面代理逻辑，保证同源可加载
+    let backdropUrl = '';
+    const rawPic = String(window.currentVodPic || '').trim();
+    if (rawPic) {
+        try {
+            if (rawPic.startsWith('http://') || rawPic.startsWith('https://')) {
+                backdropUrl = `/proxy/${encodeURIComponent(rawPic).replace(/'/g, '%27')}`;
+            } else if (rawPic.startsWith('//')) {
+                const normalized = `${window.location.protocol}${rawPic}`;
+                backdropUrl = `/proxy/${encodeURIComponent(normalized).replace(/'/g, '%27')}`;
+            } else if (rawPic.startsWith('/')) {
+                backdropUrl = rawPic;
+            }
+        } catch (e) { backdropUrl = ''; }
+    }
+    const safeBackdropUrl = escapeHtml(backdropUrl);
+
+    // 右上角源名称首字角标
+    const sourceBadgeInitial = safeSourceName
+        ? Array.from(safeSourceName)[0].toUpperCase()
+        : '影';
+    const sourceBadgeTitle = `来源: ${safeSourceName}`;
+
+    // 背景海报交给 LazyImageLoader：img.lazy-load[data-src] 会被 MutationObserver
+    // 自动接管，补 proxy 鉴权参数、缓存、加载失败降级（隐藏 img 露出纯色占位底）
+    const heroBgImg = backdropUrl
+        ? `<img class="detail-hero-bg lazy-load" data-src="${safeBackdropUrl}" alt="" aria-hidden="true" referrerpolicy="no-referrer">`
+        : '';
+    // 无封面时的居中占位：源名首字（或「影」）
+    const heroEmptyMark = backdropUrl ? '' : `<div class="detail-hero-empty-mark">${escapeHtml(sourceBadgeInitial)}</div>`;
+
+    // 来源 Tab（仅多源时渲染；单源 / 旧缓存回退不渲染，界面与改动前一致）
+    let sourceTabsHtml = '';
+    if (sourceItems && sourceItems.length > 1) {
+        sourceTabsHtml = `
+            <div class="detail-source-tabs" role="tablist" aria-label="视频来源">
+                ${sourceItems.map((s, i) => `
+                    <button type="button" role="tab" aria-selected="${i === activeIndex ? 'true' : 'false'}"
+                            onclick="switchDetailSource(${i})"
+                            class="detail-source-tab${i === activeIndex ? ' is-active' : ''}">
+                        ${escapeHtml(s.name || '未知来源')}
+                    </button>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    modalContent.innerHTML = `
+        <div class="detail-hero">
+            ${heroBgImg}
+            ${heroEmptyMark}
+            <div class="detail-hero-shade"></div>
+            <div class="detail-hero-source-badge" title="${escapeHtml(sourceBadgeTitle)}">
+                <span class="detail-hero-source-mark">${escapeHtml(sourceBadgeInitial)}</span>
+            </div>
+            <div class="detail-hero-title-wrap">
+                <h3 class="detail-hero-title">${safeVodName}</h3>
+                ${subtitleText ? `<p class="detail-hero-subtitle">${subtitleText}</p>` : ''}
+            </div>
+        </div>
+
+        <div class="detail-meta">
+            ${tagsHtml ? `<div class="detail-tags">${tagsHtml}</div>` : ''}
+            ${hasDescription ? `<p class="detail-desc">${safeDescription}</p>` : ''}
+            <p class="detail-foot">仅供测试 · 视频来自第三方接口</p>
+        </div>
+
+        <div class="detail-episodes">
+            ${sourceTabsHtml}
+            <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleEpisodeOrder('${safeSourceCode}', '${safeId}')"
+                            class="px-3 py-1.5 bg-[#333] hover:bg-[#444] border border-[#444] rounded text-sm transition-colors flex items-center gap-1">
+                        <svg class="w-4 h-4 transform ${episodesReversed ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                        </svg>
+                        <span>${episodesReversed ? '正序排列' : '倒序排列'}</span>
+                    </button>
+                    <span class="text-gray-400 text-sm">共 ${detailData.episodes.length} 集</span>
+                </div>
+                <button onclick="copyLinks()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors">
+                    复制链接
+                </button>
+            </div>
+            <div id="episodesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                ${renderEpisodes(vodName, rawSourceCode, rawVodId)}
+            </div>
+        </div>
+    `;
+}
+
+// 详情弹窗内切换数据源：用目标源自己的 vod_id + source_code 重新拉取详情并整体重渲染。
+// 目标源列表来自全局 currentDetailSourceItems（showDetails 打开时设置），onclick 仅传下标避免序列化。
+// 序号令牌防竞态：仅最新一次切源响应允许渲染（对齐 resource-load-race 教训的"后发覆盖前发"场景）。
+let detailSourceSwitchToken = 0;
+function switchDetailSource(targetIndex) {
+    if (!window.requirePasswordOrPrompt()) return;
+    const sourceItems = currentDetailSourceItems || [];
+    if (!sourceItems.length) return;
+    // 重复点击当前源为无操作
+    if (targetIndex === currentDetailSourceActiveIndex) return;
+
+    const target = sourceItems[targetIndex];
+    if (!target) return;
+
+    const token = ++detailSourceSwitchToken;
+    showLoading();
+    (async () => {
+        try {
+            // 构建 API 参数（与 showDetails 一致的 custom_ / 内置分支）
+            let apiParams = '';
+            let targetCode = target.code || '';
+            if (targetCode.startsWith('custom_')) {
+                const customIndex = targetCode.replace('custom_', '');
+                const customApi = getCustomApiInfo(customIndex);
+                if (!customApi) {
+                    showToast('自定义API配置无效', 'error');
+                    return;
+                }
+                apiParams = customApi.detail
+                    ? '&customApi=' + encodeURIComponent(customApi.url) + '&customDetail=' + encodeURIComponent(customApi.detail) + '&source=custom'
+                    : '&customApi=' + encodeURIComponent(customApi.url) + '&source=custom';
+            } else {
+                apiParams = '&source=' + targetCode;
+            }
+
+            const timestamp = new Date().getTime();
+            const response = await fetch(`/api/detail?id=${encodeURIComponent(target.vod_id)}${apiParams}&_t=${timestamp}`);
+            const data = await response.json();
+
+            // 竞态保护：仅最新令牌的响应允许渲染
+            if (token !== detailSourceSwitchToken) return;
+
+            if (data.episodes && data.episodes.length > 0) {
+                currentEpisodes = data.episodes;
+                currentEpisodeIndex = 0;
+                // 切源后更新封面 / 年份（目标源有值才覆盖，避免空白 / 丢失）
+                if (data.videoInfo && data.videoInfo.vod_pic) {
+                    window.currentVodPic = data.videoInfo.vod_pic;
+                }
+                if (data.videoInfo && data.videoInfo.year) {
+                    currentVideoYear = String(data.videoInfo.year);
+                }
+                currentDetailSourceActiveIndex = targetIndex;
+                // 切源后保留 episodesReversed 倒序状态（用户偏好），整体重渲染详情
+                renderDetailIntoModal(data, sourceItems, targetIndex, currentVideoTitle, currentVideoYear);
+            } else {
+                showToast('该来源暂无播放资源', 'error');
+            }
+        } catch (error) {
+            if (token !== detailSourceSwitchToken) return;
+            console.error('切换数据源错误:', error);
+            showToast('获取详情失败，请稍后重试', 'error');
+        } finally {
+            if (token === detailSourceSwitchToken) {
+                hideLoading();
+            }
+        }
+    })();
 }
 
 // 点击选集直接进入 player.html，不再走 watch.html 中转。

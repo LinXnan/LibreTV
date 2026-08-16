@@ -1,0 +1,51 @@
+feature: 2026-08-16-detail-source-switch
+created: 2026-08-16
+
+steps:
+  - action: "数据契约：dedupeSearchResults 构建 merged_source_items（含幂等保留、保留项自身入列、custom 源兼容）"
+    exit_signal: "node --check 通过；多源搜索后结果对象含正确 merged_source_items 结构"
+    status: done
+  - action: "详情渲染：showDetails 从 window.searchResults 查找合并项 + 抽取 renderDetailIntoModal（含来源 Tab 渲染）"
+    exit_signal: "多源影片详情页可见来源 Tab 且默认高亮当前源；单源无 Tab；旧缓存单源回退"
+    status: done
+  - action: "交互逻辑：switchDetailSource 切源（序号令牌防竞态 + 更新全局详情状态 + renderDetailIntoModal 整体重渲染 + 错误回滚高亮）"
+    exit_signal: "点其他源后剧集/工具栏/剧集按钮全部携带新源参数、高亮切换、倒序状态保留、快速连点无竞态错乱"
+    status: done
+  - action: "联调收尾：来源 Tab 样式（互斥高亮）+ 播放链路（选中源 code/vod_id 入 URL）+ 自定义源 + 复制链接"
+    exit_signal: "S1-S10 全部肉眼通过（见 design 第 3 节）"
+    status: done
+
+checks:
+  - item: "merged_source_items 为 [{name, code, vod_id}] 数组，保留项自身为第一项"
+    source: 名词契约
+    status: passed
+  - item: "merged_sources 保持字符串数组不变（push 字符串），既有 6 处消费零改动"
+    source: 范围守护
+    status: passed
+  - item: "dedupeSearchResults 幂等：已有 merged_source_items 时保留不覆盖（缓存路径）"
+    source: 流程级约束
+    status: passed
+  - item: "切源详情请求用目标源 vod_id + source_code；custom_ 源走 getCustomApiInfo 分支"
+    source: 名词契约
+    status: passed
+  - item: "showDetails 从 window.searchResults 匹配 String(vod_id) + source_code；匹配不到单源回退"
+    source: 名词契约
+    status: passed
+  - item: "switchDetailSource 序号令牌防竞态，仅最新序号响应渲染；重复点击同一源为无操作"
+    source: 流程级约束
+    status: passed
+  - item: "切源保留 episodesReversed，重置 currentEpisodeIndex，更新 currentEpisodes/Title/Year/currentVodPic"
+    source: 流程级约束
+    status: passed
+  - item: "切源后 renderDetailIntoModal 整体重渲染 modalContent，工具栏倒序按钮与剧集按钮 onclick 均携带当前源 code/vodId"
+    source: 流程级约束
+    status: passed
+  - item: "挂载点 M1-M4 齐全：dedupeSearchResults / showDetails / 新增切源函数 / styles.css Tab 样式"
+    source: 挂载点
+    status: passed
+  - item: "明确不做：player.js 零 diff、无新增 localStorage key、代理四平台零 diff"
+    source: 范围守护
+    status: passed
+  - item: "验收场景 S1-S10 全部有可观察证据（浏览器验证记录）"
+    source: 验收场景
+    status: passed
