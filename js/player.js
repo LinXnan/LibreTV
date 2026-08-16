@@ -83,7 +83,6 @@ let currentVideoYear = ''; // 当前视频年份（URL year 参数，用于资�
 let currentEpisodeIndex = 0;
 let art = null; // 用于 ArtPlayer 实例
 let currentHls = null; // 跟踪当前HLS实例
-let qualityHandlers = null; // 智能降级监听引用：切集时先移除再绑定，避免同一 video 上累积
 let currentEpisodes = [];
 let episodesReversed = false;
 let autoplayEnabled = true; // 默认开启自动连播
@@ -540,11 +539,7 @@ function initPlayer(videoUrl) {
             levelLoadingMaxRetry: 4,
             levelLoadingRetryDelay: 500,
 
-            startLevel: -1,
-            abrEwmaDefaultEstimate: 2000000,
-            abrBandWidthFactor: 0.8,
-            abrBandWidthUpFactor: 0.6,
-            abrMaxWithRealBitrate: true,
+            startLevel: -1, // 起播由 ABR 选带宽支持的最高档；MANIFEST_PARSED 后锁定最高画质，禁用后续自动降码率
 
             stretchShortVideoTrack: true,
             appendErrorMaxRetry: 5,
@@ -710,6 +705,17 @@ function initPlayer(videoUrl) {
                 video.disableRemotePlayback = false;
 
                 hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                    // 锁定最高画质：将 currentLevel 设为码率最高的档位（非 -1 即手动模式，
+                    // hls.js 不再按带宽自动降码率），保证播放全程保持源流最高清晰度
+                    if (hls.levels && hls.levels.length > 1) {
+                        let maxLevelIdx = 0;
+                        for (let i = 1; i < hls.levels.length; i++) {
+                            if ((hls.levels[i].bitrate || 0) > (hls.levels[maxLevelIdx].bitrate || 0)) {
+                                maxLevelIdx = i;
+                            }
+                        }
+                        hls.currentLevel = maxLevelIdx;
+                    }
                     video.play().catch(e => {
                     });
                 });
@@ -776,110 +782,6 @@ function initPlayer(videoUrl) {
                         }
                     }
                 });
-
-                // 监听分段加载事件 — 仅进度更新在 FRAG_LOADING/FRAG_LOADED 进度条处处理
-                // 不在此隐藏 loading；隐藏由 playing 事件统一调度
-
-                // 优化11: 智能画质调整 - 通过 autoLevelCapping 收窄 ABR 上限实现降级
-                // 不触碰 hls.currentLevel（避免禁用 hls.js 自动画质切换），降级后可自动恢复
-                let bufferStallCount = 0;
-                let lastBufferCheck = 0;
-                let lastDegradeAt = 0;
-                let lastSeekAt = 0;
-                let qualityCapped = false; // 是否已通过 autoLevelCapping 收窄 ABR 上限
-                const BUFFER_CHECK_INTERVAL = 3000; // 每3秒检查一次
-                const STALL_THRESHOLD = 3; // 连续卡顿3次则降低画质
-                const LOW_BUFFER_THRESHOLD = 5; // 缓冲低于5秒视为可能卡顿
-                const HEALTHY_BUFFER_THRESHOLD = 10; // 缓冲高于10秒视为健康，恢复 ABR
-                const DEGRADE_COOLDOWN_MS = 15000; // 降级后15秒内不再降级，避免连降
-                const SEEK_GUARD_MS = 5000; // 起播/seek 后5秒内不干预（缓冲瞬时为0）
-
-                // 降级一次：收窄 ABR 自动选择上限（不进入 manual 模式）
-                // 返回是否实际降级：被冷却/保护/等级边界拦截时为 false，调用方据此决定是否清零计数
-                function degradeLevel() {
-                    if (!hls || !hls.levels || hls.levels.length < 2) return false;
-                    const currentLevel = hls.currentLevel;
-                    // 自动模式早期 currentLevel 可能为 -1，不可降
-                    if (currentLevel < 1) return false;
-                    if (Date.now() - lastDegradeAt < DEGRADE_COOLDOWN_MS) return false;
-                    const target = currentLevel - 1;
-                    if (target < 1) return false; // 已到最低档，不再降
-                    hls.autoLevelCapping = target;
-                    qualityCapped = true;
-                    lastDegradeAt = Date.now();
-                    console.log(`智能降级: ABR 上限 → ${target}（当前 ${currentLevel}）`);
-                    return true;
-                }
-
-                // 恢复完整 ABR（解除上限）
-                function restoreAutoLevel() {
-                    if (qualityCapped) {
-                        hls.autoLevelCapping = -1;
-                        qualityCapped = false;
-                        console.log('智能降级: 缓冲恢复，交还 ABR 自动选择');
-                    }
-                }
-
-                // 先移除上一源的降级监听（art.switch 切集不重建 video 元素，避免监听累积；
-                // 旧监听闭包捕获的是已 destroy 的旧 hls，必须一并解除）
-                if (qualityHandlers) {
-                    video.removeEventListener('seeking', qualityHandlers.seeking);
-                    video.removeEventListener('waiting', qualityHandlers.waiting);
-                    video.removeEventListener('timeupdate', qualityHandlers.timeupdate);
-                }
-
-                // 记录 seek 时间，避免 seek 后缓冲瞬时为 0 触发误降级
-                const qualitySeekingHandler = function() {
-                    lastSeekAt = Date.now();
-                };
-
-                const qualityWaitingHandler = function() {
-                    bufferStallCount++;
-                    console.log(`视频缓冲中，卡顿计数: ${bufferStallCount}`);
-
-                    // 连续卡顿超过阈值且距 seek 足够久，主动降级（带冷却）
-                    if (bufferStallCount >= STALL_THRESHOLD && Date.now() - lastSeekAt > SEEK_GUARD_MS) {
-                        // 仅在实际降级成功时清零；被冷却/保护拦截时保留计数，冷却过后继续累计
-                        if (degradeLevel()) bufferStallCount = 0;
-                    }
-                };
-
-                // 定期检查缓冲区健康度
-                const qualityTimeupdateHandler = function() {
-                    const now = Date.now();
-                    if (now - lastBufferCheck < BUFFER_CHECK_INTERVAL) return;
-                    lastBufferCheck = now;
-
-                    // 起播/seek 后缓冲瞬时为 0，5 秒内不干预
-                    if (now - lastSeekAt < SEEK_GUARD_MS) return;
-                    if (video.readyState < 3) return; // HAVE_FUTURE_DATA 以下不干预
-
-                    // 检查当前缓冲区长度
-                    const buffered = video.buffered;
-                    if (buffered.length > 0) {
-                        const currentTime = video.currentTime;
-                        const bufferedEnd = buffered.end(buffered.length - 1);
-                        const bufferLength = bufferedEnd - currentTime;
-
-                        if (bufferLength >= HEALTHY_BUFFER_THRESHOLD) {
-                            // 缓冲健康：恢复 ABR 并归零卡顿计数
-                            restoreAutoLevel();
-                            bufferStallCount = 0;
-                        } else if (bufferLength < LOW_BUFFER_THRESHOLD) {
-                            // 缓冲不足：预防性降级（带冷却）
-                            degradeLevel();
-                        }
-                    }
-                };
-
-                qualityHandlers = {
-                    seeking: qualitySeekingHandler,
-                    waiting: qualityWaitingHandler,
-                    timeupdate: qualityTimeupdateHandler
-                };
-                video.addEventListener('seeking', qualitySeekingHandler);
-                video.addEventListener('waiting', qualityWaitingHandler);
-                video.addEventListener('timeupdate', qualityTimeupdateHandler);
             }
         }
     });
