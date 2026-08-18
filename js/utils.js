@@ -36,6 +36,10 @@ class ImageCacheManager {
         this.prefix = 'img_cache_data_';
         this.isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         this.preloadingUrls = new Set(); // 防止重复下载
+        // index「读-改-写」互斥队列：compressAndStore 的 _compress 是异步的，
+        // 多个并发写入各自持有过期 index 快照会互相覆盖丢失条目（预取多封面时触发）。
+        // 只串行化写回段（_getIndex→_saveIndex），压缩仍在链外并发，不拖慢下载
+        this._storeChain = Promise.resolve();
     }
 
     _getIndex() {
@@ -56,8 +60,6 @@ class ImageCacheManager {
         if (entry) {
             const data = localStorage.getItem(this.prefix + entry.id);
             if (data) {
-                entry.lastAccess = Date.now();
-                this._saveIndex(index);
                 return data;
             }
         }
@@ -119,8 +121,24 @@ class ImageCacheManager {
 
     async compressAndStore(url, blob) {
         try {
+            // 压缩留在互斥队列外并发执行（canvas 压缩是耗时主线程操作，不排队拖慢下载）
             const base64 = await this._compress(blob);
+            if (!base64) return null;
             const size = base64.length * 2; // 估算 UTF-16 字节大小
+            // index 读-改-写走互斥队列，避免并发写入互相覆盖丢失条目
+            await this._enqueueStore(url, base64, size);
+            return base64;
+        } catch (e) {
+            if (this.isDev) console.warn('[ImageCache] Caching failed:', e);
+            return null;
+        }
+    }
+
+    // index 写回互斥段：_getIndex→_ensureQuota→setItem→_saveIndex 全程串行。
+    // _compress 异步导致多个 compressAndStore 并发时各自持有过期 index 快照，
+    // 直接写回会互相覆盖（A 的条目丢失/孤儿数据累积）。链式队列保证同一时刻只一个写回。
+    _enqueueStore(url, base64, size) {
+        const task = () => {
             let index = this._getIndex();
 
             // 检查并清理空间
@@ -134,11 +152,11 @@ class ImageCacheManager {
             index.push({ url, id, size, lastAccess: Date.now() });
 
             this._saveIndex(index);
-            return base64;
-        } catch (e) {
-            if (this.isDev) console.warn('[ImageCache] Caching failed:', e);
-            return null;
-        }
+        };
+        // 链上挂本次任务；catch 兜底防止单次失败卡死整条链
+        const run = this._storeChain.then(task, task);
+        this._storeChain = run.catch(() => {});
+        return run;
     }
 
     _ensureQuota(newSize, index) {
@@ -244,6 +262,15 @@ class LazyImageLoader {
             const cached = window.imageCacheManager.get(originalSrc);
             if (cached) {
                 if (this.isDev) console.log('[LazyImageLoader] Cache HIT:', originalSrc);
+                // 先设 src、等 onload 解码完成后再标记淡入：data URL 解码期间 img 空白，
+                // 若提前加 is-loaded（opacity 立即 1）会在解码完成瞬间硬出现——"闪"的根源
+                img.onload = () => {
+                    img.classList.add('is-loaded');
+                };
+                img.onerror = () => {
+                    // 缓存 data URL 损坏：降级隐藏露出占位符
+                    this.handleLoadError(img);
+                };
                 img.src = cached;
                 return;
             } else {
@@ -289,12 +316,28 @@ class LazyImageLoader {
         img.onload = () => {
             clearTimeout(this.loadingImages.get(img));
             this.loadingImages.delete(img);
+            // 加载完成标记：CSS 据此淡入封面（.is-loaded），消除占位符→封面硬切换
+            img.classList.add('is-loaded');
         };
 
         img.onerror = () => {
             clearTimeout(this.loadingImages.get(img));
             this.loadingImages.delete(img);
             if (this.isDev) console.error('[LazyImageLoader] Load failed:', finalSrc);
+            // 兜底：预取可能在本 img 进入 fetch 路径后才异步完成写入缓存。
+            // 隐藏前再查一次，命中则恢复显示，避免「预取已就绪但封面被钉死在占位符」。
+            // dataset 标记防死循环：缓存 data URL 若损坏，重试仍失败时不再查第二次。
+            const retry = !img.dataset.prefetchRetried && window.imageCacheManager
+                ? window.imageCacheManager.get(originalSrc)
+                : null;
+            if (retry) {
+                img.dataset.prefetchRetried = '1';
+                if (this.isDev) console.log('[LazyImageLoader] Prefetch finished during load, using cache:', originalSrc);
+                // 不提前标记：设 src 后外层 img.onload 会在解码完成时加 is-loaded 淡入，
+                // 避免"提前标记→硬出现"闪烁
+                img.src = retry;
+                return;
+            }
             this.handleLoadError(img);
         };
 
@@ -310,6 +353,9 @@ class LazyImageLoader {
             parent.classList.remove('has-cover');
             img.style.display = 'none';
         }
+        // 清掉加载标记：失败隐藏时若残留 is-loaded，未来复用该 img 且重置 display
+        // 会暴露出损坏封面盖住占位符；保持「无标记=未加载」语义干净
+        img.classList.remove('is-loaded');
     }
 
     observe(img) {

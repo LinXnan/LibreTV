@@ -195,6 +195,14 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    /* 默认透明，加载完成后由 LazyImageLoader 加 .is-loaded 淡入，
+       消除"占位符→封面"硬跳变；加载失败隐藏时占位符自然露出 */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.recent-watch-cover-img.is-loaded {
+    opacity: 1;
 }
 
 /* 右上角播放徽章：彻底隐藏（hover 也不再弹出，避免在封面上叠加色块） */
@@ -257,6 +265,50 @@
     }
 }
 
+/* 封面就绪前整卡隐藏（含占位符）：等全部封面加载完成或超时后移除该状态整批淡入，
+   避免"先露占位符再闪到封面"。用 visibility 而非 opacity —— updateCoverflow 会设置
+   内联 opacity（可见卡为 1），会覆盖 CSS 类；visibility 不受内联 opacity 影响。
+   入场动画在移除 pending 后从头播放（backwards 填充），实现渐进式淡入 */
+.recent-watch-card.cover-pending {
+    visibility: hidden;
+    opacity: 0;
+    animation: none;
+    pointer-events: none;
+}
+
+/* 切换标签/类型加载过渡：三个跳动圆点居中，数据到齐后由卡片渐进式展示替换 */
+.recent-watch-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.recent-watch-loading-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    animation: recent-watch-dot-bounce 1.2s ease-in-out infinite;
+}
+.recent-watch-loading-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+.recent-watch-loading-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+@keyframes recent-watch-dot-bounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.45;
+    }
+    30% {
+        transform: translateY(-6px);
+        opacity: 1;
+    }
+}
+
 /* 区域不再加独立背景/光晕：与页面统一深蓝黑渐变，避免"一块浅色面板"的割裂感 */
 
 /* 标题装饰：恢复纯白文字与页面其他标题风格一致，仅保留左侧渐变竖条作为轻装饰 */
@@ -304,11 +356,17 @@
     }
 }
 
-/* 尊重系统减弱动效设置：关闭入场动画与过渡 */
+/* 尊重系统减弱动效设置：关闭入场动画与过渡（含封面淡入与加载点跳动，直接显示） */
 @media (prefers-reduced-motion: reduce) {
     .recent-watch-card {
         animation: none;
         transition: none;
+    }
+    .recent-watch-cover-img {
+        transition: none;
+    }
+    .recent-watch-loading-dot {
+        animation: none;
     }
 }
 

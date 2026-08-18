@@ -53,6 +53,17 @@ function saveUserTags() {
 // 当前类型（movie/tv）与当前标签；recent-watch.js 读写此全局状态驱动轮播
 let doubanMovieTvCurrentSwitch = 'movie';
 let doubanCurrentTag = '热门';
+// 年份筛选：空串 = 全部年份；否则为具体年份（如 '2024'）。recent-watch.js 读写驱动轮播
+let doubanCurrentYear = '';
+// 年份选项：当前年往前 N 年 + "全部"；横向滚动容器展示
+function getDoubanYearOptions() {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = currentYear; y >= currentYear - 14; y--) {
+        years.push(String(y));
+    }
+    return years;
+}
 
 // 填充搜索框，确保豆瓣资源API被选中，然后执行搜索
 async function fillAndSearchWithDouban(title) {
@@ -168,6 +179,34 @@ function renderDoubanTags() {
         };
         
         tagContainer.appendChild(btn);
+    });
+}
+
+// 渲染年份筛选条（"全部" + 近 N 年），风格与标签一致；切换年份触发轮播刷新
+function renderDoubanYears() {
+    const yearContainer = document.getElementById('douban-years');
+    if (!yearContainer) return;
+    yearContainer.innerHTML = '';
+    const options = ['全部', ...getDoubanYearOptions()];
+    options.forEach((year) => {
+        const btn = document.createElement('button');
+        // 当前选中年份高亮（'全部' 对应空串 doubanCurrentYear）
+        const isActive = year === '全部' ? doubanCurrentYear === '' : doubanCurrentYear === year;
+        let btnClass = 'py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ';
+        btnClass += isActive
+            ? 'bg-pink-600 text-white shadow-md border-white'
+            : 'bg-[#1a1a1a] text-gray-300 hover:bg-pink-700 hover:text-white border-[#333] hover:border-white';
+        btn.className = btnClass;
+        btn.textContent = year;
+        btn.onclick = function() {
+            const target = year === '全部' ? '' : year;
+            if (doubanCurrentYear !== target) {
+                doubanCurrentYear = target;
+                window.updateRecentWatchVisibility?.(); // 触发轮播刷新（isSwitch 检测到年份变化）
+                renderDoubanYears();
+            }
+        };
+        yearContainer.appendChild(btn);
     });
 }
 
@@ -443,4 +482,9 @@ function resetTagsToDefault() {
 
 // 标签数据自初始化（幂等，recent-watch.js init 再调无害）；
 // 保证 douban.js 被单独引用时标签系统也已就绪
-document.addEventListener('DOMContentLoaded', loadUserTags);
+// 年份条初始渲染：与标签条不同，recent-watch.js 的 init/setType 不重渲染年份
+// （年份独立于 movie/tv 类型，无需随类型切换），故这里单独初始化
+document.addEventListener('DOMContentLoaded', () => {
+    loadUserTags();
+    renderDoubanYears();
+});

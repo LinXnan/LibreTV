@@ -5,8 +5,8 @@
 (function() {
     'use strict';
 
-    const PAGE_LIMIT = 20; // 豆瓣接口单次返回条数
-    const MAX_ITEMS = 50; // 展示截断上限（豆瓣单次最多 20，防超长渲染）
+    const PAGE_LIMIT = 10; // 每标签最多展示的影片数（豆瓣接口 page_limit，即每批条数）
+    const MAX_ITEMS = 50; // 展示截断上限（防超长渲染，保留兜底）
     const AUTO_SCROLL_INTERVAL = 3000; // 自动轮流间隔（毫秒）
     // 中央卡放大凸显；两侧保持原始尺寸（scale 1，与最初全宽一致）
     const CENTER_SCALE = 1.2;
@@ -20,17 +20,22 @@
     let activeIndex = 0; // 当前中央凸显的卡片索引
     let itemCount = 0; // 当前条数，供显示隐藏判断
     let renderRequestId = 0; // 渲染请求序号，用于处理类型/标签切换竞态
+    let batchPending = false; // 换一批加载互斥：fetch 期间阻止连点导致 pageStart 无监督累加
+    let pageStart = 0; // 当前页偏移（豆瓣 page_start）：换一批时 += PAGE_LIMIT
     const CACHE_TTL = 60 * 1000; // 热播数据缓存有效期（秒）
-    let cache = { type: null, tag: null, items: [], ts: 0 }; // 最近一次拉取的类型/标签/数据/时间戳
+    // 最近一次拉取的类型/标签/页偏移/数据/时间戳；缓存键含 pageStart，
+    // 避免换一批后仍命中同类型同标签的旧页数据
+    let cache = { type: null, tag: null, year: '', pageStart: 0, items: [], ts: 0 };
 
     // 拉取豆瓣热播数据；复用 douban.js 的 fetchDoubanData（全局，script 顺序在其后）。
-    // 类型与标签读 douban.js 全局状态 doubanMovieTvCurrentSwitch / doubanCurrentTag，
-    // 但必须在发起请求时捕获快照 reqType/reqTag：URL 构造与 cache 写入共用同一时刻状态，
-    // 避免快速切换类型/标签后旧请求乱序返回污染缓存键（电视剧标签下混入电影内容）。
+    // 类型/标签/页偏移读当前状态，但必须在发起请求时捕获快照 reqType/reqTag/start：
+    // URL 构造与 cache 写入共用同一时刻状态，避免快速切换后旧请求乱序返回污染缓存键。
     // 带独立总超时：douban.js 的 allorigins fallback 无 signal，可能长期悬挂，
     // 必须保证轮播在有限时间内降级为空态而不是永久空白（首次首页必经路径）
-    function fetchDoubanSubjects(reqType, reqTag) {
-        const target = `https://movie.douban.com/j/search_subjects?type=${reqType}&tag=${encodeURIComponent(reqTag)}&sort=recommend&page_limit=${PAGE_LIMIT}&page_start=0`;
+    function fetchDoubanSubjects(reqType, reqTag, start, reqYear) {
+        // 年份筛选：非空才拼 year 参数（空串 = 全部年份，不拼参数）
+        const yearParam = reqYear ? `&year=${encodeURIComponent(reqYear)}` : '';
+        const target = `https://movie.douban.com/j/search_subjects?type=${reqType}&tag=${encodeURIComponent(reqTag)}&sort=recommend&page_limit=${PAGE_LIMIT}&page_start=${start}${yearParam}`;
         if (typeof fetchDoubanData !== 'function') {
             console.warn('[douban-hot] fetchDoubanData 不可用，豆瓣热播为空');
             return Promise.resolve([]);
@@ -41,20 +46,46 @@
         return Promise.race([fetchDoubanData(target).then(data => (data && data.subjects) || []), timedOut]);
     }
 
-    // 读取热播数据：缓存命中（同类型同标签且未过期）直接返回，否则拉取并更新缓存。
-    // 缓存键与数据来自同一快照（发起请求时刻的 reqType/reqTag），乱序返回不污染当前状态
+    // 读取热播数据：缓存命中（同类型同标签同页偏移且未过期）直接返回，否则拉取并更新缓存。
+    // 缓存键与数据来自同一快照（发起请求时刻的 reqType/reqTag/start），乱序返回不污染当前状态
     function getSubjects() {
         const reqType = doubanMovieTvCurrentSwitch;
         const reqTag = doubanCurrentTag;
+        const start = pageStart;
+        const reqYear = doubanCurrentYear;
         if (cache.type === reqType &&
             cache.tag === reqTag &&
+            cache.year === reqYear &&
+            cache.pageStart === start &&
             Date.now() - cache.ts < CACHE_TTL) {
             return Promise.resolve(cache.items);
         }
-        return fetchDoubanSubjects(reqType, reqTag).then((subjects) => {
-            cache = { type: reqType, tag: reqTag, items: subjects || [], ts: Date.now() };
+        return fetchDoubanSubjects(reqType, reqTag, start, reqYear).then((subjects) => {
+            cache = { type: reqType, tag: reqTag, year: reqYear, pageStart: start, items: subjects || [], ts: Date.now() };
             return cache.items;
         });
+    }
+
+    // 预取封面到本地缓存：切换标签/类型时新数据封面多为未缓存 URL，
+    // 立即预取（ImageCacheManager.preload 带防重 + 缓存命中跳过），
+    // 让轮播渲染后 IntersectionObserver 触发时缓存命中直接显示，消除"占位符→封面"等待跳变。
+    // 限并发（默认 4）：避免 20 张封面同时 fetch + canvas 压缩阻塞主线程，
+    // 也降低重复下载与并发写 index 的竞态面；预取为 fire-and-forget，不阻塞渲染。
+    const PREFETCH_CONCURRENCY = 4;
+    function preloadCovers(items) {
+        if (!window.imageCacheManager || !items || !items.length) return;
+        const urls = items.map((item) => item.coverUrl).filter(Boolean);
+        let cursor = 0;
+        // 每个 worker 串行取一个 URL，preload 完成后（含失败 finally）再取下一条；
+        // 最多 PREFETCH_CONCURRENCY 个 worker 并发，真正限制同时下载/压缩的封面数
+        const worker = () => {
+            if (cursor >= urls.length) return;
+            const url = urls[cursor++];
+            window.imageCacheManager.preload(url).finally(worker);
+        };
+        for (let i = 0; i < Math.min(PREFETCH_CONCURRENCY, urls.length); i++) {
+            worker();
+        }
     }
 
     // 封面代理 URL：仅同步构造 /proxy/ 前缀，auth 参数与缓存由 LazyImageLoader 统一追加
@@ -81,18 +112,49 @@
             .replace(/'/g, '&#39;');
     }
 
-    // 应用可见性：搜索结果显示时隐藏，无数据时隐藏。
+    // 按评分从高到低排序（评分高的优先轮播）；无评分（''）排最后。
+    // rate 为归一化后的字符串（如 "8.9"），无评分是空串；parseFloat 兼容小数。
+    // NaN（parseFloat 无法解析的非数字串，如 "暂无"）与无评分同等落底：
+    // 映射为 -Infinity，保证比较器为严格全序（两两可比较），不依赖引擎实现。
+    // 评分相等时保持豆瓣原始顺序（Array.prototype.sort 稳定，ES2019+）
+    function sortByRateDesc(a, b) {
+        const sortValue = (rate) => {
+            if (rate === '') return -Infinity;
+            const num = parseFloat(rate);
+            return Number.isNaN(num) ? -Infinity : num;
+        };
+        const ra = sortValue(a.rate);
+        const rb = sortValue(b.rate);
+        if (ra === rb) return 0;
+        return ra > rb ? -1 : 1;
+    }
+
+    // 应用可见性：
+    // - 搜索结果显示时：隐藏整个热播区（含筛选区）
+    // - 轮播空态（某标签/年份无数据）：隐藏轨道与轮播按钮，但保留筛选区——
+    //   用户仍能切标签/年份/类型，避免"空结果把筛选控件一起藏掉导致锁死"
     // 隐藏时同步停掉自动轮播定时器，避免区域不可见时空转（显示路径 render 会重新 start）
     function applyVisibility() {
         const area = document.getElementById('recentWatchArea');
         if (!area) return;
+        const filter = document.getElementById('recentWatchFilter');
         const resultsArea = document.getElementById('resultsArea');
         const searching = resultsArea && !resultsArea.classList.contains('hidden');
-        if (searching || itemCount === 0) {
+        if (searching) {
             area.classList.add('hidden');
+            stopAutoScroll();
+        } else if (itemCount === 0) {
+            // 空态：区域可见但轨道隐藏（筛选区保留可见）
+            area.classList.remove('hidden');
+            if (filter) filter.classList.remove('hidden');
+            const track = document.getElementById('recentWatchTrack');
+            if (track) track.classList.add('hidden');
             stopAutoScroll();
         } else {
             area.classList.remove('hidden');
+            if (filter) filter.classList.remove('hidden');
+            const track = document.getElementById('recentWatchTrack');
+            if (track) track.classList.remove('hidden');
         }
     }
 
@@ -147,18 +209,115 @@
         updateCoverflow(track);
     }
 
+    // 上次渲染的类型/标签快照：用于识别"切换标签/类型"（数据源变化）
+    let lastRenderKey = '';
+
+    // 显示"三点"加载过渡：清空 track、隐藏左右按钮、停自动轮播。
+    // 切换标签/换一批时调用，数据到齐后由 render 的 .then 内替换为卡片
+    function showTrackLoading() {
+        const track = document.getElementById('recentWatchTrack');
+        if (!track) return;
+        clearCoverWatch(); // 清空 track 前解除旧封面监听，避免监听已删除的孤儿 img
+        track.innerHTML = '<div class="recent-watch-loading" aria-hidden="true">'
+            + '<span class="recent-watch-loading-dot"></span>'
+            + '<span class="recent-watch-loading-dot"></span>'
+            + '<span class="recent-watch-loading-dot"></span>'
+            + '</div>';
+        // 若轨道处于空态隐藏（某标签/年份无数据），先恢复显示让 loading 可见，
+        // 否则用户切换时只见筛选区无加载反馈；数据到达后 applyVisibility 正常分支保持显示
+        track.classList.remove('hidden');
+        activeIndex = 0;
+        stopAutoScroll();
+        updateNavButtons(0);
+    }
+
+    // 封面就绪监听：等待所有封面加载到终态后整批展示，避免"先露占位符再闪到封面"。
+    // 卡片渲染时带 .cover-pending（visibility:hidden，占位符也不可见）；
+    // 全部封面就绪（成功 is-loaded / 失败 display:none / 无封面）或超时（COVER_LOAD_TIMEOUT）
+    // 后移除 .cover-pending，卡片连同封面一起渐进淡入（入场动画）。
+    let coverObserver = null; // 封面就绪 MutationObserver
+    let coverTimeout = null;  // 封面加载超时兜底定时器
+    const COVER_LOAD_TIMEOUT = 12000; // 与数据 fetch 超时一致；超时后强制展示（占位符兜底）
+
+    function clearCoverWatch() {
+        if (coverObserver) { coverObserver.disconnect(); coverObserver = null; }
+        if (coverTimeout) { clearTimeout(coverTimeout); coverTimeout = null; }
+    }
+
+    // 移除全部卡片的 cover-pending，展示（封面全部就绪或超时兜底）
+    function revealTrack(track) {
+        clearCoverWatch();
+        track.querySelectorAll('.recent-watch-card.cover-pending').forEach(card => {
+            card.classList.remove('cover-pending');
+        });
+    }
+
+    // 等待所有封面到终态后整批展示；超时强制展示（未就绪封面由占位符兜底，加载完成仍会淡入覆盖）
+    function watchCoverReadiness(track) {
+        clearCoverWatch();
+        const imgs = track.querySelectorAll('.recent-watch-cover-img');
+        if (!imgs.length) { revealTrack(track); return; } // 全无封面，直接展示
+        // 同步预检：全部命中缓存可能已就绪（onload 微任务先于 observer 挂载），
+        // 直接展示避免 12s 超时空窗
+        if (Array.from(imgs).every(img => img.classList.contains('is-loaded') || img.style.display === 'none')) {
+            revealTrack(track);
+            return;
+        }
+        coverObserver = new MutationObserver(() => {
+            const pending = track.querySelectorAll('.recent-watch-card.cover-pending');
+            const allReady = Array.from(pending).every(card => {
+                const img = card.querySelector('.recent-watch-cover-img');
+                // 无封面卡视为就绪；成功（is-loaded）或失败（display:none）都算终态
+                return !img || img.classList.contains('is-loaded') || img.style.display === 'none';
+            });
+            if (allReady) revealTrack(track);
+        });
+        imgs.forEach(img => {
+            coverObserver.observe(img, { attributes: true, attributeFilter: ['class', 'style'] });
+        });
+        coverTimeout = setTimeout(() => revealTrack(track), COVER_LOAD_TIMEOUT);
+    }
+
     function render() {
         const area = document.getElementById('recentWatchArea');
-        if (!area) return;
+        // 早退前清除 batchPending/coverWatch：nextBatch 置 true 后若元素缺失会永久泄漏互斥标志
+        if (!area) { batchPending = false; clearCoverWatch(); return; }
         const track = document.getElementById('recentWatchTrack');
+        if (!track) { batchPending = false; clearCoverWatch(); return; }
+
+        // 切换标签/类型时立即清空旧卡片并显示"三点"加载过渡：
+        // 否则 getSubjects 异步取数期间 track 残留旧内容，数据到达后整体替换，
+        // 叠加卡片入场动画重播 → 视觉"闪"。清空 + 加载指示让切换有过渡、
+        // 数据到齐后卡片渐进式展示（入场动画按距中央距离分批次淡入）。
+        // 切换判定含年份：type/tag/year 任一变化都视为"切换"（重置分页 + 三点加载）
+        const currentKey = `${doubanMovieTvCurrentSwitch}:${doubanCurrentTag}:${doubanCurrentYear}`;
+        const isSwitch = lastRenderKey !== '' && currentKey !== lastRenderKey;
+        lastRenderKey = currentKey;
+        if (isSwitch) {
+            pageStart = 0; // 切换标签/类型/年份回到第一页
+            // 在途"换一批"作废：其 renderRequestId 已过期会被 .then 丢弃，这里显式复位互斥
+            batchPending = false;
+            showTrackLoading();
+        }
 
         const requestId = ++renderRequestId;
 
         getSubjects()
             .then((subjects) => {
                 if (requestId !== renderRequestId) return; // 类型切换后旧请求作废
+                // 换一批翻到末尾（豆瓣返回空数组）：回绕到第一页重新拉取。
+                // 回绕后 pageStart=0 且 isSwitch=false（type/tag 未变），
+                // 不会重复 loading；第一页也空（标签无数据）时走下方 items.length===0 分支，无死循环。
+                // batchPending 保持 true：回绕后的 render 完成后才清除，期间阻止再点换一批
+                if (pageStart > 0 && (!subjects || subjects.length === 0)) {
+                    pageStart = 0;
+                    if (typeof showToast === 'function') {
+                        showToast('已回到第一页', 'info');
+                    }
+                    render();
+                    return;
+                }
                 const items = (subjects || [])
-                    .slice(0, MAX_ITEMS)
                     .map((s) => {
                         // 豆瓣 rate 为字符串（如 "8.9"），无评分影片返回 "0.0"；
                         // 归一化：0 / "0" / "0.0" 视为无评分（空串），保留原始字符串避免丢小数
@@ -169,10 +328,15 @@
                             rate,
                             coverUrl: buildCoverUrl(s && s.cover)
                         };
-                    });
+                    })
+                    .sort(sortByRateDesc)
+                    // 截断必须在排序之后：先保证"评分高者优先"完整作用于全量数据，
+                    // 再截断展示上限（否则超限数据中最高分可能被排在截断区外）
+                    .slice(0, MAX_ITEMS);
 
                 itemCount = items.length;
                 updateNavButtons(items.length);
+                preloadCovers(items);
 
                 if (items.length === 0) {
                     track.innerHTML = '';
@@ -181,6 +345,8 @@
                     clearTimeout(resumeTimer);
                     resumeTimer = null;
                     applyVisibility();
+                    clearCoverWatch();
+                    batchPending = false;
                     return;
                 }
 
@@ -207,8 +373,12 @@
                     ? `<span class="recent-watch-rate">★ <span class="recent-watch-rate-value">${safeRate}</span></span>`
                     : '';
 
+                // 入场动画在数据到达时渐进式展示（applyEntranceDelays 按距中央距离分批淡入），
+                // 切换前的三点加载过渡保证从"加载态"到"内容"平滑衔接，不再生硬。
+                // cover-pending：封面就绪前整卡隐藏（visibility:hidden，占位符也不可见），
+                // 全部封面加载完成或超时后由 watchCoverReadiness 移除，整批渐进淡入
                 return `
-                <div class="recent-watch-card" data-title="${safeTitle}" role="button" tabindex="0" aria-label="${ariaLabel}" title="${ariaLabel}">
+                <div class="recent-watch-card cover-pending" data-title="${safeTitle}" role="button" tabindex="0" aria-label="${ariaLabel}" title="${ariaLabel}">
                     <div class="recent-watch-cover">
                         <div class="recent-watch-placeholder" style="background:${gradientBg};">
                             <span class="recent-watch-icon">${contentIcon}</span>
@@ -235,6 +405,9 @@
 
                 applyEntranceDelays(track);
 
+                // 等待全部封面就绪后整批展示（超时兜底）；封面加载期间卡片保持 cover-pending 隐藏
+                watchCoverReadiness(track);
+
                 // 多于 1 部影片时自动轮流连播；单张/无动画偏好下静态展示
                 if (items.length > 1) {
                     refreshCarousel();
@@ -244,6 +417,7 @@
 
                 clearTimeout(resumeTimer);
                 resumeTimer = null;
+                batchPending = false;
             })
             .catch((e) => {
                 console.error('[douban-hot] 加载豆瓣热播失败:', e);
@@ -251,6 +425,8 @@
                 track.innerHTML = '';
                 stopAutoScroll();
                 applyVisibility();
+                clearCoverWatch();
+                batchPending = false;
             });
     }
 
@@ -397,6 +573,28 @@
         if (tvBtn) tvBtn.addEventListener('click', () => setType('tv'));
     }
 
+    // 换一批：翻到下一页（page_start += PAGE_LIMIT），显示加载过渡后重新渲染。
+    // isSwitch 判定基于 type/tag，换一批时未变 → render 不会重复 loading，只拉新页数据。
+    // batchPending 互斥：fetch 期间再点直接忽略，防止连点 pageStart 无监督累加跳页
+    function nextBatch() {
+        if (batchPending) return;
+        batchPending = true;
+        pageStart += PAGE_LIMIT;
+        showTrackLoading();
+        render();
+    }
+
+    // 一次性绑定"换一批"按钮
+    function bindMoreBatch() {
+        const moreBtn = document.getElementById('recentWatchMoreBtn');
+        if (!moreBtn) return;
+        moreBtn.addEventListener('click', () => {
+            const area = document.getElementById('recentWatchArea');
+            if (!area || area.classList.contains('hidden')) return; // 区域隐藏时不响应
+            nextBatch();
+        });
+    }
+
     // 内容变化后刷新自动轮流（事件已由 bindCarouselControls 一次性绑定）
     function refreshCarousel() {
         const track = document.getElementById('recentWatchTrack');
@@ -407,6 +605,7 @@
     function init() {
         bindCarouselControls();
         bindTypeSwitch();
+        bindMoreBatch();
         // 确保标签数据已加载并渲染标签条（douban.js 全局；loadUserTags 幂等）
         if (typeof loadUserTags === 'function') {
             loadUserTags();
