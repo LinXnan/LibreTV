@@ -202,11 +202,49 @@
     display: none;
 }
 
-/* 底部信息层：彻底隐藏（hover 不再浮现标题，避免在封面上叠加色块）。
-   影片名仍可从卡片的原生 title 属性 / aria-label 看到 */
-.recent-watch-info,
+/* 底部信息层：片名常显（封面底部渐变衬底）。
+   渐变只压暗封面底部保证可读性，不遮挡封面主体；
+   长片名单行省略；卡片已有 overflow:hidden，absolute 定位被裁剪在卡片内 */
+.recent-watch-info {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 14px 6px 6px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.35) 60%, transparent);
+    z-index: 2;
+    pointer-events: none;
+}
+
 .recent-watch-title {
-    display: none;
+    display: block;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.3;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* 豆瓣评分：金色星标 + 白字分值，片名上方一行 */
+.recent-watch-rate {
+    display: block;
+    color: #f5c518; /* 豆瓣评分标准金色 */
+    font-size: 12px;
+    line-height: 1.2;
+    text-align: center;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.recent-watch-rate-value {
+    color: #fff;
+    font-weight: 600;
 }
 
 /* 入场动画：只淡入（位移/缩放由 JS 内联控制，动画不碰 transform 避免与槽位定位冲突） */

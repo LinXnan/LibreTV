@@ -131,12 +131,6 @@
         gap: 0.75rem !important;
     }
 
-    /* 豆瓣推荐 - 3列 */
-    #douban-results {
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 0.5rem !important;
-    }
-
     /* 模态框集数 - 4列 */
     #modalContent .grid {
         grid-template-columns: repeat(4, 1fr) !important;
@@ -146,11 +140,6 @@
 
 /* 极小屏幕优化 */
 @media (max-width: 375px) {
-    /* 豆瓣推荐 - 2列 */
-    #douban-results {
-        grid-template-columns: repeat(2, 1fr) !important;
-    }
-
     /* 模态框集数 - 3列 */
     #modalContent .grid {
         grid-template-columns: repeat(3, 1fr) !important;
@@ -186,12 +175,6 @@
     /* 搜索框高度 */
     #searchArea .h-14 {
         height: 3rem !important;
-    }
-
-    /* 豆瓣区域 */
-    #doubanArea {
-        margin-top: 1.5rem !important;
-        margin-bottom: 1.5rem !important;
     }
 
     /* 搜索结果区域 */

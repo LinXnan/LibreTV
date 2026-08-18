@@ -52,6 +52,21 @@ function sha256Hash(input) {
   });
 }
 
+// 豆瓣图床（img*.doubanio.com 等）防盗链要求 douban 域名 Referer，否则返回 418；
+// 目标为豆瓣域名时强制携带，其他域名返回空（保持原有行为：不设 Referer）。
+// 按 DNS label 精确匹配（非裸 endsWith），避免 mydouban.com / notdouban.com 等第三方
+// 以 douban 结尾的域名被误判为豆瓣而注入 Referer
+function getDoubanReferer(targetUrl) {
+  try {
+    const hostname = new URL(targetUrl).hostname.toLowerCase();
+    if (hostname === 'doubanio.com' || hostname === 'douban.com' ||
+        hostname.endsWith('.doubanio.com') || hostname.endsWith('.douban.com')) {
+      return 'https://movie.douban.com/';
+    }
+  } catch (e) { /* 非法 URL 不设 Referer */ }
+  return '';
+}
+
 async function renderPage(filePath, password) {
   let content = fs.readFileSync(filePath, 'utf8');
   if (password !== '') {
@@ -178,13 +193,15 @@ app.get('/proxy/:encodedUrl', async (req, res) => {
     
     const makeRequest = async () => {
       try {
+        const doubanReferer = getDoubanReferer(targetUrl);
         return await axios({
           method: 'get',
           url: targetUrl,
           responseType: 'stream',
           timeout: config.timeout,
           headers: {
-            'User-Agent': config.userAgent
+            'User-Agent': config.userAgent,
+            ...(doubanReferer ? { Referer: doubanReferer } : {})
           }
         });
       } catch (error) {

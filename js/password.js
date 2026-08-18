@@ -147,12 +147,6 @@ function showPasswordModal() {
 
     console.log('[Password] passwordModal found, showing...');
 
-    // 防止出现豆瓣区域滚动条（仅在首页存在）
-    const doubanArea = document.getElementById('doubanArea');
-    if (doubanArea) {
-        doubanArea.classList.add('hidden');
-    }
-
     const passwordCancelBtn = document.getElementById('passwordCancelBtn');
     if (passwordCancelBtn) {
         passwordCancelBtn.classList.add('hidden');
@@ -220,15 +214,6 @@ function hidePasswordModal() {
         // 添加 hidden 类并移除 flex 类
         passwordModal.classList.add('hidden');
         passwordModal.classList.remove('flex');
-
-        // 如果启用豆瓣区域则显示豆瓣区域（仅在首页存在）
-        const doubanArea = document.getElementById('doubanArea');
-        if (doubanArea && localStorage.getItem('doubanEnabled') === 'true') {
-            doubanArea.classList.remove('hidden');
-            if (typeof initDouban === 'function') {
-                initDouban();
-            }
-        }
     }
 }
 

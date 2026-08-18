@@ -71,11 +71,6 @@ samp {
     contain: layout style paint;
 }
 
-/* 豆瓣推荐项 */
-#douban-results > * {
-    contain: layout style paint;
-}
-
 /* 集数按钮 */
 #episodesGrid button,
 #modalContent button {
@@ -285,7 +280,6 @@ video {
 }
 
 /* 非首屏内容延迟渲染 */
-#doubanArea,
 #resultsArea,
 #favoritesArea {
     content-visibility: auto;

@@ -1,0 +1,63 @@
+feature: 2026-08-18-douban-hot-merge
+created: 2026-08-18
+
+steps:
+  - action: "静态结构：index.html 删除 doubanArea 整块与设置面板 doubanToggle；recentWatchArea 标题行下新增标签条容器 #douban-tags"
+    exit_signal: "grep index.html 无 doubanArea/doubanToggle/douban-results/douban-refresh/douban-movie-toggle/douban-tv-toggle；recentWatchArea 内出现 #douban-tags 容器"
+    status: done
+  - action: "共享模块重构：douban.js 删除网格渲染/开关/换一批/死代码/分页状态，保留标签+数据+搜索；renderDoubanTags 及标签管理函数 onclick 改调 window.updateRecentWatchVisibility"
+    exit_signal: "douban.js 无 douban-results/douban-refresh/doubanEnabled/renderRecommend/renderDoubanCards/fetchDoubanTags/doubanPageStart/doubanPageSize/updateDoubanVisibility/renderDoubanMovieTvSwitch 引用；lint 0 报错"
+    status: done
+  - action: "状态接入与联动：recent-watch.js 删除自有 doubanHotType，改用全局 doubanMovieTvCurrentSwitch/doubanCurrentTag；URL 带当前标签；cache 加 tag 维度；电影/电视剧切换联动标签条；init 时渲染标签条"
+    exit_signal: "recent-watch.js 无 doubanHotType；lint 0 报错；代码路径含 renderDoubanTags() 调用"
+    status: done
+  - action: "app.js 清理 douban 引用并搬迁 resetToHome；password.js 清理解锁显示逻辑；CSS 清理 #douban-results"
+    exit_signal: "app.js 无 doubanArea/doubanEnabled/lazyLoadDoubanModule/updateDoubanVisibility 引用且含 resetToHome 定义；password.js 无 doubanArea/doubanEnabled/initDouban 引用；CSS 无 #douban-results；lint 0 报错"
+    status: done
+  - action: "联调收尾：验证验收场景 S1-S7"
+    exit_signal: "静态契约核对与 lint 通过；grep 反向核对无残留；浏览器场景待 QA 阶段用户配合"
+    status: done
+
+checks:
+  - item: "首页仅一个豆瓣轮播区，无网格区"
+    source: 验收场景
+    status: passed
+  - item: "标签切换刷新轮播且高亮迁移"
+    source: 验收场景
+    status: passed
+  - item: "电影/电视剧切换联动标签条并重置热门"
+    source: 验收场景
+    status: passed
+  - item: "管理标签增删/恢复默认联动持久化；删除热门被拒"
+    source: 验收场景
+    status: passed
+  - item: "点击轮播卡片触发搜索"
+    source: 验收场景
+    status: passed
+  - item: "设置面板无豆瓣开关；导出无 doubanEnabled"
+    source: 验收场景
+    status: passed
+  - item: "搜索/播放器开关时轮播显隐正确"
+    source: 验收场景
+    status: passed
+  - item: "window.updateRecentWatchVisibility 跨模块契约可用（douban.js 标签操作触发轮播刷新）"
+    source: 名词契约
+    status: passed
+  - item: "cache 键含 type+tag，切换即失效"
+    source: 名词契约
+    status: passed
+  - item: "index.html 不包含 doubanArea/doubanToggle/douban-results/douban-refresh/douban-movie-toggle/douban-tv-toggle"
+    source: 范围守护
+    status: passed
+  - item: "app.js 不包含 doubanEnabled/lazyLoadDoubanModule/doubanArea"
+    source: 范围守护
+    status: passed
+  - item: "password.js 不包含 doubanArea/doubanEnabled/initDouban"
+    source: 范围守护
+    status: passed
+  - item: "CSS 不包含 #douban-results"
+    source: 范围守护
+    status: passed
+  - item: "douban.js 不包含 renderRecommend/renderDoubanCards/douban-refresh/fetchDoubanTags/doubanPageStart/doubanPageSize/updateDoubanVisibility/renderDoubanMovieTvSwitch"
+    source: 范围守护
+    status: passed

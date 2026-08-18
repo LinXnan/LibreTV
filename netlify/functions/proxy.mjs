@@ -134,6 +134,21 @@ function isBinaryContent(contentType, url) {
 
 function getRandomUserAgent() { return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)]; }
 
+// 豆瓣图床（img*.doubanio.com 等）防盗链要求 douban 域名 Referer，否则返回 418；
+// 目标为豆瓣域名时强制携带，其他域名返回空字符串（回退到原 Referer/origin 逻辑）。
+// 按 DNS label 精确匹配（非裸 endsWith），避免 mydouban.com / notdouban.com 等第三方
+// 以 douban 结尾的域名被误判为豆瓣而注入 Referer
+function getDoubanReferer(targetUrl) {
+    try {
+        const hostname = new URL(targetUrl).hostname.toLowerCase();
+        if (hostname === 'doubanio.com' || hostname === 'douban.com' ||
+            hostname.endsWith('.doubanio.com') || hostname.endsWith('.douban.com')) {
+            return 'https://movie.douban.com/';
+        }
+    } catch (e) { /* 非法 URL 不设 Referer */ }
+    return '';
+}
+
 /**
  * 验证代理请求的鉴权
  */
@@ -175,7 +190,8 @@ async function fetchContentWithType(targetUrl, requestHeaders) {
         'User-Agent': getRandomUserAgent(),
         'Accept': requestHeaders['accept'] || '*/*',
         'Accept-Language': requestHeaders['accept-language'] || 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Referer': requestHeaders['referer'] || new URL(targetUrl).origin,
+        // 豆瓣图床需强制 douban Referer（防盗链），其他域名回退到原逻辑
+        'Referer': getDoubanReferer(targetUrl) || requestHeaders['referer'] || new URL(targetUrl).origin,
     };
     Object.keys(headers).forEach(key => headers[key] === undefined || headers[key] === null || headers[key] === '' ? delete headers[key] : {});
     logDebug(`Fetching target: ${targetUrl} with headers: ${JSON.stringify(headers)}`);

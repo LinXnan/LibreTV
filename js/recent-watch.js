@@ -1,13 +1,12 @@
-// 首页最近观看轮播（槽位式 Coverflow）
-// 读取 localStorage.viewingHistory（最新在前），历史有多少条就展示多少条（按 title 去重，上限 50）。
+// 首页豆瓣热播轮播（槽位式 Coverflow）
+// 数据源：豆瓣 API（movie.douban.com/j/search_subjects），电影/电视剧可切换。
 // 中央槽位固定：当前凸显的影片始终停在正中央放大，两侧卡片逐级缩小压暗；
-// 自动轮流时下一部平滑滑入中央凸显，循环连播。点击卡片跳转历史记录对应播放链接。
+// 自动轮流时下一部平滑滑入中央凸显，循环连播。点击卡片触发该影片搜索。
 (function() {
     'use strict';
 
-    const HISTORY_KEY = 'viewingHistory';
-    // 展示数量与历史记录面板拉齐：历史存储上限 50 条（见 ui.js addToViewingHistory / player.js saveToHistory）
-    const MAX_ITEMS = 50;
+    const PAGE_LIMIT = 20; // 豆瓣接口单次返回条数
+    const MAX_ITEMS = 50; // 展示截断上限（豆瓣单次最多 20，防超长渲染）
     const AUTO_SCROLL_INTERVAL = 3000; // 自动轮流间隔（毫秒）
     // 中央卡放大凸显；两侧保持原始尺寸（scale 1，与最初全宽一致）
     const CENTER_SCALE = 1.2;
@@ -19,19 +18,47 @@
     let autoScrollTimer = null;
     let resumeTimer = null;
     let activeIndex = 0; // 当前中央凸显的卡片索引
-    let historyCount = 0; // 当前历史条数，供显示隐藏判断，避免高频路径重复解析 localStorage
+    let itemCount = 0; // 当前条数，供显示隐藏判断
+    let renderRequestId = 0; // 渲染请求序号，用于处理类型/标签切换竞态
+    const CACHE_TTL = 60 * 1000; // 热播数据缓存有效期（秒）
+    let cache = { type: null, tag: null, items: [], ts: 0 }; // 最近一次拉取的类型/标签/数据/时间戳
 
-    function getHistory() {
-        try {
-            const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-            // 健壮性：非数组数据（对象/原始值）一律视为空历史，避免渲染崩溃
-            return Array.isArray(parsed) ? parsed : [];
-        } catch (e) {
-            return [];
+    // 拉取豆瓣热播数据；复用 douban.js 的 fetchDoubanData（全局，script 顺序在其后）。
+    // 类型与标签读 douban.js 全局状态 doubanMovieTvCurrentSwitch / doubanCurrentTag，
+    // 但必须在发起请求时捕获快照 reqType/reqTag：URL 构造与 cache 写入共用同一时刻状态，
+    // 避免快速切换类型/标签后旧请求乱序返回污染缓存键（电视剧标签下混入电影内容）。
+    // 带独立总超时：douban.js 的 allorigins fallback 无 signal，可能长期悬挂，
+    // 必须保证轮播在有限时间内降级为空态而不是永久空白（首次首页必经路径）
+    function fetchDoubanSubjects(reqType, reqTag) {
+        const target = `https://movie.douban.com/j/search_subjects?type=${reqType}&tag=${encodeURIComponent(reqTag)}&sort=recommend&page_limit=${PAGE_LIMIT}&page_start=0`;
+        if (typeof fetchDoubanData !== 'function') {
+            console.warn('[douban-hot] fetchDoubanData 不可用，豆瓣热播为空');
+            return Promise.resolve([]);
         }
+        const timedOut = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('douban-hot 拉取超时')), 12000);
+        });
+        return Promise.race([fetchDoubanData(target).then(data => (data && data.subjects) || []), timedOut]);
     }
 
-    // 封面代理 URL，与 ui.js 历史列表同一逻辑
+    // 读取热播数据：缓存命中（同类型同标签且未过期）直接返回，否则拉取并更新缓存。
+    // 缓存键与数据来自同一快照（发起请求时刻的 reqType/reqTag），乱序返回不污染当前状态
+    function getSubjects() {
+        const reqType = doubanMovieTvCurrentSwitch;
+        const reqTag = doubanCurrentTag;
+        if (cache.type === reqType &&
+            cache.tag === reqTag &&
+            Date.now() - cache.ts < CACHE_TTL) {
+            return Promise.resolve(cache.items);
+        }
+        return fetchDoubanSubjects(reqType, reqTag).then((subjects) => {
+            cache = { type: reqType, tag: reqTag, items: subjects || [], ts: Date.now() };
+            return cache.items;
+        });
+    }
+
+    // 封面代理 URL：仅同步构造 /proxy/ 前缀，auth 参数与缓存由 LazyImageLoader 统一追加
+    //（optimize-apply.js MutationObserver 接管 img.lazy-load[data-src]），避免重复鉴权
     function buildCoverUrl(rawCoverUrl) {
         if (!rawCoverUrl) return '';
         const url = String(rawCoverUrl).trim();
@@ -54,28 +81,19 @@
             .replace(/'/g, '&#39;');
     }
 
-    // 应用可见性：搜索结果显示时隐藏，无历史时隐藏
+    // 应用可见性：搜索结果显示时隐藏，无数据时隐藏。
+    // 隐藏时同步停掉自动轮播定时器，避免区域不可见时空转（显示路径 render 会重新 start）
     function applyVisibility() {
         const area = document.getElementById('recentWatchArea');
         if (!area) return;
         const resultsArea = document.getElementById('resultsArea');
         const searching = resultsArea && !resultsArea.classList.contains('hidden');
-        if (searching || historyCount === 0) {
+        if (searching || itemCount === 0) {
             area.classList.add('hidden');
+            stopAutoScroll();
         } else {
             area.classList.remove('hidden');
         }
-    }
-
-    // 仅允许 http/https 链接跳转，避免 javascript: 等 scheme 注入执行
-    function navigateTo(url) {
-        if (!url) return;
-        try {
-            const parsed = new URL(url, window.location.origin);
-            if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-                window.location.href = url;
-            }
-        } catch (e) { /* 非法 URL 忽略 */ }
     }
 
     // 卡片像素宽度（响应断点）：用于等视觉间距位置算法
@@ -89,8 +107,6 @@
     // 等中心距位置计算：让所有相邻对卡片的中心距恒为 cardWidth + visualGap，
     // 视觉上"距离感"一致。中央卡放大（scale=1.2）使中央卡与第1级卡的留白比外侧对略窄，
     // 反而强化中央焦点（贴近两侧卡），符合 Coverflow 风格。
-    // 旧"等留白"算法（slotPosition = sign * Σ [visualGap + (scale(k-1) + scale(k)) * cardWidth / 2]）
-    // 让中央-第1级中心距 213、第1级-第2级中心距 204，差 9px，用户截图反馈"距离不一样"。
     function slotPosition(delta, cardWidth, visualGap) {
         const step = cardWidth + visualGap;
         return delta * step;
@@ -136,52 +152,63 @@
         if (!area) return;
         const track = document.getElementById('recentWatchTrack');
 
-        // 过滤非对象条目（如 [null]）避免渲染崩溃；
-        // 按 title 归一化去重（保留最新一条）：历史可能因旧版本残留/不同源写入同影片多条记录，
-        // 归一化（trim + 小写 + 去空白）可合并 "赌神" 与 "赌神 "、"GOD OF GAMBLERS" 与 "god of gamblers" 等细微差异
-        const seenTitles = new Set();
-        const history = getHistory()
-            .filter(item => item && typeof item === 'object')
-            .filter(item => {
-                const titleKey = String(item.title || '').trim().toLowerCase().replace(/\s+/g, '');
-                if (!titleKey || seenTitles.has(titleKey)) return false;
-                seenTitles.add(titleKey);
-                return true;
-            })
-            .slice(0, MAX_ITEMS);
-        historyCount = history.length;
-        updateNavButtons(history.length);
+        const requestId = ++renderRequestId;
 
-        if (history.length === 0) {
-            track.innerHTML = '';
-            stopAutoScroll();
-            clearTimeout(resumeTimer);
-            resumeTimer = null;
-            applyVisibility();
-            return;
-        }
+        getSubjects()
+            .then((subjects) => {
+                if (requestId !== renderRequestId) return; // 类型切换后旧请求作废
+                const items = (subjects || [])
+                    .slice(0, MAX_ITEMS)
+                    .map((s) => {
+                        // 豆瓣 rate 为字符串（如 "8.9"），无评分影片返回 "0.0"；
+                        // 归一化：0 / "0" / "0.0" 视为无评分（空串），保留原始字符串避免丢小数
+                        const rawRate = String((s && s.rate) || '');
+                        const rate = /^\s*0+(\.0+)?\s*$/.test(rawRate) ? '' : rawRate;
+                        return {
+                            title: String((s && s.title) || '未知影片'),
+                            rate,
+                            coverUrl: buildCoverUrl(s && s.cover)
+                        };
+                    });
 
-        const itemsHtml = history.map((item) => {
-            // title 先强制字符串化：异常数据类型（对象/数组/数字）不会让 ui.js 的渐变/图标函数抛错拖垮整个渲染
-            const rawTitle = String(item.title || '');
-            const safeTitle = escapeHtml(rawTitle || '未知视频');
-            const coverUrl = buildCoverUrl(item.vod_pic);
-            const safeCoverUrl = escapeHtml(coverUrl);
-            const gradientBg = window.generateGradientFromString
-                ? generateGradientFromString(rawTitle || '未知视频')
-                : 'linear-gradient(135deg, #333, #222)';
-            const contentIcon = window.getContentTypeIcon
-                ? getContentTypeIcon(rawTitle)
-                : '📺';
-            const safeUrl = escapeHtml(item.url || '');
+                itemCount = items.length;
+                updateNavButtons(items.length);
 
-            // 占位符在底层（默认显示），封面加载成功覆盖、失败自动隐藏露出占位符
-            const coverHtml = coverUrl
-                ? `<img data-src="${safeCoverUrl}" alt="${safeTitle}" class="lazy-load recent-watch-cover-img">`
-                : '';
+                if (items.length === 0) {
+                    track.innerHTML = '';
+                    activeIndex = 0;
+                    stopAutoScroll();
+                    clearTimeout(resumeTimer);
+                    resumeTimer = null;
+                    applyVisibility();
+                    return;
+                }
 
-            return `
-                <div class="recent-watch-card" data-url="${safeUrl}" role="button" tabindex="0" aria-label="${safeTitle}" title="${safeTitle}">
+                const itemsHtml = items.map((item) => {
+                    const rawTitle = item.title;
+                    const safeTitle = escapeHtml(rawTitle || '未知影片');
+                    const safeRate = escapeHtml(item.rate);
+                    const safeCoverUrl = escapeHtml(item.coverUrl);
+                    const gradientBg = window.generateGradientFromString
+                        ? generateGradientFromString(rawTitle || '未知影片')
+                        : 'linear-gradient(135deg, #333, #222)';
+                    const contentIcon = window.getContentTypeIcon
+                        ? getContentTypeIcon(rawTitle)
+                        : '📺';
+                    const ariaLabel = safeRate ? `${safeTitle} ${safeRate}分` : safeTitle;
+
+                    // 占位符在底层（默认显示），封面加载成功覆盖、失败自动隐藏露出占位符
+                    const coverHtml = item.coverUrl
+                        ? `<img data-src="${safeCoverUrl}" alt="${safeTitle}" class="lazy-load recent-watch-cover-img">`
+                        : '';
+
+                    // 评分行：有评分才显示（★ 8.9），无评分整行省略
+                const rateHtml = item.rate
+                    ? `<span class="recent-watch-rate">★ <span class="recent-watch-rate-value">${safeRate}</span></span>`
+                    : '';
+
+                return `
+                <div class="recent-watch-card" data-title="${safeTitle}" role="button" tabindex="0" aria-label="${ariaLabel}" title="${ariaLabel}">
                     <div class="recent-watch-cover">
                         <div class="recent-watch-placeholder" style="background:${gradientBg};">
                             <span class="recent-watch-icon">${contentIcon}</span>
@@ -192,30 +219,39 @@
                         <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
                     </div>
                     <div class="recent-watch-info" aria-hidden="true">
+                        ${rateHtml}
                         <span class="recent-watch-title">${safeTitle}</span>
                     </div>
                 </div>
             `;
-        }).join('');
-        // 先应用可见性再渲染：display:none 下 offsetWidth 为 0，gap 会回退到断点值，
-        // 但显示路径（app.js updateRecentWatchVisibility）会重新 render，排版随即正确
-        applyVisibility();
+                }).join('');
+                // 先应用可见性再渲染：display:none 下 offsetWidth 为 0，gap 会回退到断点值，
+                // 但显示路径（app.js updateRecentWatchVisibility）会重新 render，排版随即正确
+                applyVisibility();
 
-        track.innerHTML = itemsHtml;
-        activeIndex = 0; // 第一部影片在中央凸显，然后逐张轮流
-        updateCoverflow(track);
+                track.innerHTML = itemsHtml;
+                activeIndex = 0; // 第一部影片在中央凸显，然后逐张轮流
+                updateCoverflow(track);
 
-        applyEntranceDelays(track);
+                applyEntranceDelays(track);
 
-        // 多于 1 部影片时自动轮流连播；单张/无动画偏好下静态展示
-        if (history.length > 1) {
-            refreshCarousel();
-        } else {
-            stopAutoScroll();
-        }
+                // 多于 1 部影片时自动轮流连播；单张/无动画偏好下静态展示
+                if (items.length > 1) {
+                    refreshCarousel();
+                } else {
+                    stopAutoScroll();
+                }
 
-        clearTimeout(resumeTimer);
-        resumeTimer = null;
+                clearTimeout(resumeTimer);
+                resumeTimer = null;
+            })
+            .catch((e) => {
+                console.error('[douban-hot] 加载豆瓣热播失败:', e);
+                itemCount = 0;
+                track.innerHTML = '';
+                stopAutoScroll();
+                applyVisibility();
+            });
     }
 
     // 入场动画延迟：按卡片距中央槽位的视觉距离（dist=|delta|）分配，
@@ -275,29 +311,17 @@
         const track = document.getElementById('recentWatchTrack');
         if (!track) return;
 
-        // 跳转前把该历史条目的集数列表同步到 localStorage.currentEpisodes，
-        // 与 ui.js playFromHistory 行为一致，避免播放页读到上一次播放的剧集列表导致集数显示错误
-        function prepareEpisodeContextForNavigation(itemUrl) {
-            if (!itemUrl) return;
-            try {
-                const item = getHistory().find(h => h && h.url === itemUrl);
-                if (item && Array.isArray(item.episodes) && item.episodes.length > 0) {
-                    localStorage.setItem('currentEpisodes', JSON.stringify(item.episodes));
-                } else if (!item) {
-                    // url 与当前历史失配（如跨标签页对同名剧就地更新 url）时记录日志，
-                    // 避免"播放页读到上一次播放集数"的问题在边缘场景下静默复发
-                    console.warn('[recent-watch] 观看历史中未找到匹配项，集数列表未同步:', itemUrl);
-                }
-            } catch (e) { /* 集数同步失败不阻断跳转 */ }
+        // 卡片点击/键盘事件委托到轨道：点击热播影片触发豆瓣搜索（与豆瓣推荐区行为一致）
+        function triggerSearch(title) {
+            if (title && typeof fillAndSearchWithDouban === 'function') {
+                fillAndSearchWithDouban(title);
+            }
         }
 
-        // 卡片点击/键盘事件委托到轨道
         track.addEventListener('click', (e) => {
             const card = e.target.closest('.recent-watch-card');
             if (!card) return;
-            const url = card.getAttribute('data-url');
-            prepareEpisodeContextForNavigation(url);
-            navigateTo(url);
+            triggerSearch(card.getAttribute('data-title'));
         });
         track.addEventListener('keydown', (e) => {
             // 左右方向键手动切换上一部/下一部（与左右按钮行为一致）
@@ -311,9 +335,7 @@
             const card = e.target.closest('.recent-watch-card');
             if (!card) return;
             e.preventDefault();
-            const url = card.getAttribute('data-url');
-            prepareEpisodeContextForNavigation(url);
-            navigateTo(url);
+            triggerSearch(card.getAttribute('data-title'));
         });
 
         // 鼠标移入影片停止轮流，移出恢复
@@ -337,6 +359,44 @@
         }
     }
 
+    // 电影/电视剧切换：更新 douban.js 全局类型状态、重置标签为「热门」、
+    // 重渲染标签条并刷新轮播（renderRequestId 递增保证旧请求结果被丢弃）
+    function setType(type) {
+        if (doubanMovieTvCurrentSwitch === type) return;
+        doubanMovieTvCurrentSwitch = type;
+        doubanCurrentTag = '热门';
+        const movieBtn = document.getElementById('doubanHotMovieBtn');
+        const tvBtn = document.getElementById('doubanHotTvBtn');
+        if (movieBtn && tvBtn) {
+            const active = ['bg-pink-600', 'text-white'];
+            const idle = ['text-gray-300'];
+            if (type === 'movie') {
+                movieBtn.classList.add(...active);
+                movieBtn.classList.remove(...idle);
+                tvBtn.classList.remove(...active);
+                tvBtn.classList.add(...idle);
+            } else {
+                tvBtn.classList.add(...active);
+                tvBtn.classList.remove(...idle);
+                movieBtn.classList.remove(...active);
+                movieBtn.classList.add(...idle);
+            }
+        }
+        // 标签条随类型切换（douban.js 全局函数，按 movieTags/tvTags 重渲染并高亮「热门」）
+        if (typeof renderDoubanTags === 'function') {
+            renderDoubanTags();
+        }
+        render();
+    }
+
+    // 一次性绑定电影/电视剧切换按钮事件
+    function bindTypeSwitch() {
+        const movieBtn = document.getElementById('doubanHotMovieBtn');
+        const tvBtn = document.getElementById('doubanHotTvBtn');
+        if (movieBtn) movieBtn.addEventListener('click', () => setType('movie'));
+        if (tvBtn) tvBtn.addEventListener('click', () => setType('tv'));
+    }
+
     // 内容变化后刷新自动轮流（事件已由 bindCarouselControls 一次性绑定）
     function refreshCarousel() {
         const track = document.getElementById('recentWatchTrack');
@@ -346,14 +406,22 @@
 
     function init() {
         bindCarouselControls();
+        bindTypeSwitch();
+        // 确保标签数据已加载并渲染标签条（douban.js 全局；loadUserTags 幂等）
+        if (typeof loadUserTags === 'function') {
+            loadUserTags();
+        }
+        if (typeof renderDoubanTags === 'function') {
+            renderDoubanTags();
+        }
         render();
-        // 打开播放页/搜索结果后由 app.js 显式隐藏，这里兜底处理"回退/前进"导航（同步最新历史并应用可见性）
+        // 打开播放页/搜索结果后由 app.js 显式隐藏，这里兜底处理"回退/前进"导航（同步数据并应用可见性）
         window.addEventListener('popstate', render);
     }
 
     document.addEventListener('DOMContentLoaded', init);
 
-    // 暴露给 app.js 在搜索/播放状态切换时调用：同步最新历史数据并应用可见性（render 幂等）
+    // 暴露给 app.js 在搜索/播放状态切换时调用：同步最新数据并应用可见性（render 幂等）
     window.updateRecentWatchVisibility = render;
     window.reloadRecentWatch = render;
 })();

@@ -56,9 +56,6 @@ document.addEventListener('DOMContentLoaded', function () {
             localStorage.setItem('yellowFilterEnabled', 'true');
             localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true');
 
-            // 默认关闭豆瓣功能
-            localStorage.setItem('doubanEnabled', 'false');
-
             // 标记已初始化默认值
             localStorage.setItem('hasInitializedDefaults', 'true');
         }
@@ -96,9 +93,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始检查成人API选中状态
     setTimeout(checkAdultAPIsSelected, 100);
-
-    // 豆瓣模块懒加载 - 优化首屏加载速度
-    lazyLoadDoubanModule();
 });
 
 // 普通资源分页状态
@@ -734,17 +728,13 @@ function resetSearchArea() {
         footer.style.position = '';
     }
 
-    // 如果有豆瓣功能，检查是否需要显示豆瓣推荐区域
-    if (typeof updateDoubanVisibility === 'function') {
-        updateDoubanVisibility();
-    }
-
-    // 同步最近观看区域的显示状态
+    // 同步豆瓣热播轮播区域的显示状态
     if (typeof updateRecentWatchVisibility === 'function') {
         updateRecentWatchVisibility();
     }
 
     // 重置URL为主页
+
     try {
         window.history.pushState(
             {},
@@ -756,6 +746,11 @@ function resetSearchArea() {
     } catch (e) {
         console.error('更新浏览器历史失败:', e);
     }
+}
+
+// 返回首页：重置搜索区并同步豆瓣热播轮播（resetSearchArea 内部已调 updateRecentWatchVisibility）
+function resetToHome() {
+    resetSearchArea();
 }
 
 // 获取自定义API信息
@@ -841,9 +836,6 @@ function renderCachedResults(allResults) {
     document.getElementById('searchArea').classList.add('mb-2');
     resultsArea.classList.remove('hidden');
 
-    const doubanArea = document.getElementById('doubanArea');
-    if (doubanArea) doubanArea.classList.add('hidden');
-
     const recentWatchArea = document.getElementById('recentWatchArea');
     if (recentWatchArea) recentWatchArea.classList.add('hidden');
 
@@ -909,8 +901,6 @@ async function search() {
     showLoading();
 
     // 点击搜索立即隐藏首页推荐与最近观看区域（结果返回前先收起）
-    const doubanAreaHidden = document.getElementById('doubanArea');
-    if (doubanAreaHidden) doubanAreaHidden.classList.add('hidden');
     const recentWatchAreaHidden = document.getElementById('recentWatchArea');
     if (recentWatchAreaHidden) recentWatchAreaHidden.classList.add('hidden');
 
@@ -952,12 +942,6 @@ async function search() {
             document.getElementById('searchArea').classList.remove('flex-1');
             document.getElementById('searchArea').classList.add('mb-2');
             document.getElementById('resultsArea').classList.remove('hidden');
-
-            // 隐藏豆瓣推荐区域（如果存在）
-            const doubanArea = document.getElementById('doubanArea');
-            if (doubanArea) {
-                doubanArea.classList.add('hidden');
-            }
 
             // 如果没有结果
             if (!allResults || allResults.length === 0) {
@@ -1455,9 +1439,8 @@ function showVideoPlayer(url) {
     if (detailModal) {
         detailModal.classList.add('hidden');
     }
-    // 临时隐藏搜索结果和豆瓣区域，防止高度超出播放器而出现滚动条
+    // 临时隐藏搜索结果和豆瓣热播区域，防止高度超出播放器而出现滚动条
     document.getElementById('resultsArea').classList.add('hidden');
-    document.getElementById('doubanArea').classList.add('hidden');
     const recentWatchArea = document.getElementById('recentWatchArea');
     if (recentWatchArea) recentWatchArea.classList.add('hidden');
     // 在框架中打开播放页面
@@ -1482,11 +1465,7 @@ function closeVideoPlayer(home = false) {
         if (detailModal) {
             detailModal.classList.add('hidden');
         }
-        // 如果启用豆瓣区域则显示豆瓣区域
-        if (localStorage.getItem('doubanEnabled') === 'true') {
-            document.getElementById('doubanArea').classList.remove('hidden');
-        }
-        // 同步最近观看区域显示状态
+        // 同步豆瓣热播轮播区域显示状态
         if (typeof updateRecentWatchVisibility === 'function') {
             updateRecentWatchVisibility();
         }
@@ -1711,7 +1690,6 @@ async function exportConfig() {
         'customAPIs',
         'yellowFilterEnabled',
         'adFilteringEnabled',
-        'doubanEnabled',
         'hasInitializedDefaults'
     ];
 
@@ -2221,46 +2199,6 @@ function jumpToPage() {
 
     goToPage(page);
     input.value = '';
-}
-
-// 豆瓣模块懒加载函数 - 优化首屏加载速度
-function lazyLoadDoubanModule() {
-    const doubanArea = document.getElementById('doubanArea');
-    if (!doubanArea) return;
-
-    let doubanLoaded = false;
-
-    // 初始化豆瓣模块
-    function initDouban() {
-        if (doubanLoaded) return;
-        doubanLoaded = true;
-
-        // 调用豆瓣模块的初始化函数
-        if (typeof updateDoubanVisibility === 'function') {
-            updateDoubanVisibility();
-        }
-    }
-
-    // 使用Intersection Observer监听豆瓣区域
-    if ('IntersectionObserver' in window) {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    initDouban();
-                    observer.disconnect();
-                }
-            });
-        }, {
-            rootMargin: '200px' // 提前200px开始加载
-        });
-
-        observer.observe(doubanArea);
-    }
-
-    // 备选方案：延迟2秒后自动加载
-    setTimeout(() => {
-        initDouban();
-    }, 2000);
 }
 
 // 移除Node.js的require语句，因为这是在浏览器环境中运行的

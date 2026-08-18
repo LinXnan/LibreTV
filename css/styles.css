@@ -1313,7 +1313,7 @@ body {
 }
 
 /* 滚动性能优化 */
-#historyPanel, #settingsPanel, #modalContent, #results, #douban-results {
+#historyPanel, #settingsPanel, #modalContent, #results {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
 }
