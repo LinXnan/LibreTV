@@ -10,6 +10,11 @@ const PASSWORD_CONFIG = {
     verificationTTL: 90 * 24 * 60 * 60 * 1000  // 验证有效期（90天，约3个月）
 };
 
+// TMDB 配置（热播轮播数据源；key 由服务端环境变量 TMDB_API_KEY 注入，本地未配置时回退占位符）
+const TMDB_CONFIG = {
+    apiKey: (window.__ENV__ && window.__ENV__.TMDB_API_KEY) || 'YOUR_TMDB_API_KEY'
+};
+
 // API站点配置
 const API_SITES = {
     //ARCHIVE https://telegra.ph/APIs-08-12

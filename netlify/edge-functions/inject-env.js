@@ -19,7 +19,8 @@ export default async (request, context) => {
 
   const originalHtml = await response.text();
   const password = Netlify.env.get('PASSWORD') || '';
-  const modifiedHtml = await injectPassword(originalHtml, password);
+  const tmdbApiKey = Netlify.env.get('TMDB_API_KEY') || '';
+  const modifiedHtml = await injectPassword(originalHtml, password, tmdbApiKey);
 
   return new Response(modifiedHtml, {
     status: response.status,

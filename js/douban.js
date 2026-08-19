@@ -1,6 +1,6 @@
-// 豆瓣共享能力模块：标签数据/渲染/管理 + 数据拉取 + 豆瓣搜索
-// 数据渲染职责已迁移到 recent-watch.js（豆瓣热播轮播）；本文件提供轮播依赖的
-// 标签系统、fetchDoubanData、fillAndSearchWithDouban，并暴露全局状态供轮播读写。
+// 豆瓣共享能力模块：标签数据/渲染/管理 + 影片搜索
+// 数据渲染职责已迁移到 recent-watch.js（热播轮播，数据源 TMDB）；本文件提供轮播依赖的
+// 标签系统、fillAndSearchWithDouban，并暴露全局状态（含年份）供轮播读写。
 
 // 豆瓣标签列表 - 修改为默认标签
 let defaultMovieTags = ['热门', '最新', '经典', '豆瓣高分', '冷门佳片', '华语', '欧美', '韩国', '日本', '动作', '喜剧', '日综', '爱情', '科幻', '悬疑', '恐怖', '治愈'];
@@ -53,6 +53,9 @@ function saveUserTags() {
 // 当前类型（movie/tv）与当前标签；recent-watch.js 读写此全局状态驱动轮播
 let doubanMovieTvCurrentSwitch = 'movie';
 let doubanCurrentTag = '热门';
+// 当前选中年份（空串 = 全部年份）；recent-watch.js 读写此全局状态驱动轮播。
+// 默认选中今年（近 15 年列表首项即当年）；用户可点"全部"查看全量
+let doubanCurrentYear = String(new Date().getFullYear());
 
 // 填充搜索框，确保豆瓣资源API被选中，然后执行搜索
 async function fillAndSearchWithDouban(title) {
@@ -171,63 +174,48 @@ function renderDoubanTags() {
     });
 }
 
-// 通过代理拉取豆瓣数据（带 10s 超时 + ProxyAuth 鉴权 + allorigins 备用）
-async function fetchDoubanData(url) {
-    // 添加超时控制
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-    
-    // 设置请求选项，包括信号和头部
-    const fetchOptions = {
-        signal: controller.signal,
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-            'Referer': 'https://movie.douban.com/',
-            'Accept': 'application/json, text/plain, */*',
-        }
-    };
-
-    try {
-        // 添加鉴权参数到代理URL
-        const proxiedUrl = await window.ProxyAuth?.addAuthToProxyUrl ? 
-            await window.ProxyAuth.addAuthToProxyUrl(PROXY_URL + encodeURIComponent(url)) :
-            PROXY_URL + encodeURIComponent(url);
-            
-        // 尝试直接访问（豆瓣API可能允许部分CORS请求）
-        const response = await fetch(proxiedUrl, fetchOptions);
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        
-        return await response.json();
-    } catch (err) {
-        console.error("豆瓣 API 请求失败（直接代理）：", err);
-        
-        // 失败后尝试备用方法：作为备选
-        const fallbackUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-        
-        try {
-            const fallbackResponse = await fetch(fallbackUrl);
-            
-            if (!fallbackResponse.ok) {
-                throw new Error(`备用API请求失败! 状态: ${fallbackResponse.status}`);
-            }
-            
-            const data = await fallbackResponse.json();
-            
-            // 解析原始内容
-            if (data && data.contents) {
-                return JSON.parse(data.contents);
-            } else {
-                throw new Error("无法获取有效数据");
-            }
-        } catch (fallbackErr) {
-            console.error("豆瓣 API 备用请求也失败：", fallbackErr);
-            throw fallbackErr; // 向上抛出错误，让调用者处理
-        }
+// 年份选项：当前年往前 14 年（跨年自动滚动，不硬编码）
+function getDoubanYearOptions() {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let y = currentYear; y >= currentYear - 14; y--) {
+        years.push(String(y));
     }
+    return years;
+}
+
+// 渲染年份筛选条（"全部" + 近 15 年）；点击切换 doubanCurrentYear 并刷新轮播。
+// 年份独立于 movie/tv 类型，无需随类型切换重渲染，由 douban.js 单独初始化。
+function renderDoubanYears() {
+    const container = document.getElementById('douban-years');
+    if (!container) return;
+
+    const options = ['全部', ...getDoubanYearOptions()];
+    container.innerHTML = '';
+
+    options.forEach(year => {
+        const btn = document.createElement('button');
+        const isActive = (year === '全部' && doubanCurrentYear === '') || (year !== '全部' && year === doubanCurrentYear);
+        let btnClass = 'py-1.5 px-3.5 rounded text-sm font-medium transition-all duration-300 border ';
+        if (isActive) {
+            btnClass += 'bg-pink-600 text-white shadow-md border-white';
+        } else {
+            btnClass += 'bg-[#1a1a1a] text-gray-300 hover:bg-pink-700 hover:text-white border-[#333] hover:border-white';
+        }
+        btn.className = btnClass;
+        btn.textContent = year;
+
+        btn.onclick = function() {
+            const next = year === '全部' ? '' : year;
+            if (doubanCurrentYear !== next) {
+                doubanCurrentYear = next;
+                window.updateRecentWatchVisibility?.();
+                renderDoubanYears();
+            }
+        };
+
+        container.appendChild(btn);
+    });
 }
 
 // 显示标签管理模态框
@@ -447,4 +435,5 @@ function resetTagsToDefault() {
 // （年份独立于 movie/tv 类型，无需随类型切换），故这里单独初始化
 document.addEventListener('DOMContentLoaded', () => {
     loadUserTags();
+    renderDoubanYears();
 });

@@ -8,7 +8,8 @@ export async function onRequest(context) {
   if (contentType.includes("text/html")) {
     let html = await response.text();
     const password = env.PASSWORD || "";
-    html = await injectPassword(html, password);
+    const tmdbApiKey = env.TMDB_API_KEY || "";
+    html = await injectPassword(html, password, tmdbApiKey);
     
     return new Response(html, {
       headers: response.headers,

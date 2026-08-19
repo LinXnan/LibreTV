@@ -21,7 +21,8 @@ export default async function middleware(request) {
 
   const originalHtml = await response.text();
   const password = process.env.PASSWORD || '';
-  const modifiedHtml = await injectPassword(originalHtml, password);
+  const tmdbApiKey = process.env.TMDB_API_KEY || '';
+  const modifiedHtml = await injectPassword(originalHtml, password, tmdbApiKey);
 
   return new Response(modifiedHtml, {
     status: response.status,

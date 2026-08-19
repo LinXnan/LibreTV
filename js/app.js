@@ -728,7 +728,7 @@ function resetSearchArea() {
         footer.style.position = '';
     }
 
-    // 同步豆瓣热播轮播区域的显示状态
+    // 同步热播轮播区域的显示状态
     if (typeof updateRecentWatchVisibility === 'function') {
         updateRecentWatchVisibility();
     }
@@ -748,7 +748,7 @@ function resetSearchArea() {
     }
 }
 
-// 返回首页：重置搜索区并同步豆瓣热播轮播（resetSearchArea 内部已调 updateRecentWatchVisibility）
+// 返回首页：重置搜索区并同步热播轮播（resetSearchArea 内部已调 updateRecentWatchVisibility）
 function resetToHome() {
     resetSearchArea();
 }
@@ -1439,7 +1439,7 @@ function showVideoPlayer(url) {
     if (detailModal) {
         detailModal.classList.add('hidden');
     }
-    // 临时隐藏搜索结果和豆瓣热播区域，防止高度超出播放器而出现滚动条
+    // 临时隐藏搜索结果和热播区域，防止高度超出播放器而出现滚动条
     document.getElementById('resultsArea').classList.add('hidden');
     const recentWatchArea = document.getElementById('recentWatchArea');
     if (recentWatchArea) recentWatchArea.classList.add('hidden');
@@ -1465,7 +1465,7 @@ function closeVideoPlayer(home = false) {
         if (detailModal) {
             detailModal.classList.add('hidden');
         }
-        // 同步豆瓣热播轮播区域显示状态
+        // 同步热播轮播区域显示状态
         if (typeof updateRecentWatchVisibility === 'function') {
             updateRecentWatchVisibility();
         }

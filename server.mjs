@@ -15,6 +15,7 @@ const __dirname = path.dirname(__filename);
 const config = {
   port: process.env.PORT || 8080,
   password: process.env.PASSWORD || '',
+  tmdbApiKey: process.env.TMDB_API_KEY || '',
   corsOrigin: process.env.CORS_ORIGIN || '*',
   timeout: parseInt(process.env.REQUEST_TIMEOUT || '4000'),
   maxRetries: parseInt(process.env.MAX_RETRIES || '1'),
@@ -75,6 +76,7 @@ async function renderPage(filePath, password) {
   } else {
     content = content.replace('{{PASSWORD}}', '');
   }
+  content = content.replace('{{TMDB_API_KEY}}', config.tmdbApiKey || '');
   return content;
 }
 

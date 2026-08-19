@@ -1,11 +1,10 @@
-// 首页豆瓣热播轮播（槽位式 Coverflow）
-// 数据源：豆瓣 API（movie.douban.com/j/search_subjects），电影/电视剧可切换。
+// 首页热播轮播（槽位式 Coverflow）
+// 数据源：TMDB discover API（api.themoviedb.org/3/discover），电影/电视剧可切换，支持标签/年份筛选。
 // 中央槽位固定：当前凸显的影片始终停在正中央放大，两侧卡片逐级缩小压暗；
 // 自动轮流时下一部平滑滑入中央凸显，循环连播。点击卡片触发该影片搜索。
 (function() {
     'use strict';
 
-    const PAGE_LIMIT = 10; // 每标签最多展示的影片数（豆瓣接口 page_limit，即每批条数）
     const MAX_ITEMS = 50; // 展示截断上限（防超长渲染，保留兜底）
     // 首次渲染只展示前 FIRST_BATCH 部影片（封面就绪即整批展示），
     // 剩余影片在首批展示后渐进追加——首屏只需等 5 张封面而非全部 10 张
@@ -24,7 +23,7 @@
     let itemCount = 0; // 当前条数，供显示隐藏判断
     let renderRequestId = 0; // 渲染请求序号，用于处理类型/标签切换竞态
     let batchPending = false; // 换一批加载互斥：fetch 期间阻止连点导致 pageStart 无监督累加
-    let pageStart = 0; // 当前页偏移（豆瓣 page_start）：换一批时 += PAGE_LIMIT
+    let pageStart = 1; // 当前页（TMDB page，1 基）：换一批时 +1
     const CACHE_TTL = 60 * 1000; // 热播数据缓存有效期（秒）
     const CACHE_MAX = 20; // 缓存键上限：容纳全部标签（movie 17 / tv 10）+ 少量翻页键，超限淘汰最旧（LRU）
     // 多槽缓存：键 = `${type}|${tag}|${pageStart}` → { items, ts }。
@@ -35,21 +34,20 @@
     const prefetching = new Set();
     let prefetchScheduled = false; // 空闲预取调度互斥：一次渲染只排一次空闲任务
 
-    // 拉取豆瓣热播数据；复用 douban.js 的 fetchDoubanData（全局，script 顺序在其后）。
-    // 类型/标签/页偏移读当前状态，但必须在发起请求时捕获快照 reqType/reqTag/start：
+    // 拉取热播数据；复用 tmdb.js 的 fetchTmdbSubjects（全局，script 顺序在其后）。
+    // 类型/标签/年份/页码读当前状态，但必须在发起请求时捕获快照 reqType/reqTag/reqYear/start：
     // URL 构造与 cache 写入共用同一时刻状态，避免快速切换后旧请求乱序返回污染缓存键。
-    // 带独立总超时：douban.js 的 allorigins fallback 无 signal，可能长期悬挂，
+    // 带独立总超时：tmdb.js 的 allorigins fallback 无 signal，可能长期悬挂，
     // 必须保证轮播在有限时间内降级为空态而不是永久空白（首次首页必经路径）
-    function fetchDoubanSubjects(reqType, reqTag, start) {
-        const target = `https://movie.douban.com/j/search_subjects?type=${reqType}&tag=${encodeURIComponent(reqTag)}&sort=recommend&page_limit=${PAGE_LIMIT}&page_start=${start}`;
-        if (typeof fetchDoubanData !== 'function') {
-            console.warn('[douban-hot] fetchDoubanData 不可用，豆瓣热播为空');
+    function fetchDoubanSubjects(reqType, reqTag, reqYear, start) {
+        if (typeof fetchTmdbSubjects !== 'function') {
+            console.warn('[douban-hot] fetchTmdbSubjects 不可用，热播为空');
             return Promise.resolve([]);
         }
         const timedOut = new Promise((_, reject) => {
             setTimeout(() => reject(new Error('douban-hot 拉取超时')), 12000);
         });
-        return Promise.race([fetchDoubanData(target).then(data => (data && data.subjects) || []), timedOut]);
+        return Promise.race([fetchTmdbSubjects(reqType, reqTag, reqYear, start), timedOut]);
     }
 
     // 读取热播数据：多槽缓存命中（同类型同标签同页偏移且未过期）直接返回，否则拉取并更新缓存。
@@ -57,13 +55,14 @@
     function getSubjects() {
         const reqType = doubanMovieTvCurrentSwitch;
         const reqTag = doubanCurrentTag;
+        const reqYear = doubanCurrentYear || '';
         const start = pageStart;
-        const key = `${reqType}|${reqTag}|${start}`;
+        const key = `${reqType}|${reqTag}|${reqYear}|${start}`;
         const hit = cacheMap.get(key);
         if (hit && Date.now() - hit.ts < CACHE_TTL) {
             return Promise.resolve(hit.items);
         }
-        return fetchDoubanSubjects(reqType, reqTag, start).then((subjects) => {
+        return fetchDoubanSubjects(reqType, reqTag, reqYear, start).then((subjects) => {
             cacheMap.set(key, { items: subjects || [], ts: Date.now() });
             trimCache();
             return cacheMap.get(key).items;
@@ -84,7 +83,8 @@
     // 数据到达后联动预取该标签封面（preloadCovers）：仅预取数据不预取封面时，
     // 切换命中缓存数据后 watchCoverReadiness 仍要等全部封面现下载 → 用户感知仍是慢。
     function prefetchTag(tag, withCovers) {
-        const key = `${doubanMovieTvCurrentSwitch}|${tag}|0`;
+        const year = doubanCurrentYear || '';
+        const key = `${doubanMovieTvCurrentSwitch}|${tag}|${year}|1`;
         if (prefetching.has(key)) return; // 数据在途防重
         const hit = cacheMap.get(key);
         let dataPromise;
@@ -93,7 +93,7 @@
             dataPromise = Promise.resolve(hit.items);
         } else {
             prefetching.add(key);
-            dataPromise = fetchDoubanSubjects(doubanMovieTvCurrentSwitch, tag, 0)
+            dataPromise = fetchDoubanSubjects(doubanMovieTvCurrentSwitch, tag, year, 1)
                 .then((subjects) => {
                     const items = subjects || [];
                     if (items.length) {
@@ -267,23 +267,6 @@
     // 批量构建卡片 HTML（分批渲染用：首批 FIRST_BATCH 张，剩余后续追加）
     function buildCardsHtml(items) {
         return items.map(buildCardHtml).join('');
-    }
-
-    // 按评分从高到低排序（评分高的优先轮播）；无评分（''）排最后。
-    // rate 为归一化后的字符串（如 "8.9"），无评分是空串；parseFloat 兼容小数。
-    // NaN（parseFloat 无法解析的非数字串，如 "暂无"）与无评分同等落底：
-    // 映射为 -Infinity，保证比较器为严格全序（两两可比较），不依赖引擎实现。
-    // 评分相等时保持豆瓣原始顺序（Array.prototype.sort 稳定，ES2019+）
-    function sortByRateDesc(a, b) {
-        const sortValue = (rate) => {
-            if (rate === '') return -Infinity;
-            const num = parseFloat(rate);
-            return Number.isNaN(num) ? -Infinity : num;
-        };
-        const ra = sortValue(a.rate);
-        const rb = sortValue(b.rate);
-        if (ra === rb) return 0;
-        return ra > rb ? -1 : 1;
     }
 
     // 应用可见性：
@@ -472,11 +455,11 @@
         // 叠加卡片入场动画重播 → 视觉"闪"。清空 + 加载指示让切换有过渡、
         // 数据到齐后卡片渐进式展示（入场动画按距中央距离分批次淡入）。
         // 切换判定含标签/类型：type/tag 任一变化都视为"切换"（重置分页 + 三点加载）
-        const currentKey = `${doubanMovieTvCurrentSwitch}:${doubanCurrentTag}`;
+        const currentKey = `${doubanMovieTvCurrentSwitch}:${doubanCurrentTag}:${doubanCurrentYear || ''}`;
         const isSwitch = lastRenderKey !== '' && currentKey !== lastRenderKey;
         lastRenderKey = currentKey;
         if (isSwitch) {
-            pageStart = 0; // 切换标签/类型回到第一页
+            pageStart = 1; // 切换标签/类型回到第一页（TMDB page 1 基）
             // 在途"换一批"作废：其 renderRequestId 已过期会被 .then 丢弃，这里显式复位互斥
             batchPending = false;
             showTrackLoading();
@@ -488,11 +471,11 @@
             .then((subjects) => {
                 if (requestId !== renderRequestId) return; // 类型切换后旧请求作废
                 // 换一批翻到末尾（豆瓣返回空数组）：回绕到第一页重新拉取。
-                // 回绕后 pageStart=0 且 isSwitch=false（type/tag 未变），
+                // 回绕后 pageStart=1 且 isSwitch=false（type/tag 未变），
                 // 不会重复 loading；第一页也空（标签无数据）时走下方 items.length===0 分支，无死循环。
                 // batchPending 保持 true：回绕后的 render 完成后才清除，期间阻止再点换一批
-                if (pageStart > 0 && (!subjects || subjects.length === 0)) {
-                    pageStart = 0;
+                if (pageStart > 1 && (!subjects || subjects.length === 0)) {
+                    pageStart = 1;
                     if (typeof showToast === 'function') {
                         showToast('已回到第一页', 'info');
                     }
@@ -511,9 +494,8 @@
                             coverUrl: buildCoverUrl(s && s.cover)
                         };
                     })
-                    .sort(sortByRateDesc)
-                    // 截断必须在排序之后：先保证"评分高者优先"完整作用于全量数据，
-                    // 再截断展示上限（否则超限数据中最高分可能被排在截断区外）
+                    // TMDB discover 的 sort_by 已含排序语义（popularity/vote_average），
+                    // 不再前端重排；直接截断展示上限
                     .slice(0, MAX_ITEMS);
 
                 itemCount = items.length;
@@ -566,7 +548,7 @@
                 });
             })
             .catch((e) => {
-                console.error('[douban-hot] 加载豆瓣热播失败:', e);
+                console.error('[douban-hot] 加载热播失败:', e);
                 itemCount = 0;
                 track.innerHTML = '';
                 stopAutoScroll();
@@ -722,13 +704,13 @@
         if (tvBtn) tvBtn.addEventListener('click', () => setType('tv'));
     }
 
-    // 换一批：翻到下一页（page_start += PAGE_LIMIT），显示加载过渡后重新渲染。
+    // 换一批：翻到下一页（page+1），显示加载过渡后重新渲染。
     // isSwitch 判定基于 type/tag，换一批时未变 → render 不会重复 loading，只拉新页数据。
     // batchPending 互斥：fetch 期间再点直接忽略，防止连点 pageStart 无监督累加跳页
     function nextBatch() {
         if (batchPending) return;
         batchPending = true;
-        pageStart += PAGE_LIMIT;
+        pageStart += 1;
         showTrackLoading();
         render();
     }

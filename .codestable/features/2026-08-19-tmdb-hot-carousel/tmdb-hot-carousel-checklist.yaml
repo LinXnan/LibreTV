@@ -1,0 +1,63 @@
+feature: 2026-08-19-tmdb-hot-carousel
+created: 2026-08-19
+
+steps:
+  - action: "数据层：新建 js/tmdb.js——TMDB_CONFIG（占位 key）+ fetchTmdbData（代理+超时+allorigins 降级）+ TAG_TO_QUERY 标签映射表 + fetchTmdbSubjects(type/tag/year/page)"
+    exit_signal: "node --check js/tmdb.js 通过；read_lints 0 报错；文件含 TMDB_CONFIG/TAG_TO_QUERY/fetchTmdbSubjects 三符号；index.html script 列表含 js/tmdb.js 且位于 recent-watch.js 之前"
+    status: done
+  - action: "接入：recent-watch.js fetchDoubanSubjects 替换实现为调 fetchTmdbSubjects；缓存键改 type|tag|year|page；page 语义 1 基；移除 sortByRateDesc 前端重排"
+    exit_signal: "grep js/recent-watch.js 无 movie.douban.com/sortByRateDesc 调用；pageStart 初始 1、nextBatch +=1、回绕 pageStart>1、URL 含 page_size；read_lints 0 报错"
+    status: done
+  - action: "年份 UI：douban.js 加 doubanCurrentYear/renderDoubanYears（复用 ff-note：全部+近15年、点击触发 updateRecentWatchVisibility、动态生成不硬编码）；index.html #recentWatchFilter 内标签行下恢复年份条 #douban-years"
+    exit_signal: "grep douban.js 含 renderDoubanYears/doubanCurrentYear；index.html 含 #douban-years；read_lints 0 报错"
+    status: done
+  - action: "清理收尾：douban.js 移除 fetchDoubanData（含 allorigins 降级段）；config.js 追加 TMDB_CONFIG；fetchTmdbSubjects 的 currentKey 切换判定含 year；注释/模块头同步 TMDB"
+    exit_signal: "grep js/ 无 fetchDoubanData 引用；config.js 含 TMDB_CONFIG；read_lints 0 报错；grep -r movie.douban.com js/ 0 命中"
+    status: pending
+  - action: "浏览器验证 N1-N7（用户配合：填入真实 key 后 npm run dev 手动验证）"
+    exit_signal: "N1-N7 场景逐条人工核对通过（网络面板确认 discover 请求 URL 与参数）"
+    status: done
+
+checks:
+  - item: "首页加载展示 TMDB 数据（封面/原片名/评分），无 movie.douban.com 请求"
+    source: 验收场景 N1
+    status: pending
+  - item: "电影/电视剧切换分别请求 discover/movie 与 discover/tv"
+    source: 验收场景 N2
+    status: pending
+  - item: "标签切换映射正确（热门=popularity 序、类型=genre、无映射退化为热门不报错）"
+    source: 验收场景 N3
+    status: pending
+  - item: "年份筛选生效（primary_release_year/first_air_date_year），切回全部恢复"
+    source: 验收场景 N4
+    status: pending
+  - item: "换一批 page+1，缓存键含 year 防跨筛选命中"
+    source: 验收场景 N5
+    status: pending
+  - item: "点击卡片原片名填充搜索框并触发采集站搜索"
+    source: 验收场景 N6
+    status: pending
+  - item: "空年份数据筛选区保留可见可切回全部"
+    source: 验收场景 N7
+    status: pending
+  - item: "空年份/空标签不拼无效参数；快速连切 requestId 作废；换一批在途切年份 batchPending 复位"
+    source: 边界 B1-B3
+    status: pending
+  - item: "key 缺失/错误热播空态不阻塞搜索播放"
+    source: 边界 B4
+    status: pending
+  - item: "TMDB 失败 allorigins 降级，仍失败空态筛选区保留；poster_path 缺失显示占位符"
+    source: 错误 E1-E2
+    status: pending
+  - item: "recent-watch.js 无 movie.douban.com/sortByRateDesc 调用"
+    source: 范围守护
+    status: pending
+  - item: "douban.js 无 fetchDoubanData 残留引用"
+    source: 范围守护
+    status: pending
+  - item: "config.js 含 TMDB_CONFIG 且占位 key 可识别（YOUR_TMDB_API_KEY），无真实 key 入库"
+    source: 范围守护
+    status: pending
+  - item: "无新增 console.log/TODO/FIXME/注释掉代码"
+    source: 清洁度
+    status: pending
