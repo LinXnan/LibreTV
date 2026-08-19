@@ -265,17 +265,6 @@
     }
 }
 
-/* 封面就绪前整卡隐藏（含占位符）：等全部封面加载完成或超时后移除该状态整批淡入，
-   避免"先露占位符再闪到封面"。用 visibility 而非 opacity —— updateCoverflow 会设置
-   内联 opacity（可见卡为 1），会覆盖 CSS 类；visibility 不受内联 opacity 影响。
-   入场动画在移除 pending 后从头播放（backwards 填充），实现渐进式淡入 */
-.recent-watch-card.cover-pending {
-    visibility: hidden;
-    opacity: 0;
-    animation: none;
-    pointer-events: none;
-}
-
 /* 切换标签/类型加载过渡：三个跳动圆点居中，数据到齐后由卡片渐进式展示替换 */
 .recent-watch-loading {
     position: absolute;

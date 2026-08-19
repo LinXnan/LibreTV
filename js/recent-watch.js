@@ -81,7 +81,7 @@
     // 预取为 fire-and-forget：失败静默（用户手动切换时仍会正常拉取），不阻塞主线程渲染。
     // 只在渲染成功后调度（schedulePrefetch），不在页面前台与数据请求抢占带宽。
     // 数据到达后联动预取该标签封面（preloadCovers）：仅预取数据不预取封面时，
-    // 切换命中缓存数据后 watchCoverReadiness 仍要等全部封面现下载 → 用户感知仍是慢。
+    // 切换命中缓存数据后封面仍要现下载 → 用户感知仍是慢。
     function prefetchTag(tag, withCovers) {
         const year = doubanCurrentYear || '';
         const key = `${doubanMovieTvCurrentSwitch}|${tag}|${year}|1`;
@@ -221,7 +221,7 @@
             .replace(/'/g, '&#39;');
     }
 
-    // 单张轮播卡片 HTML（封面就绪前整卡 cover-pending 隐藏）：
+    // 单张轮播卡片 HTML（不等待封面：占位符先显示，封面由 LazyImageLoader 渐进加载覆盖）：
     // 占位符在底层（默认显示），封面加载成功覆盖、失败自动隐藏露出占位符；
     // 评分行有评分才显示；入场动画在数据到达时渐进式展示（applyEntranceDelays 按距中央距离分批淡入）
     function buildCardHtml(item) {
@@ -246,7 +246,7 @@
             : '';
 
         return `
-                <div class="recent-watch-card cover-pending" data-title="${safeTitle}" role="button" tabindex="0" aria-label="${ariaLabel}" title="${ariaLabel}">
+                <div class="recent-watch-card" data-title="${safeTitle}" role="button" tabindex="0" aria-label="${ariaLabel}" title="${ariaLabel}">
                     <div class="recent-watch-cover">
                         <div class="recent-watch-placeholder" style="background:${gradientBg};">
                             <span class="recent-watch-icon">${contentIcon}</span>
@@ -357,7 +357,6 @@
     function showTrackLoading() {
         const track = document.getElementById('recentWatchTrack');
         if (!track) return;
-        clearCoverWatch(); // 清空 track 前解除旧封面监听，避免监听已删除的孤儿 img
         track.innerHTML = '<div class="recent-watch-loading" aria-hidden="true">'
             + '<span class="recent-watch-loading-dot"></span>'
             + '<span class="recent-watch-loading-dot"></span>'
@@ -371,63 +370,8 @@
         updateNavButtons(0);
     }
 
-    // 封面就绪监听：等待所有封面加载到终态后整批展示，避免"先露占位符再闪到封面"。
-    // 卡片渲染时带 .cover-pending（visibility:hidden，占位符也不可见）；
-    // 全部封面就绪（成功 is-loaded / 失败 display:none / 无封面）或超时（COVER_LOAD_TIMEOUT）
-    // 后移除 .cover-pending，卡片连同封面一起渐进淡入（入场动画）。
-    let coverObserver = null; // 封面就绪 MutationObserver
-    let coverTimeout = null;  // 封面加载超时兜底定时器
-    const COVER_LOAD_TIMEOUT = 12000; // 与数据 fetch 超时一致；超时后强制展示（占位符兜底）
-
-    function clearCoverWatch() {
-        if (coverObserver) { coverObserver.disconnect(); coverObserver = null; }
-        if (coverTimeout) { clearTimeout(coverTimeout); coverTimeout = null; }
-    }
-
-    // 移除指定范围（或全部）卡片的 cover-pending，展示（封面全部就绪或超时兜底）。
-    // scope：卡片数组；缺省 = track 内全部卡片。onReady：封面展示后回调（分批渲染衔接用）
-    function revealTrack(track, scope, onReady) {
-        clearCoverWatch();
-        const cards = scope && scope.length ? scope : track.querySelectorAll('.recent-watch-card');
-        cards.forEach(card => {
-            card.classList.remove('cover-pending');
-        });
-        if (typeof onReady === 'function') onReady();
-    }
-
-    // 等待 scope 范围内所有封面到终态后整批展示；超时强制展示（未就绪封面由占位符兜底，加载完成仍会淡入覆盖）。
-    // scope：卡片数组；缺省 = track 内全部卡片。onReady：封面展示后回调。
-    // 分批渲染：布局一次到位（全部卡片渲染排版，避免追加导致的环形位置跳变），
-    // 封面分批等待——首批 FIRST_BATCH 张封面就绪展示，剩余再分批等待展示
-    function watchCoverReadiness(track, scope, onReady) {
-        clearCoverWatch();
-        const cards = scope && scope.length ? scope : track.querySelectorAll('.recent-watch-card');
-        const imgs = Array.from(cards).map(card => card.querySelector('.recent-watch-cover-img')).filter(Boolean);
-        if (!imgs.length) { revealTrack(track, cards, onReady); return; } // 范围全无封面，直接展示
-        // 同步预检：全部命中缓存可能已就绪（onload 微任务先于 observer 挂载），
-        // 直接展示避免 12s 超时空窗
-        if (imgs.every(img => img.classList.contains('is-loaded') || img.style.display === 'none')) {
-            revealTrack(track, cards, onReady);
-            return;
-        }
-        const checkAllReady = () => {
-            return cards.every(card => {
-                const img = card.querySelector('.recent-watch-cover-img');
-                // 无封面卡视为就绪；成功（is-loaded）或失败（display:none）都算终态
-                return !img || img.classList.contains('is-loaded') || img.style.display === 'none';
-            });
-        };
-        coverObserver = new MutationObserver(() => {
-            if (checkAllReady()) revealTrack(track, cards, onReady);
-        });
-        imgs.forEach(img => {
-            coverObserver.observe(img, { attributes: true, attributeFilter: ['class', 'style'] });
-        });
-        coverTimeout = setTimeout(() => revealTrack(track, cards, onReady), COVER_LOAD_TIMEOUT);
-    }
-
     // 全部影片渲染完成后的收尾：启动自动轮播（多于 1 部时）、空闲预取相邻标签、清理互斥标志。
-    // 在最后一批封面展示（或超时兜底）后调用一次
+    // 在数据到达渲染卡片后调用一次
     function finishCarouselAfterRender() {
         const track = document.getElementById('recentWatchTrack');
         // 多于 1 部影片时自动轮流连播；单张/无动画偏好下静态展示
@@ -445,10 +389,10 @@
 
     function render() {
         const area = document.getElementById('recentWatchArea');
-        // 早退前清除 batchPending/coverWatch：nextBatch 置 true 后若元素缺失会永久泄漏互斥标志
-        if (!area) { batchPending = false; clearCoverWatch(); return; }
+        // 早退前清除 batchPending：nextBatch 置 true 后若元素缺失会永久泄漏互斥标志
+        if (!area) { batchPending = false; return; }
         const track = document.getElementById('recentWatchTrack');
-        if (!track) { batchPending = false; clearCoverWatch(); return; }
+        if (!track) { batchPending = false; return; }
 
         // 切换标签/类型时立即清空旧卡片并显示"三点"加载过渡：
         // 否则 getSubjects 异步取数期间 track 残留旧内容，数据到达后整体替换，
@@ -508,7 +452,6 @@
                     clearTimeout(resumeTimer);
                     resumeTimer = null;
                     applyVisibility();
-                    clearCoverWatch();
                     batchPending = false;
                     return;
                 }
@@ -525,27 +468,12 @@
                 updateCoverflow(track);
                 applyEntranceDelays(track);
 
-                // 首批封面优先预取（剩余封面在首批展示后再预取，让首屏更快）
+                // 不等待封面就绪：卡片立即展示（占位符兜底，封面由 LazyImageLoader 渐进加载覆盖）。
+                // 首批封面优先预取，剩余封面随后预取（并发 4），让首屏更快补图
                 preloadCovers(items.slice(0, FIRST_BATCH));
-
-                const allCards = Array.from(track.querySelectorAll('.recent-watch-card'));
-                const firstCards = allCards.slice(0, FIRST_BATCH);
-                const restCards = allCards.slice(FIRST_BATCH);
-
-                // 等待首批封面就绪后展示（超时兜底）；展示后继续等待剩余封面
-                watchCoverReadiness(track, firstCards, () => {
-                    if (requestId !== renderRequestId) return; // 期间被切换/换批，作废
-                    if (!restCards.length) {
-                        finishCarouselAfterRender();
-                        return;
-                    }
-                    // 首批已展示，再预取剩余封面并等待其就绪展示
-                    preloadCovers(items.slice(FIRST_BATCH));
-                    watchCoverReadiness(track, restCards, () => {
-                        if (requestId !== renderRequestId) return;
-                        finishCarouselAfterRender();
-                    });
-                });
+                preloadCovers(items.slice(FIRST_BATCH));
+                if (requestId !== renderRequestId) return; // 期间被切换/换批，作废
+                finishCarouselAfterRender();
             })
             .catch((e) => {
                 console.error('[douban-hot] 加载热播失败:', e);
@@ -553,7 +481,6 @@
                 track.innerHTML = '';
                 stopAutoScroll();
                 applyVisibility();
-                clearCoverWatch();
                 batchPending = false;
             });
     }
