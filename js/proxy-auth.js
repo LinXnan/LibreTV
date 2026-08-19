@@ -65,11 +65,8 @@ async function addAuthToProxyUrl(url) {
             return url;
         }
         
-        // 添加时间戳防止重放攻击。
-        // 用小时级粒度而非毫秒：同一小时内代理 URL 稳定，CF/各平台边缘缓存
-        // （按完整 URL 做 cache key）才能命中——否则毫秒级 t 让每次请求 URL 都不同，
-        // 封面/数据每次都回源导致加载慢。服务端 60 分钟校验窗口兼容（时差恒 < 60min）。
-        const timestamp = Math.floor(Date.now() / 3600000);
+        // 添加时间戳防止重放攻击
+        const timestamp = Date.now();
         
         // 检查URL是否已包含查询参数
         const separator = url.includes('?') ? '&' : '?';
