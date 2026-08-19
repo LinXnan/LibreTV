@@ -6,37 +6,44 @@
 
 const TMDB_PAGE_LIMIT = 10; // 每批展示条数：TMDB v3 每页固定 20 条，前端截断前 10 条保持原"每批 10 条"体验
 
-// 标签 → discover 查询参数映射（无映射标签退化为热门）
+// 标签 → discover 查询参数映射（与 douban.js 默认标签一一对应，无退化项）
 // 语义：华语按语言（with_original_language），其余地区按制作国（with_origin_country）；genre id 为 TMDB 标准 id
 const TMDB_TAG_TO_QUERY = {
     movie: {
         '热门': { sort_by: 'popularity.desc' },
         '最新': { sort_by: 'primary_release_date.desc' },
-        '经典': { sort_by: 'vote_average.desc', vote_count_gte: 200 },
-        '豆瓣高分': { sort_by: 'vote_average.desc', vote_count_gte: 50 },
+        '高分': { sort_by: 'vote_average.desc', vote_count_gte: 100 },
+        '动作': { with_genres: '28' },
+        '冒险': { with_genres: '12' },
+        '科幻': { with_genres: '878' },
+        '喜剧': { with_genres: '35' },
+        '爱情': { with_genres: '10749' },
+        '恐怖': { with_genres: '27' },
+        '悬疑': { with_genres: '53' },
+        '剧情': { with_genres: '18' },
+        '动画': { with_genres: '16' },
+        '纪录': { with_genres: '99' },
         '华语': { with_original_language: 'zh' },
         '欧美': { with_origin_country: 'US,GB,FR,DE,ES,IT' },
         '韩国': { with_origin_country: 'KR' },
-        '日本': { with_origin_country: 'JP' },
-        '动作': { with_genres: '28' },
-        '喜剧': { with_genres: '35' },
-        '爱情': { with_genres: '10749' },
-        '科幻': { with_genres: '878' },
-        '悬疑': { with_genres: '53' },
-        '恐怖': { with_genres: '27' }
-        // 冷门佳片 / 治愈 / 日综：无映射 → 退化为热门
+        '日本': { with_origin_country: 'JP' }
     },
     tv: {
         '热门': { sort_by: 'popularity.desc' },
+        '最新': { sort_by: 'first_air_date.desc' },
+        '剧情': { with_genres: '18' },
+        '喜剧': { with_genres: '35' },
+        '动作冒险': { with_genres: '10759' },
+        '科幻奇幻': { with_genres: '10765' },
+        '动画': { with_genres: '16' },
+        '纪录': { with_genres: '99' },
+        '真人秀': { with_genres: '10764' },
         '美剧': { with_origin_country: 'US' },
         '英剧': { with_origin_country: 'GB' },
         '韩剧': { with_origin_country: 'KR' },
         '日剧': { with_origin_country: 'JP' },
         '国产剧': { with_origin_country: 'CN' },
-        '港剧': { with_origin_country: 'HK' },
-        '日本动画': { with_genres: '16', with_original_language: 'ja' },
-        '综艺': { with_genres: '10764' },
-        '纪录片': { with_genres: '99' }
+        '港剧': { with_origin_country: 'HK' }
     }
 };
 
@@ -95,7 +102,8 @@ async function fetchTmdbSubjects(type, tag, year, page) {
     const pageNum = Number(page) > 0 ? Number(page) : 1;
     const params = new URLSearchParams({
         api_key: TMDB_CONFIG.apiKey,
-        page: String(pageNum)
+        page: String(pageNum),
+        language: 'zh-CN' // 本地化标题/简介为中文
     });
 
     const query = resolveTagQuery(type, tag);
@@ -114,7 +122,8 @@ async function fetchTmdbSubjects(type, tag, year, page) {
     const results = (data && data.results) || [];
 
     return results.slice(0, TMDB_PAGE_LIMIT).map((item) => ({
-        title: String(item.original_title || item.title || item.original_name || item.name || '未知影片'),
+        // zh-CN 请求下 title/name 为中文标题，优先使用（缺失回退原片名）
+        title: String(item.title || item.name || item.original_title || item.original_name || '未知影片'),
         rate: String(item.vote_average || ''),
         cover: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : ''
     }));
