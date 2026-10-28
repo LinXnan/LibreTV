@@ -256,10 +256,10 @@ function showTagManageModal() {
                         const canDelete = tag !== '热门';
                         return `
                             <div class="bg-[#1a1a1a] text-gray-300 py-1.5 px-3 rounded text-sm font-medium flex justify-between items-center group">
-                                <span>${tag}</span>
+                                <span>${escapeHtml(tag)}</span>
                                 ${canDelete ? 
                                     `<button class="delete-tag-btn text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" 
-                                        data-tag="${tag}">✕</button>` : 
+                                        data-tag="${escapeAttr(tag)}">✕</button>` : 
                                     `<span class="text-gray-500 text-xs italic opacity-0 group-hover:opacity-100">必需</span>`
                                 }
                             </div>
