@@ -452,20 +452,10 @@ function loadViewingHistory() {
         // 获取该项在原始历史记录数组中的索引
         const index = history.findIndex(h => h.url === item.url && h.timestamp === item.timestamp);
 
-        // 防止XSS - 转义 HTML 特殊字符（& 必须最先处理）
-        const safeTitle = String(item.title || '未知视频')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-
-        const safeSource = String(item.sourceName || '未知来源')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+        // 防止XSS - 统一复用 js/utils.js 的 escapeHtml（含单引号，属性/文本双上下文安全；
+        // utils.js 在 index.html / player.html 中均先于 ui.js 加载）
+        const safeTitle = escapeHtml(item.title || '未知视频');
+        const safeSource = escapeHtml(item.sourceName || '未知来源');
 
         const episodeText = item.episodeIndex !== undefined ?
             `第${item.episodeIndex + 1}集` : '';

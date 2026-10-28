@@ -16,6 +16,31 @@ function debounce(func, wait) {
     };
 }
 
+// HTML 转义（统一实现）：覆盖文本节点与双引号属性上下文；单引号属性上下文请配合 escapeAttr
+function escapeHtml(text) {
+    return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// HTML 属性安全转义：在 escapeHtml 基础上再处理单引号，供拼接进 '...' 属性内联事件的值使用
+function escapeAttr(value) {
+    return escapeHtml(value).replace(/'/g, '&#39;');
+}
+
+// localStorage 安全写入：隐私模式 / 配额满时 setItem 会抛异常中断调用方流程，此处兜底
+function safeSetItem(key, value) {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        console.error('[storage] setItem failed:', key, e);
+        return false;
+    }
+}
+
 // URL安全验证
 function isValidImageUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -387,5 +412,5 @@ if (typeof window !== 'undefined') {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { debounce, ImageCacheManager, isValidImageUrl };
+    module.exports = { debounce, ImageCacheManager, isValidImageUrl, escapeHtml, escapeAttr, safeSetItem };
 }

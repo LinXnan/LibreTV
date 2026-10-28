@@ -212,14 +212,9 @@
         return '';
     }
 
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
+    // 转义统一复用 js/utils.js 全局 escapeHtml（含单引号 &#39;，属性/文本双上下文安全；
+    // utils.js 在本文件之前加载）
+    const escapeHtml = window.escapeHtml;
 
     // 单张轮播卡片 HTML（不等待封面：占位符先显示，封面由 LazyImageLoader 渐进加载覆盖）：
     // 占位符在底层（默认显示），封面加载成功覆盖、失败自动隐藏露出占位符；

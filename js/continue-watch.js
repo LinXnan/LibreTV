@@ -26,14 +26,9 @@
         return '';
     }
 
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
+    // 转义统一复用 js/utils.js 全局 escapeHtml（含单引号 &#39;，属性/文本双上下文安全；
+    // utils.js 在本文件之前加载）
+    const escapeHtml = window.escapeHtml;
 
     // 播放进度格式化（秒 → m:ss），进度太短不展示
     function formatPosition(seconds) {

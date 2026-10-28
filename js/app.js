@@ -17,12 +17,7 @@ window.normalizeCustomAPI = normalizeCustomAPI;
 // 加载并规范化自定义 API 列表
 let customAPIs = JSON.parse(localStorage.getItem('customAPIs') || '[]').map(normalizeCustomAPI);
 
-// HTML 转义函数，防止 XSS
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// HTML 转义统一使用 js/utils.js 的 escapeHtml / escapeAttr（app.js 在 utils.js 之后加载）
 
 // 添加当前播放的集数索引
 let currentEpisodeIndex = 0;
@@ -48,16 +43,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!localStorage.getItem('hasInitializedDefaults') || !localStorage.getItem('selectedAPIsV2')) {
         const customSelected = selectedAPIs.filter(key => key.startsWith('custom_'));
         selectedAPIs = [...customSelected, ...Object.keys(API_SITES)];
-        localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
-        localStorage.setItem('selectedAPIsV2', 'true');
+        safeSetItem('selectedAPIs', JSON.stringify(selectedAPIs));
+        safeSetItem('selectedAPIsV2', 'true');
 
         if (!localStorage.getItem('hasInitializedDefaults')) {
             // 默认选中过滤开关
-            localStorage.setItem('yellowFilterEnabled', 'true');
-            localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, 'true');
+            safeSetItem('yellowFilterEnabled', 'true');
+            safeSetItem(PLAYER_CONFIG.adFilteringStorage, 'true');
 
             // 标记已初始化默认值
-            localStorage.setItem('hasInitializedDefaults', 'true');
+            safeSetItem('hasInitializedDefaults', 'true');
         }
     }
 
@@ -292,7 +287,7 @@ function checkAdultAPIsSelected() {
     if (hasAdultSelected) {
         yellowFilterToggle.checked = false;
         yellowFilterToggle.disabled = true;
-        localStorage.setItem('yellowFilterEnabled', 'false');
+        safeSetItem('yellowFilterEnabled', 'false');
 
         // 添加禁用样式
         yellowFilterContainer.classList.add('filter-disabled');
@@ -439,7 +434,7 @@ function updateCustomApi(index) {
     const { name, url, detail, isAdult } = input;
     // 保存 detail 字段
     customAPIs[index] = { name, url, detail, isAdult };
-    localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
+    safeSetItem('customAPIs', JSON.stringify(customAPIs));
     renderCustomAPIsList();
     checkAdultAPIsSelected();
     restoreAddCustomApiButtons();
@@ -480,7 +475,7 @@ function updateSelectedAPIs() {
     selectedAPIs = [...builtInApis, ...customApiIndices];
 
     // 保存到localStorage
-    localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
+    safeSetItem('selectedAPIs', JSON.stringify(selectedAPIs));
 
     // 更新显示选中的API数量
     updateSelectedApiCount();
@@ -535,10 +530,10 @@ function addCustomApi() {
     const { name, url, detail, isAdult } = input;
     // 保存 detail 字段
     customAPIs.push({ name, url, detail, isAdult });
-    localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
+    safeSetItem('customAPIs', JSON.stringify(customAPIs));
     const newApiIndex = customAPIs.length - 1;
     selectedAPIs.push('custom_' + newApiIndex);
-    localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
+    safeSetItem('selectedAPIs', JSON.stringify(selectedAPIs));
 
     // 重新渲染自定义API列表
     renderCustomAPIsList();
@@ -558,7 +553,7 @@ function removeCustomApi(index) {
 
     // 从列表中移除API
     customAPIs.splice(index, 1);
-    localStorage.setItem('customAPIs', JSON.stringify(customAPIs));
+    safeSetItem('customAPIs', JSON.stringify(customAPIs));
 
     // 从选中列表中移除此API
     selectedAPIs = selectedAPIs.filter(id => id !== customApiId);
@@ -574,7 +569,7 @@ function removeCustomApi(index) {
         return id;
     });
 
-    localStorage.setItem('selectedAPIs', JSON.stringify(selectedAPIs));
+    safeSetItem('selectedAPIs', JSON.stringify(selectedAPIs));
 
     // 重新渲染自定义API列表
     renderCustomAPIsList();
@@ -678,7 +673,7 @@ function setupEventListeners() {
     const yellowFilterToggle = document.getElementById('yellowFilterToggle');
     if (yellowFilterToggle) {
         yellowFilterToggle.addEventListener('change', function (e) {
-            localStorage.setItem('yellowFilterEnabled', e.target.checked);
+            safeSetItem('yellowFilterEnabled', e.target.checked);
 
             // 控制黄色内容接口的显示状态
             const adultdiv = document.getElementById('adultdiv');
@@ -699,7 +694,7 @@ function setupEventListeners() {
     const adFilterToggle = document.getElementById('adFilterToggle');
     if (adFilterToggle) {
         adFilterToggle.addEventListener('change', function (e) {
-            localStorage.setItem(PLAYER_CONFIG.adFilteringStorage, e.target.checked);
+            safeSetItem(PLAYER_CONFIG.adFilteringStorage, e.target.checked);
         });
     }
 
@@ -707,7 +702,7 @@ function setupEventListeners() {
     const continueWatchPromptToggle = document.getElementById('continueWatchPromptToggle');
     if (continueWatchPromptToggle) {
         continueWatchPromptToggle.addEventListener('change', function (e) {
-            localStorage.setItem('continueWatchPromptEnabled', e.target.checked);
+            safeSetItem('continueWatchPromptEnabled', e.target.checked);
         });
     }
 }
@@ -1197,20 +1192,14 @@ function renderDetailIntoModal(detailData, sourceItems, activeIndex, vodName, vo
     const vi = detailData.videoInfo || {};
     const currentItem = (sourceItems && sourceItems.length) ? sourceItems[activeIndex] : null;
 
-    // 属性安全转义：除 escapeHtml 外再处理单引号，避免 HTML 属性内拼接被破坏
-    const attrEsc = (s) => String(s ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
     const safeVodName = escapeHtml(vodName || '未知视频');
     // 当前源名称：优先取详情响应（videoInfo.source_name），回退合并项 name
     const safeSourceName = escapeHtml(vi.source_name || (currentItem && currentItem.name) || '');
     const rawSourceCode = currentItem ? String(currentItem.code ?? '') : '';
     const rawVodId = currentItem ? String(currentItem.vod_id ?? '') : '';
-    const safeSourceCode = attrEsc(rawSourceCode);
-    const safeId = attrEsc(rawVodId);
+    // 属性安全转义统一使用 utils.js 的 escapeAttr（双引号 + 单引号属性上下文均安全）
+    const safeSourceCode = escapeAttr(rawSourceCode);
+    const safeId = escapeAttr(rawVodId);
 
     // 副标题（hero 左下浮层下方）：优先展示数据源名称
     const subtitleText = safeSourceName;
@@ -1417,13 +1406,13 @@ function playVideo(url, vod_name, sourceCode, episodeIndex = 0, vodId = '', vodY
 
     // 保存当前状态到localStorage（与原 playVideo 行为完全一致）
     try {
-        localStorage.setItem('currentVideoTitle', vod_name || '未知视频');
-        localStorage.setItem('currentEpisodes', JSON.stringify(currentEpisodes));
-        localStorage.setItem('currentEpisodeIndex', episodeIndex);
-        localStorage.setItem('currentSourceCode', sourceCode || '');
-        localStorage.setItem('lastPlayTime', Date.now());
-        localStorage.setItem('lastSearchPage', currentPath);
-        localStorage.setItem('lastPageUrl', currentPath);  // 确保保存返回页面URL
+        safeSetItem('currentVideoTitle', vod_name || '未知视频');
+        safeSetItem('currentEpisodes', JSON.stringify(currentEpisodes));
+        safeSetItem('currentEpisodeIndex', episodeIndex);
+        safeSetItem('currentSourceCode', sourceCode || '');
+        safeSetItem('lastPlayTime', Date.now());
+        safeSetItem('lastSearchPage', currentPath);
+        safeSetItem('lastPageUrl', currentPath);  // 确保保存返回页面URL
     } catch (e) {
         console.error('保存播放状态失败:', e);
     }
@@ -1612,7 +1601,7 @@ async function importConfigFromUrl() {
 
             // 导入配置
             for (let item in config.data) {
-                localStorage.setItem(item, config.data[item]);
+                safeSetItem(item, config.data[item]);
             }
 
             showToast('配置文件导入成功，3 秒后自动刷新本页面。', 'success');
@@ -1665,7 +1654,7 @@ async function importConfig() {
 
             // 导入配置
             for (let item in config.data) {
-                localStorage.setItem(item, config.data[item]);
+                safeSetItem(item, config.data[item]);
             }
 
             showToast('配置文件导入成功，3 秒后自动刷新本页面。', 'success');
@@ -1942,39 +1931,78 @@ function resetSearchFilters() {
 }
 
 // 构建单个搜索结果卡片 HTML（增量渲染与最终渲染共用，避免 DOM 重建闪烁）
+// 事件委托架构：onclick 不拼接任何数据值（防单引号注入破坏 JS 字符串上下文），
+// 详情参数存于 searchCardData Map（键为清洗后的稳定 data-card-key），由 click 委托读取。
+// 卡片 HTML 不经过 innerHTML 往返，重渲染/克隆后委托仍可用（旧 onclick 内联方案往返即丢）。
+const searchCardData = new Map();
+
+// 防止 Map 无限增长：每次整页重渲染前清空（当前页卡片会立即重新注册；
+// 旧页卡片已离开 DOM，其残留条目仅浪费内存，不影响正确性）
+function resetSearchCardData() {
+    searchCardData.clear();
+}
+
+// 卡片点击/键盘事件委托：HTML 不经过 innerHTML 往返也能工作（内联 onclick 往返即丢）。
+// 详情参数经 data-card-key 从 searchCardData Map 查回，属性中不拼接任何数据值。
+document.addEventListener('click', function (e) {
+    const card = e.target.closest('[data-card-key]');
+    if (!card || !document.getElementById('results')?.contains(card)) return;
+    openSearchDetail(card.getAttribute('data-card-key'));
+});
+
+// 无障碍：role="button" + tabindex="0" 的卡片支持 Enter / Space 触发详情
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('[data-card-key]');
+    if (!card || !document.getElementById('results')?.contains(card)) return;
+    e.preventDefault();
+    openSearchDetail(card.getAttribute('data-card-key'));
+});
+
+function openSearchDetail(cardKey) {
+    const d = searchCardData.get(cardKey);
+    if (!d) return;
+    showDetails(d.id, d.name, d.sourceCode, d.pic, d.year);
+}
+
 function buildSearchCardHTML(item) {
     const safeId = item.vod_id ? item.vod_id.toString().replace(/[^\w-]/g, '') : '';
-    const safeName = (item.vod_name || '').toString()
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+    const safeName = escapeHtml(item.vod_name || '');
     // 去重合并后的卡片：显示首个源 + 来源数徽标（增量阶段单源无 merged_sources，走原逻辑）
     let sourceInfo = '';
     if (item.source_name) {
-        sourceInfo = `<span class="bg-[#222] text-xs px-1.5 py-0.5 rounded-full">${item.source_name}</span>`;
+        sourceInfo = `<span class="bg-[#222] text-xs px-1.5 py-0.5 rounded-full">${escapeHtml(item.source_name)}</span>`;
         if (item.source_count > 1) {
             sourceInfo += `<span class="bg-indigo-500/20 text-indigo-300 text-xs px-1.5 py-0.5 rounded-full">${item.source_count} 个源</span>`;
         }
     }
-    const sourceCode = item.source_code || '';
-
-    const apiUrlAttr = item.api_url ?
-        `data-api-url="${item.api_url.replace(/"/g, '&quot;')}"` : '';
 
     // 获取版本信息（如"高清版"）
-    const vodVersion = item.vod_version ? item.vod_version.toString().replace(/</g, '&lt;') : '';
+    const vodVersion = escapeHtml(item.vod_version || '');
 
     const hasCover = item.vod_pic && item.vod_pic.startsWith('http');
 
+    // 注册卡片详情参数（showDetails / LazyImageLoader 回调经 data-card-key 查回原始值）
+    const cardKey = `${safeId}|${escapeAttr(item.source_code || '')}`;
+    searchCardData.set(cardKey, {
+        id: safeId,
+        name: String(item.vod_name || ''),
+        sourceCode: String(item.source_code || ''),
+        pic: String(item.vod_pic || ''),
+        year: String(item.vod_year || ''),
+    });
+
     return `
         <div class="card-hover bg-[#111] rounded-lg overflow-hidden cursor-pointer transition-all hover:scale-[1.02] h-full shadow-sm hover:shadow-md"
-             onclick="showDetails('${safeId}','${safeName}','${sourceCode}','${item.vod_pic || ''}','${item.vod_year || ''}')" ${apiUrlAttr}>
+             data-card-key="${cardKey}" role="button" tabindex="0">
             <div class="flex h-full">
                 ${hasCover ? `
                 <div class="relative flex-shrink-0 search-card-img-container">
-                    <img src="${item.vod_pic}" alt="${safeName}"
-                         class="h-full w-full object-cover transition-transform hover:scale-110"
-                         onerror="this.onerror=null; this.src='https://via.placeholder.com/300x450?text=无封面'; this.classList.add('object-contain');"
+                    <img class="lazy-load h-full w-full object-cover transition-transform hover:scale-110"
+                         data-src="${escapeAttr(item.vod_pic)}"
+                         data-card-key="${cardKey}"
+                         alt="${safeName}"
+                         referrerpolicy="no-referrer"
                          loading="lazy">
                     <div class="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent"></div>
                 </div>` : ''}
@@ -1984,13 +2012,13 @@ function buildSearchCardHTML(item) {
                         <h3 class="font-semibold mb-2 break-words line-clamp-2 ${hasCover ? '' : 'text-center'}" title="${safeName}">${safeName}</h3>
 
                         <div class="flex flex-wrap ${hasCover ? '' : 'justify-center'} gap-1 mb-2">
-                            ${(item.type_name || '').toString().replace(/</g, '&lt;') ?
+                            ${item.type_name ?
             `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-blue-500 text-blue-300">
-                                  ${(item.type_name || '').toString().replace(/</g, '&lt;')}
+                                  ${escapeHtml(item.type_name)}
                               </span>` : ''}
                             ${(item.vod_year || '') ?
             `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-purple-500 text-purple-300">
-                                  ${item.vod_year}
+                                  ${escapeHtml(item.vod_year)}
                               </span>` : ''}
                             ${vodVersion ?
             `<span class="text-xs py-0.5 px-1.5 rounded bg-opacity-20 bg-green-500 text-green-300">
@@ -1998,7 +2026,7 @@ function buildSearchCardHTML(item) {
                               </span>` : ''}
                         </div>
                         <p class="text-gray-400 line-clamp-2 overflow-hidden ${hasCover ? '' : 'text-center'} mb-2">
-                            ${(item.vod_remarks || '暂无介绍').toString().replace(/</g, '&lt;')}
+                            ${escapeHtml(item.vod_remarks || '暂无介绍')}
                         </p>
                     </div>
 
@@ -2040,6 +2068,8 @@ function renderSearchResults(results) {
     const endIndex = startIndex + itemsPerPage;
     const pageResults = results.slice(startIndex, endIndex);
 
+    // 整页重建前清空卡片参数 Map（当前页随即重新注册，防止跨页累积）
+    resetSearchCardData();
     let safeResults = pageResults.map(buildSearchCardHTML).join('');
 
     // 末页不足一页时补不可见占位卡片，保持网格行高一致，分页栏不跳动
